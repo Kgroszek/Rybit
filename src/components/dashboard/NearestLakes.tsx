@@ -47,25 +47,23 @@ function degreesToRadians(degrees: number) {
 }
 
 export function NearestLakes({ lakes }: NearestLakesProps) {
-  const [userLocation, setUserLocation] = useState<UserLocation | null>(() => {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const savedLocation = localStorage.getItem("rybit-user-location");
-
-  if (!savedLocation) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(savedLocation) as UserLocation;
-  } catch {
-    return null;
-  }
-});
+ const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
 
 useEffect(() => {
+  const timeoutId = window.setTimeout(() => {
+    const savedLocation = localStorage.getItem("rybit-user-location");
+
+    if (!savedLocation) {
+      return;
+    }
+
+    try {
+      setUserLocation(JSON.parse(savedLocation) as UserLocation);
+    } catch {
+      setUserLocation(null);
+    }
+  }, 0);
+
   function handleLocationUpdated(event: Event) {
     const customEvent = event as CustomEvent<UserLocation>;
     setUserLocation(customEvent.detail);
@@ -74,6 +72,8 @@ useEffect(() => {
   window.addEventListener("rybit:user-location-updated", handleLocationUpdated);
 
   return () => {
+    window.clearTimeout(timeoutId);
+
     window.removeEventListener(
       "rybit:user-location-updated",
       handleLocationUpdated

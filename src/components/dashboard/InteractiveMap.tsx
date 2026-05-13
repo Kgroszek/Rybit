@@ -144,7 +144,7 @@ function LocateButton({
     <button
       type="button"
       onClick={handleLocateUser}
-      className="absolute left-5 top-5 z-[500] rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold shadow-sm transition hover:bg-slate-50"
+      className="absolute left-4 top-4 z-[500] rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-semibold shadow-sm transition hover:bg-slate-50 sm:left-5 sm:top-5 sm:px-4 sm:py-3 sm:text-sm"
     >
       {isLoading ? "Szukam..." : "Moja lokalizacja"}
     </button>
@@ -180,6 +180,7 @@ export function InteractiveMap({ lakes }: InteractiveMapProps) {
   const [ownerTypeFilter, setOwnerTypeFilter] = useState<LakeOwnerType>("all");
   const [fishingTypeFilter, setFishingTypeFilter] =
     useState<FishingType>("all");
+  const [areFiltersOpen, setAreFiltersOpen] = useState(false);
 
   const filteredLakes = useMemo(() => {
     return lakes.filter((lake) => {
@@ -194,7 +195,7 @@ export function InteractiveMap({ lakes }: InteractiveMapProps) {
   }, [lakes, ownerTypeFilter, fishingTypeFilter]);
 
   return (
-    <div className="relative h-[600px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <div className="relative h-[520px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm sm:h-[560px] lg:h-[600px]">
       <MapContainer
         center={[53.7784, 20.4801]}
         zoom={10}
@@ -287,8 +288,21 @@ export function InteractiveMap({ lakes }: InteractiveMapProps) {
           </Marker>
         ))}
       </MapContainer>
+      <button
+        type="button"
+        onClick={() => setAreFiltersOpen((current) => !current)}
+        className="absolute bottom-5 left-5 z-[1000] rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-blue-700 sm:hidden"
+      >
+        {areFiltersOpen ? "Ukryj filtry" : "Filtry"}
+      </button>
 
-      <div className="absolute right-5 top-5 z-[500] w-72 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+     <div
+        className={`absolute left-5 right-5 z-[550] rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition sm:left-auto sm:right-5 sm:top-5 sm:w-72 ${
+          areFiltersOpen
+            ? "bottom-20 opacity-100"
+            : "pointer-events-none bottom-20 opacity-0 sm:pointer-events-auto sm:bottom-auto sm:opacity-100"
+        }`}
+      >
         <div className="mb-4 flex items-center justify-between">
           <div>
             <p className="font-bold text-slate-900">Filtry łowisk</p>
@@ -368,7 +382,7 @@ export function InteractiveMap({ lakes }: InteractiveMapProps) {
         </div>
       </div>
 
-      <div className="absolute bottom-5 left-5 z-[500] rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+      <div className="absolute bottom-5 left-5 z-[500] hidden rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm sm:block">
         <p className="mb-3 font-bold text-slate-900">Rodzaj łowiska</p>
 
         <div className="space-y-2">

@@ -15,8 +15,8 @@ export default async function Home() {
     <DashboardLayout>
       <Topbar />
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <div className="space-y-6">
+      <div className="grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-5 lg:space-y-6">
           <MapSection lakes={lakes} />
           <RecommendedLakes lakes={lakes} />
           <StatsSection />

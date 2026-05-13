@@ -23,10 +23,12 @@ export function Topbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   return (
-    <header className="mb-8 grid gap-4 xl:grid-cols-[1fr_minmax(320px,520px)_auto] xl:items-center">
+    <header className="mb-6 grid gap-4 lg:mb-8 xl:grid-cols-[1fr_minmax(320px,520px)_auto] xl:items-center">
       {/* LEFT */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Cześć, Piotr!</h1>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+          Cześć, Jakub!
+        </h1>
 
         <p className="mt-1 text-slate-500">
           Gotowy na kolejną wędkarską wyprawę?
@@ -42,13 +44,13 @@ export function Topbar() {
       </div>
 
       {/* RIGHT ACTIONS */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
        <Link
-          href="/lowiska/zglos"
-          className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-        >
-          + Zgłoś nowe łowisko
-        </Link>
+            href="/lowiska/zglos"
+            className="order-3 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:order-none sm:w-auto"
+          >
+            + Zgłoś łowisko
+          </Link>
 
         <button
           type="button"
