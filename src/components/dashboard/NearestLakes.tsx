@@ -47,29 +47,39 @@ function degreesToRadians(degrees: number) {
 }
 
 export function NearestLakes({ lakes }: NearestLakesProps) {
-  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(() => {
+  if (typeof window === "undefined") {
+    return null;
+  }
 
-  useEffect(() => {
-    const savedLocation = localStorage.getItem("rybit-user-location");
+  const savedLocation = localStorage.getItem("rybit-user-location");
 
-    if (savedLocation) {
-      setUserLocation(JSON.parse(savedLocation));
-    }
+  if (!savedLocation) {
+    return null;
+  }
 
-    function handleLocationUpdated(event: Event) {
-      const customEvent = event as CustomEvent<UserLocation>;
-      setUserLocation(customEvent.detail);
-    }
+  try {
+    return JSON.parse(savedLocation) as UserLocation;
+  } catch {
+    return null;
+  }
+});
 
-    window.addEventListener("rybit:user-location-updated", handleLocationUpdated);
+useEffect(() => {
+  function handleLocationUpdated(event: Event) {
+    const customEvent = event as CustomEvent<UserLocation>;
+    setUserLocation(customEvent.detail);
+  }
 
-    return () => {
-      window.removeEventListener(
-        "rybit:user-location-updated",
-        handleLocationUpdated
-      );
-    };
-  }, []);
+  window.addEventListener("rybit:user-location-updated", handleLocationUpdated);
+
+  return () => {
+    window.removeEventListener(
+      "rybit:user-location-updated",
+      handleLocationUpdated
+    );
+  };
+}, []);
 
   const nearestLakes = useMemo<NearestLake[]>(() => {
     if (!userLocation) {
