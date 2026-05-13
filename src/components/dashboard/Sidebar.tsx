@@ -38,6 +38,11 @@ const mainMenuItems: MenuItem[] = [
     icon: <TripIcon />,
   },
   {
+  label: "Checklisty",
+  href: "/checklisty",
+  icon: <ChecklistIcon />,
+},
+  {
     label: "Moje połowy",
     href: "/polowy",
     icon: <FishIcon />,
@@ -289,6 +294,18 @@ function LogoutIcon() {
       <path d="M10 17l5-5-5-5" />
       <path d="M15 12H3" />
       <path d="M21 3v18" />
+    </IconBase>
+  );
+}
+
+function ChecklistIcon() {
+  return (
+    <IconBase>
+      <path d="M9 11l2 2 4-4" />
+      <path d="M9 17l2 2 4-4" />
+      <path d="M4 5h16" />
+      <path d="M4 12h2" />
+      <path d="M4 19h2" />
     </IconBase>
   );
 }

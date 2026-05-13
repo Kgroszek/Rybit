@@ -178,3 +178,38 @@ model FishingGear {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+model TripChecklist {
+  id        String   @id @default(cuid())
+  userId    String
+
+  title     String
+  tripType  String   @default("custom")
+  status    String   @default("preparing")
+  note      String?
+
+  items     TripChecklistItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TripChecklistItem {
+  id          String   @id @default(cuid())
+  checklistId String
+
+  name        String
+  category    String
+  quantity    Int      @default(1)
+  unit        String?
+  isPacked    Boolean  @default(false)
+  isImportant Boolean  @default(false)
+  source      String   @default("manual")
+  gearId      String?
+  note        String?
+
+  checklist   TripChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
