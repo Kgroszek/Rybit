@@ -157,3 +157,24 @@ model LakeSubmission {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }
+
+model FishingGear {
+  id             String   @id @default(cuid())
+  userId         String
+
+  name           String
+  quantity       Int      @default(1)
+  category       String
+  brand          String?
+  model          String?
+  fishingMethod  String
+  condition      String
+  status         String   @default("active")
+  price          Float?
+  purchaseDate   DateTime?
+  note           String?
+  isDefault      Boolean  @default(false)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
