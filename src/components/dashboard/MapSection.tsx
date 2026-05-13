@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import type { LakeDto } from "@/lib/lakes";
 
 const InteractiveMap = dynamic(
   () =>
@@ -19,6 +20,10 @@ const InteractiveMap = dynamic(
   }
 );
 
-export function MapSection() {
-  return <InteractiveMap />;
+type MapSectionProps = {
+  lakes: LakeDto[];
+};
+
+export function MapSection({ lakes }: MapSectionProps) {
+  return <InteractiveMap lakes={lakes} />;
 }

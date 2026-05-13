@@ -2,55 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-type Lake = {
-  name: string;
-  slug: string;
-  rating: string;
-  fish: string;
-  fishSpecies: string[];
-  type: string;
-  fishingType: string;
-  lat: number;
-  lng: number;
-  address: {
-    street: string;
-    city: string;
-    postalCode: string;
-    voivodeship: string;
-  };
-  description: string;
-  amenities: {
-    cottages: boolean;
-    campfire: boolean;
-    noKill: boolean;
-    tent: boolean;
-    parking: boolean;
-    pier: boolean;
-    toilet: boolean;
-    shop: boolean;
-    nightFishing: boolean;
-    boatRental: boolean;
-  };
-  details: {
-    area: string;
-    averageDepth: string;
-    bottomType: string;
-    waterType: string;
-  };
-  priceList: string[];
-  rules: string[];
-  contact: {
-    name: string;
-    phone: string;
-    email: string;
-    website: string;
-  };
-  images: string[];
-};
+import type { LakeDto } from "@/lib/lakes";
 
 type LakeDetailsPageProps = {
-  lake: Lake;
+  lake: LakeDto;
 };
 
 const amenitiesLabels = [
@@ -166,7 +121,7 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
 
       <section className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="grid min-h-[360px] lg:grid-cols-[1.4fr_0.6fr]">
-          <div className="relative bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200 p-6">
+          <div className="relative min-h-[360px] bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200 p-6">
             <div className="absolute left-6 top-6 flex flex-wrap gap-2">
               <span
                 className={`rounded-full px-3 py-1 text-xs font-bold ${
@@ -183,43 +138,63 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
               </span>
             </div>
 
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-  <div>
-    <h1 className="text-4xl font-bold tracking-tight text-slate-950">
-      {lake.name}
-    </h1>
+            <div className="absolute bottom-6 left-6 right-6 rounded-3xl bg-white/85 p-6 shadow-sm backdrop-blur">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                <div>
+                  <h1 className="text-4xl font-bold tracking-tight text-slate-950">
+                    {lake.name}
+                  </h1>
 
-    <p className="mt-2 text-slate-600">
-      {lake.address.street}, {lake.address.postalCode}{" "}
-      {lake.address.city}, woj. {lake.address.voivodeship}
-    </p>
-  </div>
+                  <p className="mt-2 text-slate-600">
+                    {lake.address.street}, {lake.address.postalCode}{" "}
+                    {lake.address.city}, woj. {lake.address.voivodeship}
+                  </p>
+                </div>
 
-  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-    <button
-      type="button"
-      onClick={handleFavouriteToggle}
-      className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
-        isFavourite
-          ? "bg-red-50 text-red-600 hover:bg-red-100"
-          : "bg-white text-slate-700 hover:bg-slate-50"
-      }`}
-    >
-      {isFavourite ? "♥ W ulubionych" : "♡ Dodaj do ulubionych"}
-    </button>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <button
+                    type="button"
+                    onClick={handleFavouriteToggle}
+                    className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
+                      isFavourite
+                        ? "bg-red-50 text-red-600 hover:bg-red-100"
+                        : "bg-white text-slate-700 hover:bg-slate-50"
+                    }`}
+                  >
+                    {isFavourite ? "♥ W ulubionych" : "♡ Dodaj do ulubionych"}
+                  </button>
 
-    <div className="rounded-2xl bg-blue-50 px-4 py-3 text-lg font-bold text-blue-700">
-      ★ {lake.rating}
-    </div>
-  </div>
-</div>
+                  <div className="rounded-2xl bg-blue-50 px-4 py-3 text-lg font-bold text-blue-700">
+                    ★ {lake.rating}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 p-4">
-            <div className="rounded-2xl bg-slate-100" />
-            <div className="rounded-2xl bg-slate-100" />
-            <div className="rounded-2xl bg-slate-100" />
-            <div className="rounded-2xl bg-slate-100" />
+            {lake.images.length > 0 ? (
+              lake.images.slice(0, 4).map((image, index) => (
+                <div
+                  key={`${image}-${index}`}
+                  className="overflow-hidden rounded-2xl bg-slate-100"
+                >
+                  <div
+                    className="h-full min-h-[150px] bg-cover bg-center"
+                    style={{
+                      backgroundImage: `url(${image})`,
+                    }}
+                  />
+                </div>
+              ))
+            ) : (
+              <>
+                <div className="rounded-2xl bg-slate-100" />
+                <div className="rounded-2xl bg-slate-100" />
+                <div className="rounded-2xl bg-slate-100" />
+                <div className="rounded-2xl bg-slate-100" />
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -302,9 +277,7 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-950">
-              Cennik
-            </h2>
+            <h2 className="text-xl font-bold text-slate-950">Cennik</h2>
 
             <div className="mt-5 space-y-3">
               {lake.priceList.map((priceItem) => (
@@ -325,7 +298,10 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
 
             <div className="mt-5 space-y-3">
               {lake.rules.map((rule) => (
-                <div key={rule} className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+                <div
+                  key={rule}
+                  className="flex gap-3 rounded-2xl bg-slate-50 p-4"
+                >
                   <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
                     ✓
                   </span>
@@ -340,50 +316,51 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
         </div>
 
         <aside className="space-y-6">
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-  <h2 className="text-xl font-bold text-slate-950">Oceń łowisko</h2>
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-bold text-slate-950">Oceń łowisko</h2>
 
-  <p className="mt-2 text-sm leading-6 text-slate-500">
-    Jak oceniasz to miejsce po swojej wizycie?
-  </p>
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Jak oceniasz to miejsce po swojej wizycie?
+            </p>
 
-  <div className="mt-5 flex items-center gap-2">
-    {[1, 2, 3, 4, 5].map((star) => {
-      const isActive = star <= (hoveredRating || userRating);
+            <div className="mt-5 flex items-center gap-2">
+              {[1, 2, 3, 4, 5].map((star) => {
+                const isActive = star <= (hoveredRating || userRating);
 
-      return (
-        <button
-          key={star}
-          type="button"
-          onClick={() => handleRatingChange(star)}
-          onMouseEnter={() => setHoveredRating(star)}
-          onMouseLeave={() => setHoveredRating(0)}
-          className={`text-4xl transition ${
-            isActive
-              ? "text-amber-400"
-              : "text-slate-200 hover:text-amber-300"
-          }`}
-          aria-label={`Oceń na ${star} gwiazdek`}
-        >
-          ★
-        </button>
-      );
-    })}
-  </div>
+                return (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => handleRatingChange(star)}
+                    onMouseEnter={() => setHoveredRating(star)}
+                    onMouseLeave={() => setHoveredRating(0)}
+                    className={`text-4xl transition ${
+                      isActive
+                        ? "text-amber-400"
+                        : "text-slate-200 hover:text-amber-300"
+                    }`}
+                    aria-label={`Oceń na ${star} gwiazdek`}
+                  >
+                    ★
+                  </button>
+                );
+              })}
+            </div>
 
-  <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-    {userRating > 0 ? (
-      <p className="text-sm font-semibold text-slate-700">
-        Twoja ocena:{" "}
-        <span className="text-amber-500">{userRating}/5</span>
-      </p>
-    ) : (
-      <p className="text-sm font-semibold text-slate-500">
-        Nie oceniono jeszcze tego łowiska.
-      </p>
-    )}
-  </div>
-</section>
+            <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+              {userRating > 0 ? (
+                <p className="text-sm font-semibold text-slate-700">
+                  Twoja ocena:{" "}
+                  <span className="text-amber-500">{userRating}/5</span>
+                </p>
+              ) : (
+                <p className="text-sm font-semibold text-slate-500">
+                  Nie oceniono jeszcze tego łowiska.
+                </p>
+              )}
+            </div>
+          </section>
+
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold text-slate-950">
               Informacje o łowisku
@@ -391,7 +368,10 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
 
             <div className="mt-5 space-y-4">
               <InfoRow label="Powierzchnia" value={lake.details.area} />
-              <InfoRow label="Średnia głębokość" value={lake.details.averageDepth} />
+              <InfoRow
+                label="Średnia głębokość"
+                value={lake.details.averageDepth}
+              />
               <InfoRow label="Rodzaj dna" value={lake.details.bottomType} />
               <InfoRow label="Typ wody" value={lake.details.waterType} />
             </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { RegisterForm } from "@/components/auth/RegisterForm";
 
 export default function RegisterPage() {
   return (
@@ -73,90 +74,7 @@ export default function RegisterPage() {
                 </p>
               </div>
 
-              <form className="space-y-5">
-                <div>
-                  <label
-                    htmlFor="name"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Imię lub nazwa profilu
-                  </label>
-
-                  <input
-                    id="name"
-                    type="text"
-                    placeholder="np. Piotr Nowak"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Adres e-mail
-                  </label>
-
-                  <input
-                    id="email"
-                    type="email"
-                    placeholder="twoj@email.pl"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="password"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Hasło
-                  </label>
-
-                  <input
-                    id="password"
-                    type="password"
-                    placeholder="Minimum 8 znaków"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="passwordConfirmation"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Powtórz hasło
-                  </label>
-
-                  <input
-                    id="passwordConfirmation"
-                    type="password"
-                    placeholder="Wpisz hasło ponownie"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-                  />
-                </div>
-
-                <label className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4">
-                  <input
-                    type="checkbox"
-                    className="mt-1 h-4 w-4 rounded border-slate-300 text-blue-600"
-                  />
-
-                  <span className="text-sm leading-6 text-slate-600">
-                    Akceptuję regulamin oraz politykę prywatności aplikacji
-                    Rybit.
-                  </span>
-                </label>
-
-                <button
-                  type="submit"
-                  className="w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-                >
-                  Załóż darmowe konto
-                </button>
-              </form>
+              <RegisterForm />
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-slate-500">

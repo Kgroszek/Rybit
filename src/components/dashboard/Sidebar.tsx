@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 type MenuItem = {
   label: string;
@@ -93,10 +94,10 @@ export function Sidebar() {
       </div>
 
       <div className="mt-auto pt-6">
-        <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-500 transition hover:bg-red-50">
+        <LogoutButton className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-500 transition hover:bg-red-50">
           <LogoutIcon />
           Wyloguj
-        </button>
+        </LogoutButton>
       </div>
     </aside>
   );

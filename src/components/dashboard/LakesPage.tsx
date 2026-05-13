@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { lakes } from "@/data/dashboardData";
+import type { LakeDto } from "@/lib/lakes";
 import Link from "next/link";
 
 type OwnerTypeFilter = "all" | "pzw" | "commercial";
@@ -21,7 +21,11 @@ function getFishingTypeLabel(type: string) {
   return "Inne";
 }
 
-export function LakesPage() {
+type LakesPageProps = {
+  lakes: LakeDto[];
+};
+
+export function LakesPage({ lakes }: LakesPageProps) {
   const [search, setSearch] = useState("");
   const [ownerType, setOwnerType] = useState<OwnerTypeFilter>("all");
   const [fishingType, setFishingType] = useState<FishingTypeFilter>("all");

@@ -1,0 +1,110 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Lake {
+  id             String   @id @default(cuid())
+  name           String
+  slug           String   @unique
+  description    String
+  rating         Float    @default(0)
+
+  ownerType      String
+  fishingType    String
+  fish           String
+
+  lat            Float
+  lng            Float
+
+  street         String
+  city           String
+  postalCode     String
+  voivodeship    String
+
+  area           String
+  averageDepth   String
+  bottomType     String
+  waterType      String
+
+  cottages       Boolean  @default(false)
+  campfire       Boolean  @default(false)
+  noKill         Boolean  @default(false)
+  tent           Boolean  @default(false)
+  parking        Boolean  @default(false)
+  pier           Boolean  @default(false)
+  toilet         Boolean  @default(false)
+  shop           Boolean  @default(false)
+  nightFishing   Boolean  @default(false)
+  boatRental     Boolean  @default(false)
+
+  contactName    String
+  contactPhone   String
+  contactEmail   String
+  contactWebsite String
+
+  priceList      PriceItem[]
+  rules          Rule[]
+  fishSpecies    FishSpecies[]
+  images         LakeImage[]
+  favourites     Favourite[]
+  ratings        Rating[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model PriceItem {
+  id     String @id @default(cuid())
+  text   String
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+}
+
+model Rule {
+  id     String @id @default(cuid())
+  text   String
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+}
+
+model FishSpecies {
+  id     String @id @default(cuid())
+  name   String
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+}
+
+model LakeImage {
+  id     String @id @default(cuid())
+  url    String
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+}
+
+model Favourite {
+  id        String   @id @default(cuid())
+  userId    String
+  lakeId    String
+  lake      Lake     @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, lakeId])
+}
+
+model Rating {
+  id        String   @id @default(cuid())
+  userId    String
+  lakeId    String
+  lake      Lake     @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+  value     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, lakeId])
+}

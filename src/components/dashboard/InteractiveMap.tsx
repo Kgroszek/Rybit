@@ -3,7 +3,7 @@
 import L from "leaflet";
 import { useMemo, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import { lakes } from "@/data/dashboardData";
+import type { LakeDto } from "@/lib/lakes";
 
 type UserLocation = {
   lat: number;
@@ -12,6 +12,10 @@ type UserLocation = {
 
 type LakeOwnerType = "all" | "pzw" | "commercial";
 type FishingType = "all" | "general" | "spinning" | "carp";
+
+type InteractiveMapProps = {
+  lakes: LakeDto[];
+};
 
 function createLakeIcon(color: string, shadowColor: string) {
   return L.divIcon({
@@ -171,7 +175,7 @@ function FilterButton({
   );
 }
 
-export function InteractiveMap() {
+export function InteractiveMap({ lakes }: InteractiveMapProps) {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [ownerTypeFilter, setOwnerTypeFilter] = useState<LakeOwnerType>("all");
   const [fishingTypeFilter, setFishingTypeFilter] =
@@ -187,7 +191,7 @@ export function InteractiveMap() {
 
       return matchesOwnerType && matchesFishingType;
     });
-  }, [ownerTypeFilter, fishingTypeFilter]);
+  }, [lakes, ownerTypeFilter, fishingTypeFilter]);
 
   return (
     <div className="relative h-[600px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -215,7 +219,7 @@ export function InteractiveMap() {
 
         {filteredLakes.map((lake) => (
           <Marker
-            key={lake.name}
+            key={lake.id}
             position={[lake.lat, lake.lng]}
             icon={lake.type === "commercial" ? commercialIcon : pzwIcon}
           >

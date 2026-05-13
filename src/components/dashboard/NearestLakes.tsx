@@ -1,11 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { lakes } from "@/data/dashboardData";
+import type { LakeDto } from "@/lib/lakes";
 
 type UserLocation = {
   lat: number;
   lng: number;
+};
+
+type NearestLake = LakeDto & {
+  calculatedDistance: number | null;
+};
+
+type NearestLakesProps = {
+  lakes: LakeDto[];
 };
 
 function calculateDistanceInKm(
@@ -37,7 +46,7 @@ function degreesToRadians(degrees: number) {
   return degrees * (Math.PI / 180);
 }
 
-export function NearestLakes() {
+export function NearestLakes({ lakes }: NearestLakesProps) {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
 
   useEffect(() => {
@@ -62,7 +71,7 @@ export function NearestLakes() {
     };
   }, []);
 
-  const nearestLakes = useMemo(() => {
+  const nearestLakes = useMemo<NearestLake[]>(() => {
     if (!userLocation) {
       return lakes.slice(0, 3).map((lake) => ({
         ...lake,
@@ -83,10 +92,13 @@ export function NearestLakes() {
         };
       })
       .sort((firstLake, secondLake) => {
-        return firstLake.calculatedDistance - secondLake.calculatedDistance;
+        const firstDistance = firstLake.calculatedDistance ?? Infinity;
+        const secondDistance = secondLake.calculatedDistance ?? Infinity;
+
+        return firstDistance - secondDistance;
       })
       .slice(0, 3);
-  }, [userLocation]);
+  }, [lakes, userLocation]);
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -101,32 +113,41 @@ export function NearestLakes() {
           )}
         </div>
 
-        <button className="text-sm font-semibold text-blue-600">
+        <Link
+          href="/lowiska"
+          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+        >
           Zobacz
-        </button>
+        </Link>
       </div>
 
       <div className="space-y-4">
         {nearestLakes.map((lake) => (
-          <div key={lake.name} className="flex items-center gap-3">
-            <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-emerald-100 to-blue-100" />
+          <Link
+            key={lake.id}
+            href={`/lowiska/${lake.slug}`}
+            className="flex items-center gap-3 rounded-2xl transition hover:bg-slate-50"
+          >
+            <div className="h-14 w-14 shrink-0 rounded-xl bg-gradient-to-br from-emerald-100 to-blue-100" />
 
-            <div className="flex-1">
-              <p className="font-semibold">{lake.name}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-semibold text-slate-950">
+                {lake.name}
+              </p>
 
               <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
                 <span>★ {lake.rating}</span>
                 <span>•</span>
-                <span>{lake.fish.split(",")[0]}</span>
+                <span className="truncate">{lake.fish.split(",")[0]}</span>
               </div>
             </div>
 
-            <p className="text-right text-sm font-semibold text-slate-600">
-              {lake.calculatedDistance
+            <p className="shrink-0 text-right text-sm font-semibold text-slate-600">
+              {lake.calculatedDistance !== null
                 ? `${lake.calculatedDistance.toFixed(1)} km`
                 : lake.distance}
             </p>
-          </div>
+          </Link>
         ))}
       </div>
     </section>

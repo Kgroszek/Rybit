@@ -1,11 +1,20 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { lakes } from "@/data/dashboardData";
+import type { LakeDto } from "@/lib/lakes";
 
 type UserLocation = {
   lat: number;
   lng: number;
+};
+
+type RecommendedLake = LakeDto & {
+  calculatedDistance: number | null;
+};
+
+type RecommendedLakesProps = {
+  lakes: LakeDto[];
 };
 
 function calculateDistanceInKm(
@@ -65,7 +74,7 @@ function getFishingTypeLabel(type: string) {
   return "Inne";
 }
 
-export function RecommendedLakes() {
+export function RecommendedLakes({ lakes }: RecommendedLakesProps) {
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
 
   useEffect(() => {
@@ -90,7 +99,7 @@ export function RecommendedLakes() {
     };
   }, []);
 
-  const recommendedLakes = useMemo(() => {
+  const recommendedLakes = useMemo<RecommendedLake[]>(() => {
     if (!userLocation) {
       return lakes.slice(0, 3).map((lake) => ({
         ...lake,
@@ -111,10 +120,13 @@ export function RecommendedLakes() {
         };
       })
       .sort((firstLake, secondLake) => {
-        return firstLake.calculatedDistance - secondLake.calculatedDistance;
+        const firstDistance = firstLake.calculatedDistance ?? Infinity;
+        const secondDistance = secondLake.calculatedDistance ?? Infinity;
+
+        return firstDistance - secondDistance;
       })
       .slice(0, 3);
-  }, [userLocation]);
+  }, [lakes, userLocation]);
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -129,15 +141,18 @@ export function RecommendedLakes() {
           </p>
         </div>
 
-        <button className="shrink-0 text-sm font-semibold text-blue-600">
+        <Link
+          href="/lowiska"
+          className="shrink-0 text-sm font-semibold text-blue-600 hover:text-blue-700"
+        >
           Zobacz wszystkie
-        </button>
+        </Link>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         {recommendedLakes.map((lake) => (
           <article
-            key={lake.name}
+            key={lake.id}
             className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:shadow-md"
           >
             <div className="relative h-32 bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200">
@@ -165,7 +180,7 @@ export function RecommendedLakes() {
                 <span>★ {lake.rating}</span>
 
                 <span>
-                  {lake.calculatedDistance
+                  {lake.calculatedDistance !== null
                     ? `${lake.calculatedDistance.toFixed(1)} km`
                     : lake.distance}
                 </span>
@@ -173,9 +188,12 @@ export function RecommendedLakes() {
 
               <p className="mt-3 text-sm text-slate-500">{lake.fish}</p>
 
-              <button className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700">
+              <Link
+                href={`/lowiska/${lake.slug}`}
+                className="mt-4 flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
                 Zobacz łowisko
-              </button>
+              </Link>
             </div>
           </article>
         ))}

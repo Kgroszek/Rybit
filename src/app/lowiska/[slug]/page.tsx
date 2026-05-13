@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { LakeDetailsPage } from "@/components/dashboard/LakeDetailsPage";
-import { lakes } from "@/data/dashboardData";
+import { getLakeBySlug } from "@/lib/lakes";
 
 type LakePageProps = {
   params: Promise<{
@@ -12,7 +12,7 @@ type LakePageProps = {
 export default async function LakePage({ params }: LakePageProps) {
   const { slug } = await params;
 
-  const lake = lakes.find((lakeItem) => lakeItem.slug === slug);
+  const lake = await getLakeBySlug(slug);
 
   if (!lake) {
     notFound();

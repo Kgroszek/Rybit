@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LoginForm } from "@/components/auth/LoginForm";
 
 export default function LoginPage() {
   return (
@@ -71,66 +72,7 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              <form className="space-y-5">
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Adres e-mail
-                  </label>
-
-                  <input
-                    id="email"
-                    type="email"
-                    placeholder="twoj@email.pl"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-                  />
-                </div>
-
-                <div>
-                  <div className="mb-2 flex items-center justify-between gap-4">
-                    <label
-                      htmlFor="password"
-                      className="block text-sm font-semibold text-slate-700"
-                    >
-                      Hasło
-                    </label>
-
-                    <Link
-                      href="/forgot-password"
-                      className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-                    >
-                      Nie pamiętasz hasła?
-                    </Link>
-                  </div>
-
-                  <input
-                    id="password"
-                    type="password"
-                    placeholder="Wpisz hasło"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-                  />
-                </div>
-
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600"
-                  />
-
-                  <span className="text-sm font-medium text-slate-600">
-                    Zapamiętaj mnie
-                  </span>
-                </label>
-
-                <button
-                  type="submit"
-                  className="w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
-                >
-                  Zaloguj się
-                </button>
-              </form>
+              <LoginForm />
 
               <div className="my-6 flex items-center gap-4">
                 <div className="h-px flex-1 bg-slate-200" />

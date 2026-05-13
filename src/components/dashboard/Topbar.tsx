@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 const profileMenuItems = [
   {
@@ -96,10 +97,10 @@ export function Topbar() {
               </div>
 
               <div className="border-t border-slate-100 pt-2">
-                <button className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-red-500 transition hover:bg-red-50">
+                <LogoutButton className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-red-500 transition hover:bg-red-50">
                   <LogoutIcon />
                   Wyloguj
-                </button>
+                </LogoutButton>
               </div>
             </div>
           )}
