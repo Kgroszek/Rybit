@@ -79,33 +79,78 @@ function getNavigationUrl(lat: number, lng: number) {
 }
 
 export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
+  const [displayRating, setDisplayRating] = useState(lake.rating);
   const [userRating, setUserRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [isFavourite, setIsFavourite] = useState(false);
+  const [isLoadingUserData, setIsLoadingUserData] = useState(true);
+  const [isFavouriteLoading, setIsFavouriteLoading] = useState(false);
+  const [isRatingLoading, setIsRatingLoading] = useState(false);
 
   useEffect(() => {
-    const savedRating = localStorage.getItem(`rybit-rating-${lake.slug}`);
-    const savedFavourite = localStorage.getItem(`rybit-favourite-${lake.slug}`);
+    async function loadUserData() {
+      setIsLoadingUserData(true);
 
-    if (savedRating) {
-      setUserRating(Number(savedRating));
+      const response = await fetch(`/api/lakes/${lake.slug}/user-data`);
+
+      if (!response.ok) {
+        setIsLoadingUserData(false);
+        return;
+      }
+
+      const data = await response.json();
+
+      setIsFavourite(Boolean(data.isFavourite));
+      setUserRating(Number(data.userRating || 0));
+      setIsLoadingUserData(false);
     }
 
-    if (savedFavourite === "true") {
-      setIsFavourite(true);
-    }
+    loadUserData();
   }, [lake.slug]);
 
-  function handleRatingChange(rating: number) {
-    setUserRating(rating);
-    localStorage.setItem(`rybit-rating-${lake.slug}`, String(rating));
+  async function handleRatingChange(rating: number) {
+    setIsRatingLoading(true);
+
+    const response = await fetch(`/api/lakes/${lake.slug}/rating`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        value: rating,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "Nie udało się zapisać oceny.");
+      setIsRatingLoading(false);
+      return;
+    }
+
+    setUserRating(Number(data.userRating));
+    setDisplayRating(String(data.averageRating));
+    setIsRatingLoading(false);
   }
 
-  function handleFavouriteToggle() {
-    const nextValue = !isFavourite;
+  async function handleFavouriteToggle() {
+    setIsFavouriteLoading(true);
 
-    setIsFavourite(nextValue);
-    localStorage.setItem(`rybit-favourite-${lake.slug}`, String(nextValue));
+    const response = await fetch(`/api/lakes/${lake.slug}/favourite`, {
+      method: "POST",
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "Nie udało się zmienić ulubionych.");
+      setIsFavouriteLoading(false);
+      return;
+    }
+
+    setIsFavourite(Boolean(data.isFavourite));
+    setIsFavouriteLoading(false);
   }
 
   return (
@@ -155,17 +200,22 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
                   <button
                     type="button"
                     onClick={handleFavouriteToggle}
-                    className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
+                    disabled={isFavouriteLoading || isLoadingUserData}
+                    className={`rounded-2xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
                       isFavourite
                         ? "bg-red-50 text-red-600 hover:bg-red-100"
                         : "bg-white text-slate-700 hover:bg-slate-50"
                     }`}
                   >
-                    {isFavourite ? "♥ W ulubionych" : "♡ Dodaj do ulubionych"}
+                    {isFavouriteLoading
+                      ? "Zapisywanie..."
+                      : isFavourite
+                        ? "♥ W ulubionych"
+                        : "♡ Dodaj do ulubionych"}
                   </button>
 
                   <div className="rounded-2xl bg-blue-50 px-4 py-3 text-lg font-bold text-blue-700">
-                    ★ {lake.rating}
+                    ★ {displayRating}
                   </div>
                 </div>
               </div>
@@ -334,7 +384,8 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
                     onClick={() => handleRatingChange(star)}
                     onMouseEnter={() => setHoveredRating(star)}
                     onMouseLeave={() => setHoveredRating(0)}
-                    className={`text-4xl transition ${
+                    disabled={isRatingLoading || isLoadingUserData}
+                    className={`text-4xl transition disabled:cursor-not-allowed disabled:opacity-60 ${
                       isActive
                         ? "text-amber-400"
                         : "text-slate-200 hover:text-amber-300"
