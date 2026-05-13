@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import Link from "next/link";
 
 const profileMenuItems = [
   {
@@ -42,9 +43,12 @@ export function Topbar() {
 
       {/* RIGHT ACTIONS */}
       <div className="flex items-center gap-3">
-        <button className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
-          + Dodaj łowisko
-        </button>
+       <Link
+          href="/lowiska/zglos"
+          className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+        >
+          + Zgłoś nowe łowisko
+        </Link>
 
         <button
           type="button"

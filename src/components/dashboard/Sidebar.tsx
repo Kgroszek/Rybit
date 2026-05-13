@@ -8,6 +8,12 @@ type MenuItem = {
   label: string;
   href: string;
   icon: React.ReactNode;
+  badge?: number;
+};
+
+type SidebarProps = {
+  isAdmin?: boolean;
+  pendingSubmissionsCount?: number;
 };
 
 const mainMenuItems: MenuItem[] = [
@@ -22,8 +28,8 @@ const mainMenuItems: MenuItem[] = [
     icon: <MapIcon />,
   },
   {
-    label: "Dodaj łowisko",
-    href: "/lowiska/dodaj",
+    label: "Zgłoś łowisko",
+    href: "/lowiska/zglos",
     icon: <PlusIcon />,
   },
   {
@@ -61,7 +67,19 @@ const accountMenuItems: MenuItem[] = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({
+  isAdmin = false,
+  pendingSubmissionsCount = 0,
+}: SidebarProps) {
+  const adminMenuItems: MenuItem[] = [
+    {
+      label: "Zgłoszenia łowisk",
+      href: "/admin/zgloszenia-lowisk",
+      icon: <NotificationIcon />,
+      badge: pendingSubmissionsCount,
+    },
+  ];
+
   return (
     <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-6 lg:flex lg:flex-col">
       <div className="mb-10 flex items-center gap-3">
@@ -92,6 +110,20 @@ export function Sidebar() {
           ))}
         </nav>
       </div>
+
+      {isAdmin && (
+        <div className="mt-8 border-t border-slate-200 pt-6">
+          <p className="mb-3 px-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+            Admin
+          </p>
+
+          <nav className="space-y-1">
+            {adminMenuItems.map((item) => (
+              <SidebarButton key={item.label} item={item} />
+            ))}
+          </nav>
+        </div>
+      )}
 
       <div className="mt-auto pt-6">
         <LogoutButton className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-500 transition hover:bg-red-50">
@@ -124,7 +156,13 @@ function SidebarButton({ item }: { item: MenuItem }) {
         {item.icon}
       </span>
 
-      <span>{item.label}</span>
+      <span className="flex-1">{item.label}</span>
+
+      {item.badge !== undefined && item.badge > 0 && (
+        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-2 text-xs font-bold text-white">
+          {item.badge}
+        </span>
+      )}
     </Link>
   );
 }
@@ -232,6 +270,15 @@ function SettingsIcon() {
     <IconBase>
       <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" />
       <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2.1 2.1 0 0 1-2.97 2.97l-.04-.04a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.66V21a2.1 2.1 0 0 1-4.2 0v-.06a1.8 1.8 0 0 0-1.1-1.66 1.8 1.8 0 0 0-1.98.36l-.04.04a2.1 2.1 0 0 1-2.97-2.97l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.66-1.1H3a2.1 2.1 0 0 1 0-4.2h.06A1.8 1.8 0 0 0 4.72 8.6a1.8 1.8 0 0 0-.36-1.98l-.04-.04a2.1 2.1 0 0 1 2.97-2.97l.04.04a1.8 1.8 0 0 0 1.98.36A1.8 1.8 0 0 0 10.4 2.4V2a2.1 2.1 0 0 1 4.2 0v.06a1.8 1.8 0 0 0 1.1 1.66 1.8 1.8 0 0 0 1.98-.36l.04-.04a2.1 2.1 0 0 1 2.97 2.97l-.04.04a1.8 1.8 0 0 0-.36 1.98 1.8 1.8 0 0 0 1.66 1.1H21a2.1 2.1 0 0 1 0 4.2h-.06A1.8 1.8 0 0 0 19.4 15Z" />
+    </IconBase>
+  );
+}
+
+function NotificationIcon() {
+  return (
+    <IconBase>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+      <path d="M10 21h4" />
     </IconBase>
   );
 }

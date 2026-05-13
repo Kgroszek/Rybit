@@ -108,3 +108,52 @@ model Rating {
 
   @@unique([userId, lakeId])
 }
+
+model LakeSubmission {
+  id             String   @id @default(cuid())
+
+  userId         String?
+  status         String   @default("pending")
+
+  name           String
+  slug           String
+  description    String
+
+  ownerType      String
+  fishingType    String
+  fish           String
+
+  lat            Float
+  lng            Float
+
+  street         String
+  city           String
+  postalCode     String
+  voivodeship    String
+
+  area           String?
+  averageDepth   String?
+  bottomType     String?
+  waterType      String?
+
+  cottages       Boolean  @default(false)
+  campfire       Boolean  @default(false)
+  noKill         Boolean  @default(false)
+  tent           Boolean  @default(false)
+  parking        Boolean  @default(false)
+  pier           Boolean  @default(false)
+  toilet         Boolean  @default(false)
+  shop           Boolean  @default(false)
+  nightFishing   Boolean  @default(false)
+  boatRental     Boolean  @default(false)
+
+  contactName    String?
+  contactPhone   String?
+  contactEmail   String?
+  contactWebsite String?
+
+  adminNote      String?
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
