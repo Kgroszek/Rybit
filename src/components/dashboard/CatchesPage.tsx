@@ -79,6 +79,7 @@ const fishSpecies = [
   { label: "Jaź", value: "Jaź" },
   { label: "Jazgarz", value: "Jazgarz" },
   { label: "Jelec", value: "Jelec" },
+  { label: "Jesiotr", value: "Jesiotr" },
   { label: "Karaś pospolity", value: "Karaś pospolity" },
   { label: "Karaś srebrzysty", value: "Karaś srebrzysty" },
   { label: "Karp", value: "Karp" },
