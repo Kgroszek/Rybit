@@ -10,6 +10,8 @@ type CatchesRoutePageProps = {
   }>;
 };
 
+const BUCKET_NAME = "catch-images";
+
 export default async function CatchesRoutePage({
   searchParams,
 }: CatchesRoutePageProps) {
@@ -62,10 +64,30 @@ export default async function CatchesRoutePage({
     }),
   ]);
 
+  const catchesWithSignedUrls = await Promise.all(
+    catches.map(async (item) => {
+      if (!item.imagePath) {
+        return {
+          ...item,
+          imageUrl: null,
+        };
+      }
+
+      const { data } = await supabase.storage
+        .from(BUCKET_NAME)
+        .createSignedUrl(item.imagePath, 60 * 60);
+
+      return {
+        ...item,
+        imageUrl: data?.signedUrl ?? null,
+      };
+    })
+  );
+
   return (
     <DashboardLayout>
       <CatchesPage
-        initialCatches={JSON.parse(JSON.stringify(catches))}
+        initialCatches={JSON.parse(JSON.stringify(catchesWithSignedUrls))}
         lakes={JSON.parse(JSON.stringify(lakes))}
         trips={JSON.parse(JSON.stringify(trips))}
         initialTripId={tripId || null}

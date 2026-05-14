@@ -16,6 +16,8 @@ type FishingCatch = {
   lakeName: string | null;
   tripId: string | null;
   tripTitle: string | null;
+  imageUrl: string | null;
+  imagePath: string | null;
   note: string | null;
   createdAt: string;
   updatedAt: string;
@@ -53,6 +55,8 @@ type CatchFormState = {
   tripId: string;
   note: string;
 };
+
+type ViewMode = "grid" | "list";
 
 const initialFormState: CatchFormState = {
   fishName: "",
@@ -137,23 +141,38 @@ export function CatchesPage({
 }: CatchesPageProps) {
   const router = useRouter();
 
- const initialTripExists = trips.some((trip) => trip.id === initialTripId);
+  const initialTripExists = trips.some((trip) => trip.id === initialTripId);
 
-const initialFormWithTrip: CatchFormState = {
-  ...initialFormState,
-  tripId: initialTripExists ? initialTripId || "" : "",
-};
+  const initialFormWithTrip: CatchFormState = {
+    ...initialFormState,
+    tripId: initialTripExists ? initialTripId || "" : "",
+  };
 
-const [catches, setCatches] = useState<FishingCatch[]>(initialCatches);
-const [form, setForm] = useState<CatchFormState>(initialFormWithTrip);
-const [isFormOpen, setIsFormOpen] = useState(
-  initialCatches.length === 0 || initialTripExists
-);
+  const [catches, setCatches] = useState<FishingCatch[]>(initialCatches);
+  const [form, setForm] = useState<CatchFormState>(initialFormWithTrip);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(
+    initialCatches.length === 0 || initialTripExists
+  );
   const [editingCatchId, setEditingCatchId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const [search, setSearch] = useState("");
   const [methodFilter, setMethodFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window === "undefined") {
+      return "grid";
+    }
+
+    const savedViewMode = localStorage.getItem("rybit-catches-view-mode");
+
+    return savedViewMode === "list" ? "list" : "grid";
+  });
+
+  const [previewImage, setPreviewImage] = useState<{
+    url: string;
+    alt: string;
+  } | null>(null);
 
   function updateField<K extends keyof CatchFormState>(
     field: K,
@@ -165,12 +184,18 @@ const [isFormOpen, setIsFormOpen] = useState(
     }));
   }
 
+  function handleViewModeChange(nextViewMode: ViewMode) {
+    setViewMode(nextViewMode);
+    localStorage.setItem("rybit-catches-view-mode", nextViewMode);
+  }
+
   function handleStartEdit(item: FishingCatch) {
     const isKnownFish = fishSpecies.some(
       (species) => species.value === item.fishName
     );
 
     setEditingCatchId(item.id);
+    setSelectedImage(null);
 
     setForm({
       fishName: isKnownFish ? item.fishName : "other",
@@ -193,11 +218,12 @@ const [isFormOpen, setIsFormOpen] = useState(
     });
   }
 
- function handleCancelForm() {
-  setEditingCatchId(null);
-  setForm(initialFormWithTrip);
-  setIsFormOpen(false);
-}
+  function handleCancelForm() {
+    setEditingCatchId(null);
+    setSelectedImage(null);
+    setForm(initialFormWithTrip);
+    setIsFormOpen(false);
+  }
 
   const filteredCatches = useMemo(() => {
     return catches.filter((item) => {
@@ -228,6 +254,26 @@ const [isFormOpen, setIsFormOpen] = useState(
   }, 0);
 
   const uniqueSpecies = new Set(catches.map((item) => item.fishName)).size;
+
+  async function uploadCatchImage(catchId: string, image: File) {
+    const compressedImage = await compressImage(image);
+
+    const formData = new FormData();
+    formData.append("image", compressedImage);
+
+    const response = await fetch(`/api/catches/${catchId}/image`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Nie udało się dodać zdjęcia.");
+    }
+
+    return data as FishingCatch;
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -267,15 +313,30 @@ const [isFormOpen, setIsFormOpen] = useState(
       return;
     }
 
+    let savedCatch = data as FishingCatch;
+
+    if (selectedImage) {
+      try {
+        savedCatch = await uploadCatchImage(savedCatch.id, selectedImage);
+      } catch (error) {
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Połów został zapisany, ale nie udało się dodać zdjęcia."
+        );
+      }
+    }
+
     if (editingCatchId) {
       setCatches((current) =>
-        current.map((item) => (item.id === editingCatchId ? data : item))
+        current.map((item) => (item.id === editingCatchId ? savedCatch : item))
       );
     } else {
-      setCatches((current) => [data, ...current]);
+      setCatches((current) => [savedCatch, ...current]);
     }
 
     setForm(initialFormWithTrip);
+    setSelectedImage(null);
     setEditingCatchId(null);
     setIsFormOpen(false);
     setIsLoading(false);
@@ -324,15 +385,16 @@ const [isFormOpen, setIsFormOpen] = useState(
         <button
           type="button"
           onClick={() => {
-                if (isFormOpen) {
-                    handleCancelForm();
-                    return;
-                }
+            if (isFormOpen) {
+              handleCancelForm();
+              return;
+            }
 
-                setEditingCatchId(null);
-                setForm(initialFormWithTrip);
-                setIsFormOpen(true);
-                }}
+            setEditingCatchId(null);
+            setSelectedImage(null);
+            setForm(initialFormWithTrip);
+            setIsFormOpen(true);
+          }}
           className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
           {isFormOpen ? "Zamknij formularz" : "+ Dodaj połów"}
@@ -357,11 +419,12 @@ const [isFormOpen, setIsFormOpen] = useState(
           <h2 className="text-xl font-bold text-slate-950">
             {editingCatchId ? "Edytuj połów" : "Dodaj połów"}
           </h2>
+
           {initialTripExists && !editingCatchId && (
-                <p className="mt-2 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
-                Dodajesz połów do wybranej wyprawy.
-                </p>
-            )}
+            <p className="mt-2 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+              Dodajesz połów do wybranej wyprawy.
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-5">
             <div className="grid gap-5 lg:grid-cols-2">
@@ -448,6 +511,49 @@ const [isFormOpen, setIsFormOpen] = useState(
                   })),
                 ]}
               />
+
+              <div className="lg:col-span-2">
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                  Zdjęcie połowu
+                </label>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+                    setSelectedImage(file);
+                  }}
+                  className="block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+                />
+
+                <p className="mt-2 text-xs text-slate-500">
+                  Zdjęcie zostanie automatycznie zmniejszone i zapisane jako
+                  WebP. Maksymalny rozmiar przed kompresją: 5 MB.
+                </p>
+
+                {selectedImage && (
+                  <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+                    Wybrane zdjęcie: {selectedImage.name}
+                  </p>
+                )}
+
+                {editingCatchId &&
+                  catches.find((item) => item.id === editingCatchId)
+                    ?.imageUrl &&
+                  !selectedImage && (
+                    <div className="mt-3 overflow-hidden rounded-2xl bg-slate-100">
+                      <img
+                        src={
+                          catches.find((item) => item.id === editingCatchId)
+                            ?.imageUrl || ""
+                        }
+                        alt="Aktualne zdjęcie połowu"
+                        className="h-40 w-full object-cover"
+                      />
+                    </div>
+                  )}
+              </div>
             </div>
 
             <div>
@@ -490,7 +596,7 @@ const [isFormOpen, setIsFormOpen] = useState(
       )}
 
       <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 xl:grid-cols-[1fr_220px]">
+        <div className="grid gap-4 xl:grid-cols-[1fr_220px_auto]">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -510,86 +616,241 @@ const [isFormOpen, setIsFormOpen] = useState(
               </option>
             ))}
           </select>
+
+          <div className="flex h-12 rounded-2xl bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => handleViewModeChange("grid")}
+              className={`rounded-xl px-4 text-sm font-bold transition ${
+                viewMode === "grid"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              Kafelki
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleViewModeChange("list")}
+              className={`rounded-xl px-4 text-sm font-bold transition ${
+                viewMode === "list"
+                  ? "bg-white text-blue-600 shadow-sm"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              Lista
+            </button>
+          </div>
         </div>
       </section>
 
       {filteredCatches.length > 0 ? (
-        <section className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
-          {filteredCatches.map((item) => (
-            <article
-              key={item.id}
-              className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-            >
-              <div className="mb-4 flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-                    {getMethodLabel(item.method)}
-                  </p>
+        viewMode === "grid" ? (
+          <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+            {filteredCatches.map((item) => (
+              <article
+                key={item.id}
+                className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                {item.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPreviewImage({
+                        url: item.imageUrl || "",
+                        alt: `Zdjęcie połowu: ${item.fishName}`,
+                      })
+                    }
+                    className="mb-4 block w-full overflow-hidden rounded-2xl bg-slate-100 text-left"
+                  >
+                    <img
+                      src={item.imageUrl}
+                      alt={`Zdjęcie połowu: ${item.fishName}`}
+                      className="h-40 w-full object-cover transition duration-300 hover:scale-105"
+                    />
+                  </button>
+                )}
 
-                  <h2 className="mt-2 text-xl font-bold text-slate-950">
-                    {item.fishName}
-                  </h2>
+                <div className="mb-4 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+                      {getMethodLabel(item.method)}
+                    </p>
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    {formatDateTime(item.caughtAt)}
-                  </p>
+                    <h2 className="mt-2 text-xl font-bold text-slate-950">
+                      {item.fishName}
+                    </h2>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      {formatDateTime(item.caughtAt)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
+                    🎣
+                  </div>
                 </div>
 
-                <div className="rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
-                  🎣
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <InfoTile
+                    label="Waga"
+                    value={
+                      item.weight ? `${item.weight.toFixed(2)} kg` : "Brak"
+                    }
+                  />
+
+                  <InfoTile
+                    label="Długość"
+                    value={
+                      item.length ? `${item.length.toFixed(0)} cm` : "Brak"
+                    }
+                  />
+
+                  <InfoTile label="Przynęta" value={item.bait || "Brak"} />
+
+                  <InfoTile
+                    label="Łowisko"
+                    value={item.lakeName || "Nie przypisano"}
+                  />
+
+                  <InfoTile
+                    label="Wyprawa"
+                    value={item.tripTitle || "Nie przypisano"}
+                  />
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <InfoTile
-                  label="Waga"
-                  value={item.weight ? `${item.weight.toFixed(2)} kg` : "Brak"}
-                />
+                {item.note && (
+                  <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+                    {item.note}
+                  </p>
+                )}
 
-                <InfoTile
-                  label="Długość"
-                  value={item.length ? `${item.length.toFixed(0)} cm` : "Brak"}
-                />
+                <div className="mt-5 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleStartEdit(item)}
+                    className="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                  >
+                    Edytuj
+                  </button>
 
-                <InfoTile label="Przynęta" value={item.bait || "Brak"} />
-
-                <InfoTile
-                  label="Łowisko"
-                  value={item.lakeName || "Nie przypisano"}
-                />
-
-                <InfoTile
-                  label="Wyprawa"
-                  value={item.tripTitle || "Nie przypisano"}
-                />
-              </div>
-
-              {item.note && (
-                <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-                  {item.note}
-                </p>
-              )}
-
-              <div className="mt-5 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleStartEdit(item)}
-                  className="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCatch(item.id)}
+                    className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                  >
+                    Usuń
+                  </button>
+                </div>
+              </article>
+            ))}
+          </section>
+        ) : (
+          <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="divide-y divide-slate-100">
+              {filteredCatches.map((item) => (
+                <article
+                  key={item.id}
+                  className="grid gap-4 p-4 transition hover:bg-slate-50 xl:grid-cols-[90px_1fr_auto]"
                 >
-                  Edytuj
-                </button>
+                  <div>
+                    {item.imageUrl ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPreviewImage({
+                            url: item.imageUrl || "",
+                            alt: `Zdjęcie połowu: ${item.fishName}`,
+                          })
+                        }
+                        className="block h-20 w-20 overflow-hidden rounded-2xl bg-slate-100"
+                      >
+                        <img
+                          src={item.imageUrl}
+                          alt={`Zdjęcie połowu: ${item.fishName}`}
+                          className="h-full w-full object-cover transition duration-300 hover:scale-105"
+                        />
+                      </button>
+                    ) : (
+                      <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-50 text-xl">
+                        🎣
+                      </div>
+                    )}
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleDeleteCatch(item.id)}
-                  className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
-                >
-                  Usuń
-                </button>
-              </div>
-            </article>
-          ))}
-        </section>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                        {getMethodLabel(item.method)}
+                      </span>
+
+                      {item.lakeName && (
+                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                          {item.lakeName}
+                        </span>
+                      )}
+
+                      {item.tripTitle && (
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                          {item.tripTitle}
+                        </span>
+                      )}
+                    </div>
+
+                    <h2 className="mt-2 text-xl font-bold text-slate-950">
+                      {item.fishName}
+                    </h2>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      {formatDateTime(item.caughtAt)}
+                    </p>
+
+                    <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold text-slate-700">
+                      <span>
+                        Waga:{" "}
+                        {item.weight ? `${item.weight.toFixed(2)} kg` : "Brak"}
+                      </span>
+
+                      <span>
+                        Długość:{" "}
+                        {item.length
+                          ? `${item.length.toFixed(0)} cm`
+                          : "Brak"}
+                      </span>
+
+                      <span>Przynęta: {item.bait || "Brak"}</span>
+                    </div>
+
+                    {item.note && (
+                      <p className="mt-3 text-sm leading-6 text-slate-500">
+                        {item.note}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex items-start justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(item)}
+                      className="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                    >
+                      Edytuj
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCatch(item.id)}
+                      className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                    >
+                      Usuń
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )
       ) : (
         <section className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
           <p className="text-xl font-bold text-slate-950">
@@ -600,6 +861,33 @@ const [isFormOpen, setIsFormOpen] = useState(
             Dodaj pierwszy połów albo zmień filtry.
           </p>
         </section>
+      )}
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/80 p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-3xl bg-white p-3 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-xl font-bold text-slate-700 shadow-sm transition hover:bg-white"
+              aria-label="Zamknij podgląd zdjęcia"
+            >
+              ×
+            </button>
+
+            <img
+              src={previewImage.url}
+              alt={previewImage.alt}
+              className="max-h-[85vh] w-full rounded-2xl object-contain"
+            />
+          </div>
+        </div>
       )}
     </div>
   );
@@ -693,6 +981,57 @@ function Select({
       </select>
     </div>
   );
+}
+
+async function compressImage(file: File): Promise<File> {
+  const maxWidth = 1600;
+  const maxHeight = 1600;
+  const quality = 0.75;
+
+  const imageBitmap = await createImageBitmap(file);
+
+  let width = imageBitmap.width;
+  let height = imageBitmap.height;
+
+  if (width > maxWidth || height > maxHeight) {
+    const ratio = Math.min(maxWidth / width, maxHeight / height);
+
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Nie udało się przygotować zdjęcia.");
+  }
+
+  context.drawImage(imageBitmap, 0, 0, width, height);
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (result) => {
+        if (!result) {
+          reject(new Error("Nie udało się skompresować zdjęcia."));
+          return;
+        }
+
+        resolve(result);
+      },
+      "image/webp",
+      quality
+    );
+  });
+
+  const fileNameWithoutExtension = file.name.replace(/\.[^/.]+$/, "");
+
+  return new File([blob], `${fileNameWithoutExtension}.webp`, {
+    type: "image/webp",
+  });
 }
 
 function getMethodLabel(value: string) {

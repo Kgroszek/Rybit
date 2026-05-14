@@ -251,6 +251,9 @@ model FishingCatch {
   tripId      String?
   tripTitle   String?
 
+  imageUrl    String?
+  imagePath   String?
+
   note        String?
 
   createdAt   DateTime @default(now())
