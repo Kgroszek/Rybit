@@ -43,7 +43,9 @@ export type LakeDto = {
     waterType: string;
   };
   priceList: string[];
+  priceListUrl: string | null;
   rules: string[];
+  rulesUrl: string | null;
   contact: {
     name: string;
     phone: string;
@@ -113,7 +115,9 @@ function mapLakeToDto(lake: LakeFromDatabase): LakeDto {
       waterType: lake.waterType,
     },
     priceList: lake.priceList.map((item) => item.text),
+    priceListUrl: lake.priceListUrl,
     rules: lake.rules.map((rule) => rule.text),
+    rulesUrl: lake.rulesUrl,
     contact: {
       name: lake.contactName,
       phone: lake.contactPhone,

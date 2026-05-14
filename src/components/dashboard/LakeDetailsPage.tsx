@@ -392,40 +392,78 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-950">Cennik</h2>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-xl font-bold text-slate-950">Cennik</h2>
+
+              {lake.priceListUrl && (
+                <a
+                  href={lake.priceListUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-2xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 transition hover:bg-blue-100"
+                >
+                  Otwórz cennik
+                </a>
+              )}
+            </div>
 
             <div className="mt-5 space-y-3">
-              {lake.priceList.map((priceItem) => (
-                <div
-                  key={priceItem}
-                  className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700"
-                >
-                  {priceItem}
+              {lake.priceList.length > 0 ? (
+                lake.priceList.map((priceItem) => (
+                  <div
+                    key={priceItem}
+                    className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700"
+                  >
+                    {priceItem}
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                  Brak dodanego cennika.
                 </div>
-              ))}
+              )}
             </div>
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-950">
-              Zasady na łowisku
-            </h2>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-xl font-bold text-slate-950">
+                Zasady na łowisku
+              </h2>
+
+              {lake.rulesUrl && (
+                <a
+                  href={lake.rulesUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-2xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 transition hover:bg-blue-100"
+                >
+                  Otwórz regulamin
+                </a>
+              )}
+            </div>
 
             <div className="mt-5 space-y-3">
-              {lake.rules.map((rule) => (
-                <div
-                  key={rule}
-                  className="flex gap-3 rounded-2xl bg-slate-50 p-4"
-                >
-                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
-                    ✓
-                  </span>
+              {lake.rules.length > 0 ? (
+                lake.rules.map((rule) => (
+                  <div
+                    key={rule}
+                    className="flex gap-3 rounded-2xl bg-slate-50 p-4"
+                  >
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                      ✓
+                    </span>
 
-                  <p className="text-sm font-medium leading-6 text-slate-700">
-                    {rule}
-                  </p>
+                    <p className="text-sm font-medium leading-6 text-slate-700">
+                      {rule}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                  Brak dodanych zasad łowiska.
                 </div>
-              ))}
+              )}
             </div>
           </section>
         </div>
