@@ -232,3 +232,27 @@ model FishingTrip {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+model FishingCatch {
+  id          String   @id @default(cuid())
+  userId      String
+
+  fishName    String
+  weight      Float?
+  length      Float?
+
+  method      String
+  bait        String?
+  caughtAt    DateTime
+
+  lakeId      String?
+  lakeName    String?
+
+  tripId      String?
+  tripTitle   String?
+
+  note        String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
