@@ -30,6 +30,11 @@ export type LakeDto = {
     shop: boolean;
     nightFishing: boolean;
     boatRental: boolean;
+    gearRental: boolean;
+    shelter: boolean;
+    coveredSpots: boolean;
+    playground: boolean;
+    cardPayment: boolean;
   };
   details: {
     area: string;
@@ -95,6 +100,11 @@ function mapLakeToDto(lake: LakeFromDatabase): LakeDto {
       shop: lake.shop,
       nightFishing: lake.nightFishing,
       boatRental: lake.boatRental,
+      gearRental: lake.gearRental,
+      shelter: lake.shelter,
+      coveredSpots: lake.coveredSpots,
+      playground: lake.playground,
+      cardPayment: lake.cardPayment,
     },
     details: {
       area: lake.area,

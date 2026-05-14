@@ -43,6 +43,17 @@ model Lake {
   nightFishing   Boolean  @default(false)
   boatRental     Boolean  @default(false)
 
+  gearRental     Boolean  @default(false)
+  shelter        Boolean  @default(false)
+  coveredSpots   Boolean  @default(false)
+  playground     Boolean  @default(false)
+  cardPayment    Boolean  @default(false)
+
+  priceListText  String?
+  priceListUrl   String?
+  rulesText      String?
+  rulesUrl       String?
+
   contactName    String
   contactPhone   String
   contactEmail   String
@@ -81,10 +92,13 @@ model FishSpecies {
 }
 
 model LakeImage {
-  id     String @id @default(cuid())
-  url    String
-  lakeId String
-  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  url       String
+  imagePath String?
+  lakeId    String
+  lake      Lake     @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
 }
 
 model Favourite {
@@ -147,15 +161,38 @@ model LakeSubmission {
   nightFishing   Boolean  @default(false)
   boatRental     Boolean  @default(false)
 
+  gearRental     Boolean  @default(false)
+  shelter        Boolean  @default(false)
+  coveredSpots   Boolean  @default(false)
+  playground     Boolean  @default(false)
+  cardPayment    Boolean  @default(false)
+
+  priceListText  String?
+  priceListUrl   String?
+  rulesText      String?
+  rulesUrl       String?
+
   contactName    String?
   contactPhone   String?
   contactEmail   String?
   contactWebsite String?
 
+  images         LakeSubmissionImage[]
+
   adminNote      String?
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model LakeSubmissionImage {
+  id           String   @id @default(cuid())
+  submissionId String
+  imagePath    String
+  url          String
+  createdAt    DateTime @default(now())
+
+  submission   LakeSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 }
 
 model FishingGear {

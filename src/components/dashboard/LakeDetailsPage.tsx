@@ -59,6 +59,31 @@ const amenitiesLabels = [
     label: "Wypożyczalnia łodzi",
     icon: "🚤",
   },
+  {
+    key: "gearRental",
+    label: "Wypożyczalnia sprzętu",
+    icon: "🎒",
+  },
+  {
+    key: "shelter",
+    label: "Altana",
+    icon: "🏕️",
+  },
+  {
+    key: "coveredSpots",
+    label: "Zadaszone stanowiska",
+    icon: "☂️",
+  },
+  {
+    key: "playground",
+    label: "Plac zabaw",
+    icon: "🛝",
+  },
+  {
+    key: "cardPayment",
+    label: "Płatność kartą",
+    icon: "💳",
+  },
 ] as const;
 
 function getOwnerTypeLabel(type: string) {
@@ -86,6 +111,7 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
   const [isLoadingUserData, setIsLoadingUserData] = useState(true);
   const [isFavouriteLoading, setIsFavouriteLoading] = useState(false);
   const [isRatingLoading, setIsRatingLoading] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadUserData() {
@@ -225,17 +251,19 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
           <div className="grid grid-cols-2 gap-3 p-4">
             {lake.images.length > 0 ? (
               lake.images.slice(0, 4).map((image, index) => (
-                <div
+                <button
                   key={`${image}-${index}`}
-                  className="overflow-hidden rounded-2xl bg-slate-100"
+                  type="button"
+                  onClick={() => setPreviewImage(image)}
+                  className="group overflow-hidden rounded-2xl bg-slate-100 text-left"
                 >
                   <div
-                    className="h-full min-h-[150px] bg-cover bg-center"
+                    className="h-full min-h-[150px] bg-cover bg-center transition duration-300 group-hover:scale-105"
                     style={{
                       backgroundImage: `url(${image})`,
                     }}
                   />
-                </div>
+                </button>
               ))
             ) : (
               <>
@@ -248,6 +276,43 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
           </div>
         </div>
       </section>
+
+      {lake.images.length > 0 && (
+        <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-950">
+                Galeria zdjęć
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Zdjęcia dodane do łowiska.
+              </p>
+            </div>
+
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+              {lake.images.length} zdjęć
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {lake.images.map((image, index) => (
+              <button
+                key={`${image}-${index}`}
+                type="button"
+                onClick={() => setPreviewImage(image)}
+                className="group overflow-hidden rounded-2xl bg-slate-100 text-left"
+              >
+                <img
+                  src={image}
+                  alt={`Zdjęcie łowiska ${lake.name}`}
+                  className="h-56 w-full object-cover transition duration-300 group-hover:scale-105"
+                />
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">
@@ -467,6 +532,33 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
           </section>
         </aside>
       </div>
+
+      {previewImage && (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/80 p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-3xl bg-white p-3 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewImage(null)}
+              className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-xl font-bold text-slate-700 shadow-sm transition hover:bg-white"
+              aria-label="Zamknij podgląd zdjęcia"
+            >
+              ×
+            </button>
+
+            <img
+              src={previewImage}
+              alt={`Zdjęcie łowiska ${lake.name}`}
+              className="max-h-[85vh] w-full rounded-2xl object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

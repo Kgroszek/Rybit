@@ -15,6 +15,40 @@ function splitFishNames(fish: string) {
     .filter(Boolean);
 }
 
+function splitTextLines(text: string | null) {
+  if (!text) {
+    return [];
+  }
+
+  return text
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+async function createUniqueLakeSlug(baseSlug: string) {
+  let slug = baseSlug;
+  let counter = 1;
+
+  while (true) {
+    const existingLake = await prisma.lake.findUnique({
+      where: {
+        slug,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!existingLake) {
+      return slug;
+    }
+
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+}
+
 export async function POST(_request: Request, { params }: RouteProps) {
   const admin = await requireAdmin();
 
@@ -30,6 +64,9 @@ export async function POST(_request: Request, { params }: RouteProps) {
   const submission = await prisma.lakeSubmission.findUnique({
     where: {
       id,
+    },
+    include: {
+      images: true,
     },
   });
 
@@ -47,10 +84,23 @@ export async function POST(_request: Request, { params }: RouteProps) {
     );
   }
 
+  const lakeSlug = await createUniqueLakeSlug(submission.slug);
+
+  const priceListItems = splitTextLines(submission.priceListText);
+  const rulesItems = splitTextLines(submission.rulesText);
+
+  if (submission.priceListUrl) {
+    priceListItems.push(`Link do cennika: ${submission.priceListUrl}`);
+  }
+
+  if (submission.rulesUrl) {
+    rulesItems.push(`Link do regulaminu: ${submission.rulesUrl}`);
+  }
+
   const createdLake = await prisma.lake.create({
     data: {
       name: submission.name,
-      slug: submission.slug,
+      slug: lakeSlug,
       description: submission.description,
       rating: 0,
 
@@ -82,6 +132,17 @@ export async function POST(_request: Request, { params }: RouteProps) {
       nightFishing: submission.nightFishing,
       boatRental: submission.boatRental,
 
+      gearRental: submission.gearRental,
+      shelter: submission.shelter,
+      coveredSpots: submission.coveredSpots,
+      playground: submission.playground,
+      cardPayment: submission.cardPayment,
+
+      priceListText: submission.priceListText,
+      priceListUrl: submission.priceListUrl,
+      rulesText: submission.rulesText,
+      rulesUrl: submission.rulesUrl,
+
       contactName: submission.contactName || "Brak danych",
       contactPhone: submission.contactPhone || "Brak danych",
       contactEmail: submission.contactEmail || "Brak danych",
@@ -94,16 +155,51 @@ export async function POST(_request: Request, { params }: RouteProps) {
       },
 
       priceList: {
-        create: [{ text: "Brak dodanego cennika." }],
+        create:
+          priceListItems.length > 0
+            ? priceListItems.map((text) => ({
+                text,
+              }))
+            : [
+                {
+                  text: "Brak dodanego cennika.",
+                },
+              ],
       },
 
       rules: {
-        create: [{ text: "Brak dodanych zasad łowiska." }],
+        create:
+          rulesItems.length > 0
+            ? rulesItems.map((text) => ({
+                text,
+              }))
+            : [
+                {
+                  text: "Brak dodanych zasad łowiska.",
+                },
+              ],
       },
 
       images: {
-        create: [{ url: "/images/lakes/lake-placeholder-1.jpg" }],
+        create:
+          submission.images.length > 0
+            ? submission.images.map((image) => ({
+                url: image.url,
+                imagePath: image.imagePath,
+              }))
+            : [
+                {
+                  url: "/images/lakes/lake-placeholder-1.jpg",
+                  imagePath: null,
+                },
+              ],
       },
+    },
+    include: {
+      images: true,
+      fishSpecies: true,
+      priceList: true,
+      rules: true,
     },
   });
 
