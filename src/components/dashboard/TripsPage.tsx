@@ -74,6 +74,7 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
   const [trips, setTrips] = useState<FishingTrip[]>(initialTrips);
   const [form, setForm] = useState<TripFormState>(initialFormState);
   const [isFormOpen, setIsFormOpen] = useState(initialTrips.length === 0);
+  const [editingTripId, setEditingTripId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   function updateField<K extends keyof TripFormState>(
@@ -84,6 +85,33 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
       ...current,
       [field]: value,
     }));
+  }
+
+  function handleStartEdit(trip: FishingTrip) {
+    setEditingTripId(trip.id);
+
+    setForm({
+      title: trip.title,
+      lakeId: trip.lakeId || "",
+      tripType: trip.tripType,
+      status: trip.status,
+      startsAt: toDateTimeLocalValue(trip.startsAt),
+      note: trip.note || "",
+      createChecklist: Boolean(trip.checklistId),
+    });
+
+    setIsFormOpen(true);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  function handleCancelForm() {
+    setEditingTripId(null);
+    setForm(initialFormState);
+    setIsFormOpen(false);
   }
 
   const plannedTrips = trips.filter((trip) => trip.status === "planned");
@@ -109,8 +137,11 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
 
     setIsLoading(true);
 
-    const response = await fetch("/api/trips", {
-      method: "POST",
+    const url = editingTripId ? `/api/trips/${editingTripId}` : "/api/trips";
+    const method = editingTripId ? "PUT" : "POST";
+
+    const response = await fetch(url, {
+      method,
       headers: {
         "Content-Type": "application/json",
       },
@@ -120,13 +151,21 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
     const data = await response.json();
 
     if (!response.ok) {
-      alert(data.message || "Nie udało się utworzyć wyprawy.");
+      alert(data.message || "Nie udało się zapisać wyprawy.");
       setIsLoading(false);
       return;
     }
 
-    setTrips((current) => [data, ...current]);
+    if (editingTripId) {
+      setTrips((current) =>
+        current.map((trip) => (trip.id === editingTripId ? data : trip))
+      );
+    } else {
+      setTrips((current) => [data, ...current]);
+    }
+
     setForm(initialFormState);
+    setEditingTripId(null);
     setIsFormOpen(false);
     setIsLoading(false);
     router.refresh();
@@ -150,6 +189,11 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
     }
 
     setTrips((current) => current.filter((trip) => trip.id !== id));
+
+    if (editingTripId === id) {
+      handleCancelForm();
+    }
+
     router.refresh();
   }
 
@@ -169,7 +213,16 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
 
         <button
           type="button"
-          onClick={() => setIsFormOpen((current) => !current)}
+          onClick={() => {
+            if (isFormOpen) {
+              handleCancelForm();
+              return;
+            }
+
+            setEditingTripId(null);
+            setForm(initialFormState);
+            setIsFormOpen(true);
+          }}
           className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
           {isFormOpen ? "Zamknij formularz" : "+ Zaplanuj wyprawę"}
@@ -189,7 +242,7 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
       {isFormOpen && (
         <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-bold text-slate-950">
-            Zaplanuj wyprawę
+            {editingTripId ? "Edytuj wyprawę" : "Zaplanuj wyprawę"}
           </h2>
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-5">
@@ -252,28 +305,34 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
               />
             </div>
 
-            <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-slate-50 p-4">
-              <input
-                type="checkbox"
-                checked={form.createChecklist}
-                onChange={(event) =>
-                  updateField("createChecklist", event.target.checked)
-                }
-                className="h-4 w-4 rounded border-slate-300 text-blue-600"
-              />
+            {!editingTripId && (
+              <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-slate-50 p-4">
+                <input
+                  type="checkbox"
+                  checked={form.createChecklist}
+                  onChange={(event) =>
+                    updateField("createChecklist", event.target.checked)
+                  }
+                  className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                />
 
-              <span className="text-sm font-semibold text-slate-700">
-                Utwórz od razu checklistę do tej wyprawy
-              </span>
-            </label>
+                <span className="text-sm font-semibold text-slate-700">
+                  Utwórz od razu checklistę do tej wyprawy
+                </span>
+              </label>
+            )}
+
+            {editingTripId && (
+              <div className="rounded-2xl bg-slate-50 p-4 text-sm font-medium text-slate-600">
+                Przy edycji wyprawy nie tworzymy nowej checklisty. Jeśli
+                checklista była już utworzona, zostaje przypisana do tej wyprawy.
+              </div>
+            )}
 
             <div className="flex justify-end gap-3">
               <button
                 type="button"
-                onClick={() => {
-                  setForm(initialFormState);
-                  setIsFormOpen(false);
-                }}
+                onClick={handleCancelForm}
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Anuluj
@@ -284,7 +343,11 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
                 disabled={isLoading}
                 className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isLoading ? "Zapisywanie..." : "Zaplanuj wyprawę"}
+                {isLoading
+                  ? "Zapisywanie..."
+                  : editingTripId
+                    ? "Zapisz zmiany"
+                    : "Zaplanuj wyprawę"}
               </button>
             </div>
           </form>
@@ -319,11 +382,16 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
                   </h2>
 
                   <div className="mt-3 grid gap-3 text-sm text-slate-600 md:grid-cols-3">
-                    <InfoTile label="Data" value={formatDateTime(trip.startsAt)} />
+                    <InfoTile
+                      label="Data"
+                      value={formatDateTime(trip.startsAt)}
+                    />
+
                     <InfoTile
                       label="Łowisko"
                       value={trip.lakeName || "Nie przypisano"}
                     />
+
                     <InfoTile
                       label="Status"
                       value={getStatusLabel(trip.status)}
@@ -338,12 +406,27 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
                 </div>
 
                 <div className="flex shrink-0 flex-col gap-3 sm:flex-row xl:flex-col">
+                  <Link
+                    href={`/wyprawy/${trip.id}`}
+                    className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+                  >
+                    Szczegóły
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => handleStartEdit(trip)}
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Edytuj
+                  </button>
+
                   {trip.checklistId && (
                     <Link
-                      href="/checklisty"
-                      className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+                    href={`/checklisty?active=${trip.checklistId}`}
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                     >
-                      Otwórz checklisty
+                    Checklista
                     </Link>
                   )}
 
@@ -509,4 +592,16 @@ function formatShortDate(date: string) {
     day: "2-digit",
     month: "2-digit",
   }).format(new Date(date));
+}
+
+function toDateTimeLocalValue(date: string) {
+  const parsedDate = new Date(date);
+
+  const year = parsedDate.getFullYear();
+  const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+  const day = String(parsedDate.getDate()).padStart(2, "0");
+  const hours = String(parsedDate.getHours()).padStart(2, "0");
+  const minutes = String(parsedDate.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
 }

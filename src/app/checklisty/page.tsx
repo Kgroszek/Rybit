@@ -4,7 +4,15 @@ import { ChecklistsPage } from "@/components/dashboard/ChecklistsPage";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
-export default async function ChecklistsRoutePage() {
+type ChecklistsRoutePageProps = {
+  searchParams: Promise<{
+    active?: string;
+  }>;
+};
+
+export default async function ChecklistsRoutePage({
+  searchParams,
+}: ChecklistsRoutePageProps) {
   const supabase = await createClient();
 
   const {
@@ -14,6 +22,8 @@ export default async function ChecklistsRoutePage() {
   if (!user) {
     redirect("/login");
   }
+
+  const { active } = await searchParams;
 
   const [checklists, gear] = await Promise.all([
     prisma.tripChecklist.findMany({
@@ -47,6 +57,7 @@ export default async function ChecklistsRoutePage() {
       <ChecklistsPage
         initialChecklists={JSON.parse(JSON.stringify(checklists))}
         gearItems={JSON.parse(JSON.stringify(gear))}
+        initialSelectedChecklistId={active || null}
       />
     </DashboardLayout>
   );

@@ -53,6 +53,7 @@ type FishingGear = {
 type ChecklistsPageProps = {
   initialChecklists: TripChecklist[];
   gearItems: FishingGear[];
+  initialSelectedChecklistId?: string | null;
 };
 
 type ChecklistFormState = {
@@ -114,15 +115,22 @@ const checklistStatuses = [
 export function ChecklistsPage({
   initialChecklists,
   gearItems,
+  initialSelectedChecklistId = null,
 }: ChecklistsPageProps) {
   const router = useRouter();
 
   const [checklists, setChecklists] =
     useState<TripChecklist[]>(initialChecklists);
 
-  const [selectedChecklistId, setSelectedChecklistId] = useState<string | null>(
-    initialChecklists[0]?.id ?? null
-  );
+const initialActiveChecklistExists = initialChecklists.some(
+  (checklist) => checklist.id === initialSelectedChecklistId
+);
+
+const [selectedChecklistId, setSelectedChecklistId] = useState<string | null>(
+  initialActiveChecklistExists
+    ? initialSelectedChecklistId
+    : initialChecklists[0]?.id ?? null
+);
 
   const [checklistForm, setChecklistForm] =
     useState<ChecklistFormState>(initialChecklistForm);

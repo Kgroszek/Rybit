@@ -38,6 +38,7 @@ type CatchesPageProps = {
   initialCatches: FishingCatch[];
   lakes: LakeOption[];
   trips: TripOption[];
+  initialTripId?: string | null;
 };
 
 type CatchFormState = {
@@ -131,12 +132,22 @@ export function CatchesPage({
   initialCatches,
   lakes,
   trips,
+  initialTripId = null,
 }: CatchesPageProps) {
   const router = useRouter();
 
-  const [catches, setCatches] = useState<FishingCatch[]>(initialCatches);
-  const [form, setForm] = useState<CatchFormState>(initialFormState);
-  const [isFormOpen, setIsFormOpen] = useState(initialCatches.length === 0);
+ const initialTripExists = trips.some((trip) => trip.id === initialTripId);
+
+const initialFormWithTrip: CatchFormState = {
+  ...initialFormState,
+  tripId: initialTripExists ? initialTripId || "" : "",
+};
+
+const [catches, setCatches] = useState<FishingCatch[]>(initialCatches);
+const [form, setForm] = useState<CatchFormState>(initialFormWithTrip);
+const [isFormOpen, setIsFormOpen] = useState(
+  initialCatches.length === 0 || initialTripExists
+);
   const [editingCatchId, setEditingCatchId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -181,11 +192,11 @@ export function CatchesPage({
     });
   }
 
-  function handleCancelForm() {
-    setEditingCatchId(null);
-    setForm(initialFormState);
-    setIsFormOpen(false);
-  }
+ function handleCancelForm() {
+  setEditingCatchId(null);
+  setForm(initialFormWithTrip);
+  setIsFormOpen(false);
+}
 
   const filteredCatches = useMemo(() => {
     return catches.filter((item) => {
@@ -263,7 +274,7 @@ export function CatchesPage({
       setCatches((current) => [data, ...current]);
     }
 
-    setForm(initialFormState);
+    setForm(initialFormWithTrip);
     setEditingCatchId(null);
     setIsFormOpen(false);
     setIsLoading(false);
@@ -312,15 +323,15 @@ export function CatchesPage({
         <button
           type="button"
           onClick={() => {
-            if (isFormOpen) {
-              handleCancelForm();
-              return;
-            }
+                if (isFormOpen) {
+                    handleCancelForm();
+                    return;
+                }
 
-            setEditingCatchId(null);
-            setForm(initialFormState);
-            setIsFormOpen(true);
-          }}
+                setEditingCatchId(null);
+                setForm(initialFormWithTrip);
+                setIsFormOpen(true);
+                }}
           className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
           {isFormOpen ? "Zamknij formularz" : "+ Dodaj połów"}
@@ -345,6 +356,11 @@ export function CatchesPage({
           <h2 className="text-xl font-bold text-slate-950">
             {editingCatchId ? "Edytuj połów" : "Dodaj połów"}
           </h2>
+          {initialTripExists && !editingCatchId && (
+                <p className="mt-2 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+                Dodajesz połów do wybranej wyprawy.
+                </p>
+            )}
 
           <form onSubmit={handleSubmit} className="mt-5 space-y-5">
             <div className="grid gap-5 lg:grid-cols-2">

@@ -4,7 +4,15 @@ import { CatchesPage } from "@/components/dashboard/CatchesPage";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 
-export default async function CatchesRoutePage() {
+type CatchesRoutePageProps = {
+  searchParams: Promise<{
+    tripId?: string;
+  }>;
+};
+
+export default async function CatchesRoutePage({
+  searchParams,
+}: CatchesRoutePageProps) {
   const supabase = await createClient();
 
   const {
@@ -14,6 +22,8 @@ export default async function CatchesRoutePage() {
   if (!user) {
     redirect("/login");
   }
+
+  const { tripId } = await searchParams;
 
   const [catches, lakes, trips] = await Promise.all([
     prisma.fishingCatch.findMany({
@@ -58,6 +68,7 @@ export default async function CatchesRoutePage() {
         initialCatches={JSON.parse(JSON.stringify(catches))}
         lakes={JSON.parse(JSON.stringify(lakes))}
         trips={JSON.parse(JSON.stringify(trips))}
+        initialTripId={tripId || null}
       />
     </DashboardLayout>
   );

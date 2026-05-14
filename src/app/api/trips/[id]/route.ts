@@ -61,6 +61,65 @@ async function getUserTrip(id: string) {
   };
 }
 
+export async function PUT(request: Request, { params }: RouteProps) {
+  const { id } = await params;
+
+  const result = await getUserTrip(id);
+
+  if (result.error) {
+    return result.error;
+  }
+
+  const body = await request.json();
+
+  const title = String(body.title || "").trim();
+  const startsAt = String(body.startsAt || "").trim();
+
+  if (!title || !startsAt) {
+    return NextResponse.json(
+      { message: "Nazwa wyprawy oraz data są wymagane." },
+      { status: 400 }
+    );
+  }
+
+  let lakeName: string | null = null;
+  let lakeId: string | null = null;
+
+  if (body.lakeId) {
+    const lake = await prisma.lake.findUnique({
+      where: {
+        id: body.lakeId,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (lake) {
+      lakeId = lake.id;
+      lakeName = lake.name;
+    }
+  }
+
+  const updatedTrip = await prisma.fishingTrip.update({
+    where: {
+      id,
+    },
+    data: {
+      title,
+      lakeId,
+      lakeName,
+      tripType: body.tripType || "custom",
+      status: body.status || "planned",
+      startsAt: new Date(startsAt),
+      note: body.note || null,
+    },
+  });
+
+  return NextResponse.json(updatedTrip);
+}
+
 export async function DELETE(_request: Request, { params }: RouteProps) {
   const { id } = await params;
 
