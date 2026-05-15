@@ -59,13 +59,14 @@ model Lake {
   contactEmail   String
   contactWebsite String
 
-  priceList      PriceItem[]
-  rules          Rule[]
-  fishSpecies    FishSpecies[]
-  images         LakeImage[]
-  favourites     Favourite[]
-  ratings        Rating[]
+  priceList         PriceItem[]
+  rules             Rule[]
+  fishSpecies       FishSpecies[]
+  images            LakeImage[]
+  favourites        Favourite[]
+  ratings           Rating[]
   correctionReports LakeCorrectionReport[]
+  catches           FishingCatch[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -318,6 +319,7 @@ model FishingCatch {
 
   lakeId      String?
   lakeName    String?
+  lake        Lake?    @relation(fields: [lakeId], references: [id], onDelete: SetNull)
 
   tripId      String?
   tripTitle   String?
@@ -327,6 +329,14 @@ model FishingCatch {
 
   note        String?
 
+  isPublic      Boolean @default(false)
+  rankingStatus String  @default("pending")
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([lakeId])
+  @@index([userId])
+  @@index([rankingStatus])
+  @@index([isPublic])
 }

@@ -19,6 +19,8 @@ type FishingCatch = {
   imageUrl: string | null;
   imagePath: string | null;
   note: string | null;
+  isPublic: boolean;
+  rankingStatus: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -54,6 +56,7 @@ type CatchFormState = {
   lakeId: string;
   tripId: string;
   note: string;
+  isPublic: boolean;
 };
 
 type ViewMode = "grid" | "list";
@@ -69,6 +72,7 @@ const initialFormState: CatchFormState = {
   lakeId: "",
   tripId: "",
   note: "",
+  isPublic: false,
 };
 
 const fishSpecies = [
@@ -208,6 +212,7 @@ export function CatchesPage({
       lakeId: item.lakeId || "",
       tripId: item.tripId || "",
       note: item.note || "",
+      isPublic: Boolean(item.isPublic),
     });
 
     setIsFormOpen(true);
@@ -275,27 +280,115 @@ export function CatchesPage({
     return data as FishingCatch;
   }
 
+  function validateRankingRules(finalFishName: string) {
+    if (!finalFishName) {
+      alert("Wybierz gatunek ryby albo wpisz własny.");
+      return false;
+    }
+
+    if (!form.isPublic) {
+      return true;
+    }
+
+    const currentEditedCatch = editingCatchId
+      ? catches.find((item) => item.id === editingCatchId)
+      : null;
+
+    const hasExistingImage = Boolean(currentEditedCatch?.imageUrl);
+    const hasImage = Boolean(selectedImage) || hasExistingImage;
+
+    if (!form.lakeId) {
+      alert(
+        "Aby połów trafił do rankingu łowiska, musisz wybrać łowisko z bazy."
+      );
+      return false;
+    }
+
+    if (!hasImage) {
+      alert(
+        "Aby połów trafił do rankingu łowiska, musisz dodać zdjęcie ryby."
+      );
+      return false;
+    }
+
+    if (!form.weight && !form.length) {
+      alert(
+        "Aby połów trafił do rankingu łowiska, wpisz wagę lub długość ryby."
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const finalFishName =
       form.fishName === "other" ? form.customFishName.trim() : form.fishName;
 
-    if (!finalFishName) {
-      alert("Wybierz gatunek ryby albo wpisz własny.");
+    if (!validateRankingRules(finalFishName)) {
       return;
     }
 
     setIsLoading(true);
 
-    const url = editingCatchId
-      ? `/api/catches/${editingCatchId}`
-      : "/api/catches";
+    if (!editingCatchId) {
+      try {
+        const formData = new FormData();
 
-    const method = editingCatchId ? "PUT" : "POST";
+        formData.append("fishName", finalFishName);
+        formData.append("weight", form.weight);
+        formData.append("length", form.length);
+        formData.append("method", form.method);
+        formData.append("bait", form.bait);
+        formData.append("caughtAt", form.caughtAt);
+        formData.append("lakeId", form.lakeId);
+        formData.append("tripId", form.tripId);
+        formData.append("note", form.note);
+        formData.append("isPublic", String(form.isPublic));
 
-    const response = await fetch(url, {
-      method,
+        if (selectedImage) {
+          const compressedImage = await compressImage(selectedImage);
+          formData.append("image", compressedImage);
+        }
+
+        const response = await fetch("/api/catches", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          alert(data.message || "Nie udało się zapisać połowu.");
+          setIsLoading(false);
+          return;
+        }
+
+        const savedCatch = data as FishingCatch;
+
+        setCatches((current) => [savedCatch, ...current]);
+        setForm(initialFormWithTrip);
+        setSelectedImage(null);
+        setEditingCatchId(null);
+        setIsFormOpen(false);
+        setIsLoading(false);
+        router.refresh();
+        return;
+      } catch (error) {
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Nie udało się zapisać połowu."
+        );
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    const response = await fetch(`/api/catches/${editingCatchId}`, {
+      method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
@@ -327,13 +420,9 @@ export function CatchesPage({
       }
     }
 
-    if (editingCatchId) {
-      setCatches((current) =>
-        current.map((item) => (item.id === editingCatchId ? savedCatch : item))
-      );
-    } else {
-      setCatches((current) => [savedCatch, ...current]);
-    }
+    setCatches((current) =>
+      current.map((item) => (item.id === editingCatchId ? savedCatch : item))
+    );
 
     setForm(initialFormWithTrip);
     setSelectedImage(null);
@@ -511,6 +600,40 @@ export function CatchesPage({
                   })),
                 ]}
               />
+
+              <div className="lg:col-span-2">
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition ${
+                    form.isPublic
+                      ? "border-emerald-200 bg-emerald-50"
+                      : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.isPublic}
+                    onChange={(event) =>
+                      updateField("isPublic", event.target.checked)
+                    }
+                    className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600"
+                  />
+
+                  <span>
+                    <span
+                      className={`block text-sm font-bold ${
+                        form.isPublic ? "text-emerald-700" : "text-slate-700"
+                      }`}
+                    >
+                      Pokaż ten połów w rankingu łowiska
+                    </span>
+
+                    <span className="mt-1 block text-sm leading-6 text-slate-500">
+                      Do rankingu trafią tylko połowy z wybranym łowiskiem,
+                      zdjęciem oraz podaną wagą lub długością.
+                    </span>
+                  </span>
+                </label>
+              </div>
 
               <div className="lg:col-span-2">
                 <label className="mb-2 block text-sm font-semibold text-slate-700">
@@ -692,6 +815,20 @@ export function CatchesPage({
                   </div>
                 </div>
 
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {item.isPublic && (
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                      Ranking
+                    </span>
+                  )}
+
+                  {item.rankingStatus === "approved" && item.isPublic && (
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                      Zatwierdzony
+                    </span>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <InfoTile
                     label="Waga"
@@ -794,6 +931,12 @@ export function CatchesPage({
                       {item.tripTitle && (
                         <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
                           {item.tripTitle}
+                        </span>
+                      )}
+
+                      {item.isPublic && (
+                        <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                          Ranking łowiska
                         </span>
                       )}
                     </div>

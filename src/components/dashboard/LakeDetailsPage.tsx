@@ -430,6 +430,8 @@ export function LakeDetailsPage({
             </div>
           </section>
 
+          <CatchRankingsSection lake={lake} />
+
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold text-slate-950">Udogodnienia</h2>
 
@@ -738,4 +740,220 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       <p className="text-right text-sm font-bold text-slate-950">{value}</p>
     </div>
   );
+}
+
+function CatchRankingsSection({ lake }: { lake: LakeDto }) {
+  const hasWeightRanking = lake.catchRankings.byWeight.length > 0;
+  const hasLengthRanking = lake.catchRankings.byLength.length > 0;
+
+  if (!hasWeightRanking && !hasLengthRanking) {
+    return (
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-950">
+              Ranking połowów na tym łowisku
+            </h2>
+
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Na razie nie ma publicznych połowów ze zdjęciem dodanych do
+              rankingu tego łowiska.
+            </p>
+          </div>
+
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+            Brak wyników
+          </span>
+        </div>
+
+        <Link
+          href="/polowy"
+          className="mt-5 inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+        >
+          Dodaj swój połów
+        </Link>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-950">
+            Ranking połowów na tym łowisku
+          </h2>
+
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            Do rankingu trafiają tylko publiczne połowy z wybranym łowiskiem,
+            zdjęciem oraz podaną wagą lub długością.
+          </p>
+        </div>
+
+        <Link
+          href="/polowy"
+          className="rounded-2xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 transition hover:bg-blue-100"
+        >
+          Dodaj połów
+        </Link>
+      </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+        <RankingCard
+          title="Najcięższe ryby"
+          description="TOP 5 według wagi"
+          emptyText="Brak połowów z podaną wagą."
+          type="weight"
+          items={lake.catchRankings.byWeight}
+        />
+
+        <RankingCard
+          title="Najdłuższe ryby"
+          description="TOP 5 według długości"
+          emptyText="Brak połowów z podaną długością."
+          type="length"
+          items={lake.catchRankings.byLength}
+        />
+      </div>
+    </section>
+  );
+}
+
+function RankingCard({
+  title,
+  description,
+  emptyText,
+  type,
+  items,
+}: {
+  title: string;
+  description: string;
+  emptyText: string;
+  type: "weight" | "length";
+  items: LakeDto["catchRankings"]["byWeight"];
+}) {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+      <div className="mb-4">
+        <h3 className="text-lg font-bold text-slate-950">{title}</h3>
+        <p className="mt-1 text-sm text-slate-500">{description}</p>
+      </div>
+
+      {items.length > 0 ? (
+        <div className="space-y-3">
+          {items.map((item, index) => (
+            <RankingItem
+              key={`${type}-${item.id}`}
+              item={item}
+              place={index + 1}
+              type={type}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl bg-white p-5 text-sm font-semibold text-slate-500">
+          {emptyText}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RankingItem({
+  item,
+  place,
+  type,
+}: {
+  item: LakeDto["catchRankings"]["byWeight"][number];
+  place: number;
+  type: "weight" | "length";
+}) {
+  return (
+    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="grid gap-0 sm:grid-cols-[110px_1fr]">
+        <div className="relative h-32 overflow-hidden bg-slate-100 sm:h-full">
+          <img
+            src={item.imageUrl}
+            alt={`Połów: ${item.fishName}`}
+            className="h-full w-full object-cover"
+          />
+
+          <div className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-black text-slate-950 shadow-sm">
+            {place}
+          </div>
+        </div>
+
+        <div className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="font-bold text-slate-950">{item.fishName}</h4>
+
+              <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                {getMethodLabel(item.method)}
+              </p>
+            </div>
+
+            <div
+              className={`rounded-2xl px-3 py-2 text-sm font-black ${
+                place === 1
+                  ? "bg-amber-50 text-amber-700"
+                  : "bg-blue-50 text-blue-700"
+              }`}
+            >
+              {type === "weight"
+                ? item.weight !== null
+                  ? `${item.weight.toFixed(2)} kg`
+                  : "Brak"
+                : item.length !== null
+                  ? `${item.length.toFixed(0)} cm`
+                  : "Brak"}
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {item.weight !== null && (
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                Waga: {item.weight.toFixed(2)} kg
+              </span>
+            )}
+
+            {item.length !== null && (
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                Długość: {item.length.toFixed(0)} cm
+              </span>
+            )}
+
+            {item.bait && (
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                {item.bait}
+              </span>
+            )}
+          </div>
+
+          <p className="mt-3 text-xs font-semibold text-slate-400">
+            {formatRankingDate(item.caughtAt)}
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function getMethodLabel(value: string) {
+  if (value === "spinning") return "Spinning";
+  if (value === "feeder") return "Feeder";
+  if (value === "method_feeder") return "Method feeder";
+  if (value === "carp") return "Karpiówka";
+  if (value === "float") return "Spławik";
+  if (value === "fly") return "Muchówka";
+  if (value === "other") return "Inna metoda";
+  return value;
+}
+
+function formatRankingDate(date: string) {
+  return new Intl.DateTimeFormat("pl-PL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(date));
 }

@@ -1,5 +1,18 @@
 import { prisma } from "@/lib/prisma";
 
+export type CatchRankingItem = {
+  id: string;
+  userId: string;
+  fishName: string;
+  weight: number | null;
+  length: number | null;
+  method: string;
+  bait: string | null;
+  caughtAt: string;
+  imageUrl: string;
+  note: string | null;
+};
+
 export type LakeDto = {
   id: string;
   name: string;
@@ -53,6 +66,10 @@ export type LakeDto = {
     website: string;
   };
   images: string[];
+  catchRankings: {
+    byWeight: CatchRankingItem[];
+    byLength: CatchRankingItem[];
+  };
 };
 
 type LakeFromDatabase = Awaited<ReturnType<typeof getLakesFromDatabase>>[number];
@@ -71,7 +88,39 @@ async function getLakesFromDatabase() {
   });
 }
 
-function mapLakeToDto(lake: LakeFromDatabase): LakeDto {
+function mapCatchToRankingItem(item: {
+  id: string;
+  userId: string;
+  fishName: string;
+  weight: number | null;
+  length: number | null;
+  method: string;
+  bait: string | null;
+  caughtAt: Date;
+  imageUrl: string | null;
+  note: string | null;
+}): CatchRankingItem {
+  return {
+    id: item.id,
+    userId: item.userId,
+    fishName: item.fishName,
+    weight: item.weight,
+    length: item.length,
+    method: item.method,
+    bait: item.bait,
+    caughtAt: item.caughtAt.toISOString(),
+    imageUrl: item.imageUrl || "",
+    note: item.note,
+  };
+}
+
+function mapLakeToDto(
+  lake: LakeFromDatabase,
+  catchRankings: LakeDto["catchRankings"] = {
+    byWeight: [],
+    byLength: [],
+  }
+): LakeDto {
   return {
     id: lake.id,
     name: lake.name,
@@ -125,13 +174,14 @@ function mapLakeToDto(lake: LakeFromDatabase): LakeDto {
       website: lake.contactWebsite,
     },
     images: lake.images.map((image) => image.url),
+    catchRankings,
   };
 }
 
 export async function getLakes() {
   const lakes = await getLakesFromDatabase();
 
-  return lakes.map(mapLakeToDto);
+  return lakes.map((lake) => mapLakeToDto(lake));
 }
 
 export async function getLakeBySlug(slug: string) {
@@ -151,5 +201,70 @@ export async function getLakeBySlug(slug: string) {
     return null;
   }
 
-  return mapLakeToDto(lake);
+  const [catchesByWeight, catchesByLength] = await Promise.all([
+    prisma.fishingCatch.findMany({
+      where: {
+        lakeId: lake.id,
+        isPublic: true,
+        rankingStatus: "approved",
+        imageUrl: {
+          not: null,
+        },
+        weight: {
+          not: null,
+        },
+      },
+      orderBy: {
+        weight: "desc",
+      },
+      take: 5,
+      select: {
+        id: true,
+        userId: true,
+        fishName: true,
+        weight: true,
+        length: true,
+        method: true,
+        bait: true,
+        caughtAt: true,
+        imageUrl: true,
+        note: true,
+      },
+    }),
+
+    prisma.fishingCatch.findMany({
+      where: {
+        lakeId: lake.id,
+        isPublic: true,
+        rankingStatus: "approved",
+        imageUrl: {
+          not: null,
+        },
+        length: {
+          not: null,
+        },
+      },
+      orderBy: {
+        length: "desc",
+      },
+      take: 5,
+      select: {
+        id: true,
+        userId: true,
+        fishName: true,
+        weight: true,
+        length: true,
+        method: true,
+        bait: true,
+        caughtAt: true,
+        imageUrl: true,
+        note: true,
+      },
+    }),
+  ]);
+
+  return mapLakeToDto(lake, {
+    byWeight: catchesByWeight.map(mapCatchToRankingItem),
+    byLength: catchesByLength.map(mapCatchToRankingItem),
+  });
 }

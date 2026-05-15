@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
+const CATCH_IMAGES_BUCKET = "catch-images";
+
 type RouteProps = {
   params: Promise<{
     id: string;
@@ -70,11 +72,21 @@ export async function PUT(request: Request, { params }: RouteProps) {
     return result.error;
   }
 
+  if (!result.user || !result.fishingCatch) {
+    return NextResponse.json(
+      { message: "Nie udało się pobrać danych połowu." },
+      { status: 400 }
+    );
+  }
+
   const body = await request.json();
 
   const fishName = String(body.fishName || "").trim();
   const method = String(body.method || "").trim();
   const caughtAt = String(body.caughtAt || "").trim();
+  const selectedLakeId = String(body.lakeId || "").trim();
+  const selectedTripId = String(body.tripId || "").trim();
+  const isPublic = Boolean(body.isPublic);
 
   if (!fishName || !method || !caughtAt) {
     return NextResponse.json(
@@ -103,13 +115,33 @@ export async function PUT(request: Request, { params }: RouteProps) {
     );
   }
 
+  if (isPublic && !selectedLakeId) {
+    return NextResponse.json(
+      {
+        message:
+          "Aby połów trafił do rankingu łowiska, musisz wybrać łowisko z bazy.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (isPublic && weight === null && length === null) {
+    return NextResponse.json(
+      {
+        message:
+          "Aby połów trafił do rankingu łowiska, wpisz wagę lub długość ryby.",
+      },
+      { status: 400 }
+    );
+  }
+
   let lakeName: string | null = null;
   let lakeId: string | null = null;
 
-  if (body.lakeId) {
+  if (selectedLakeId) {
     const lake = await prisma.lake.findUnique({
       where: {
-        id: body.lakeId,
+        id: selectedLakeId,
       },
       select: {
         id: true,
@@ -117,19 +149,24 @@ export async function PUT(request: Request, { params }: RouteProps) {
       },
     });
 
-    if (lake) {
-      lakeId = lake.id;
-      lakeName = lake.name;
+    if (!lake) {
+      return NextResponse.json(
+        { message: "Wybrane łowisko nie istnieje." },
+        { status: 400 }
+      );
     }
+
+    lakeId = lake.id;
+    lakeName = lake.name;
   }
 
   let tripTitle: string | null = null;
   let tripId: string | null = null;
 
-  if (body.tripId) {
+  if (selectedTripId) {
     const trip = await prisma.fishingTrip.findUnique({
       where: {
-        id: body.tripId,
+        id: selectedTripId,
       },
       select: {
         id: true,
@@ -138,7 +175,7 @@ export async function PUT(request: Request, { params }: RouteProps) {
       },
     });
 
-    if (trip && trip.userId === result.user?.id) {
+    if (trip && trip.userId === result.user.id) {
       tripId = trip.id;
       tripTitle = trip.title;
     }
@@ -152,14 +189,21 @@ export async function PUT(request: Request, { params }: RouteProps) {
       fishName,
       weight,
       length,
+
       method,
       bait: body.bait || null,
       caughtAt: new Date(caughtAt),
+
       lakeId,
       lakeName,
+
       tripId,
       tripTitle,
+
       note: body.note || null,
+
+      isPublic,
+      rankingStatus: isPublic ? "approved" : "pending",
     },
   });
 
@@ -173,6 +217,21 @@ export async function DELETE(_request: Request, { params }: RouteProps) {
 
   if (result.error) {
     return result.error;
+  }
+
+  if (!result.fishingCatch) {
+    return NextResponse.json(
+      { message: "Nie udało się pobrać połowu." },
+      { status: 400 }
+    );
+  }
+
+  if (result.fishingCatch.imagePath) {
+    const supabase = await createClient();
+
+    await supabase.storage
+      .from(CATCH_IMAGES_BUCKET)
+      .remove([result.fishingCatch.imagePath]);
   }
 
   await prisma.fishingCatch.delete({
