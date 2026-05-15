@@ -566,6 +566,15 @@ export function LakeDetailsPage({ lake, isAdmin = false }: LakeDetailsPageProps)
             >
               Prowadź w Google Maps
             </a>
+
+            <Link
+              href={`/wyprawy?lakeId=${lake.id}&lakeName=${encodeURIComponent(
+                lake.name
+              )}`}
+              className="mt-3 flex w-full items-center justify-center rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+            >
+              Zaplanuj wyprawę na to łowisko
+            </Link>
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

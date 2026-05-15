@@ -29,6 +29,8 @@ type LakeOption = {
 type TripsPageProps = {
   initialTrips: FishingTrip[];
   lakes: LakeOption[];
+  initialLakeId?: string | null;
+  initialLakeName?: string | null;
 };
 
 type TripFormState = {
@@ -68,12 +70,30 @@ const statuses = [
   { label: "Anulowana", value: "cancelled" },
 ];
 
-export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
+export function TripsPage({
+  initialTrips,
+  lakes,
+  initialLakeId = null,
+  initialLakeName = null,
+}: TripsPageProps) {
   const router = useRouter();
 
+  const initialLakeExists = lakes.some((lake) => lake.id === initialLakeId);
+
+  const initialFormWithLake: TripFormState = {
+    ...initialFormState,
+    lakeId: initialLakeExists ? initialLakeId || "" : "",
+    title:
+      initialLakeExists && initialLakeName
+        ? `Wyprawa na ${initialLakeName}`
+        : "",
+  };
+
   const [trips, setTrips] = useState<FishingTrip[]>(initialTrips);
-  const [form, setForm] = useState<TripFormState>(initialFormState);
-  const [isFormOpen, setIsFormOpen] = useState(initialTrips.length === 0);
+  const [form, setForm] = useState<TripFormState>(initialFormWithLake);
+  const [isFormOpen, setIsFormOpen] = useState(
+    initialTrips.length === 0 || initialLakeExists
+  );
   const [editingTripId, setEditingTripId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -112,6 +132,12 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
     setEditingTripId(null);
     setForm(initialFormState);
     setIsFormOpen(false);
+  }
+
+  function handleOpenCreateForm() {
+    setEditingTripId(null);
+    setForm(initialFormState);
+    setIsFormOpen(true);
   }
 
   const plannedTrips = trips.filter((trip) => trip.status === "planned");
@@ -219,15 +245,19 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
               return;
             }
 
-            setEditingTripId(null);
-            setForm(initialFormState);
-            setIsFormOpen(true);
+            handleOpenCreateForm();
           }}
           className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
           {isFormOpen ? "Zamknij formularz" : "+ Zaplanuj wyprawę"}
         </button>
       </div>
+
+      {initialLakeExists && isFormOpen && !editingTripId && (
+        <div className="mb-6 rounded-3xl border border-emerald-100 bg-emerald-50 p-5 text-sm font-semibold text-emerald-700">
+          Planujesz wyprawę na łowisko: {initialLakeName}
+        </div>
+      )}
 
       <section className="mb-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Wszystkie wyprawy" value={String(trips.length)} />
@@ -423,10 +453,10 @@ export function TripsPage({ initialTrips, lakes }: TripsPageProps) {
 
                   {trip.checklistId && (
                     <Link
-                    href={`/checklisty?active=${trip.checklistId}`}
-                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                      href={`/checklisty?active=${trip.checklistId}`}
+                      className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
                     >
-                    Checklista
+                      Checklista
                     </Link>
                   )}
 
