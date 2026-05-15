@@ -1,12 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-type LakeEditFormState = {
+type SubmissionImage = {
+  id: string;
+  url: string;
+};
+
+type SubmissionEditFormState = {
   id: string;
   name: string;
-  slug: string;
   description: string;
   ownerType: string;
   fishingType: string;
@@ -48,26 +53,26 @@ type LakeEditFormState = {
   contactPhone: string;
   contactEmail: string;
   contactWebsite: string;
-  images: {
-  id: string;
-  url: string;
-  }[];
+
+  images: SubmissionImage[];
 };
 
-type LakeEditFormProps = {
-  lake: LakeEditFormState;
+type AdminLakeSubmissionEditFormProps = {
+  submission: SubmissionEditFormState;
 };
 
-export function LakeEditForm({ lake }: LakeEditFormProps) {
+export function AdminLakeSubmissionEditForm({
+  submission,
+}: AdminLakeSubmissionEditFormProps) {
   const router = useRouter();
 
-  const [form, setForm] = useState<LakeEditFormState>(lake);
+  const [form, setForm] = useState<SubmissionEditFormState>(submission);
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
 
-  function updateField<K extends keyof LakeEditFormState>(
+  function updateField<K extends keyof SubmissionEditFormState>(
     field: K,
-    value: LakeEditFormState[K]
+    value: SubmissionEditFormState[K]
   ) {
     setForm((current) => ({
       ...current,
@@ -81,7 +86,7 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
     setIsLoading(true);
     setMessage("");
 
-    const response = await fetch(`/api/admin/lakes/${form.id}`, {
+    const response = await fetch(`/api/admin/lake-submissions/${form.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -89,20 +94,25 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
       body: JSON.stringify(form),
     });
 
-    const data = await response.json();
+    let data: { message?: string } = {};
+
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
 
     if (!response.ok) {
-      setMessage(data.message || "Nie udało się zapisać zmian.");
+      setMessage(data.message || "Nie udało się zapisać zgłoszenia.");
       setIsLoading(false);
       return;
     }
 
-    setMessage("Zmiany zostały zapisane.");
-
+    setMessage("Zgłoszenie zostało zapisane.");
     setIsLoading(false);
 
     setTimeout(() => {
-      router.push(`/lowiska/${data.lake.slug}`);
+      router.push("/admin/zgloszenia-lowisk");
       router.refresh();
     }, 800);
   }
@@ -116,9 +126,24 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
       )}
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-950">
-          Podstawowe informacje
-        </h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-950">
+              Podstawowe informacje
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Dane widoczne później na publicznej stronie łowiska.
+            </p>
+          </div>
+
+          <Link
+            href="/admin/zgloszenia-lowisk"
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Wróć do zgłoszeń
+          </Link>
+        </div>
 
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <Input
@@ -168,6 +193,80 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
           />
         </div>
       </section>
+
+      {form.images.length > 0 && (
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-950">
+                Zdjęcia ze zgłoszenia
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Zdjęcia zostaną przypisane do łowiska po akceptacji.
+              </p>
+            </div>
+
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+              {form.images.length} zdjęć
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {form.images.map((image) => (
+  <div
+    key={image.id}
+    className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-100"
+  >
+    <a href={image.url} target="_blank" rel="noreferrer">
+      <img
+        src={image.url}
+        alt={form.name}
+        className="h-36 w-full object-cover transition duration-300 group-hover:scale-105"
+      />
+    </a>
+
+    <div className="p-3">
+      <button
+        type="button"
+        onClick={async () => {
+          const confirmed = confirm("Czy na pewno chcesz usunąć to zdjęcie?");
+
+          if (!confirmed) {
+            return;
+          }
+
+          const response = await fetch(
+            `/api/admin/lake-submission-images/${image.id}`,
+            {
+              method: "DELETE",
+            }
+          );
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            alert(data.message || "Nie udało się usunąć zdjęcia.");
+            return;
+          }
+
+          setForm((current) => ({
+            ...current,
+            images: current.images.filter(
+              (currentImage) => currentImage.id !== image.id
+            ),
+          }));
+        }}
+        className="w-full rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+      >
+        Usuń zdjęcie
+      </button>
+    </div>
+  </div>
+))}
+          </div>
+        </section>
+      )}
 
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-xl font-bold text-slate-950">Adres i lokalizacja</h2>
@@ -415,85 +514,10 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
         </div>
       </section>
 
-      {form.images.length > 0 && (
-  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h2 className="text-xl font-bold text-slate-950">Zdjęcia łowiska</h2>
-
-        <p className="mt-1 text-sm text-slate-500">
-          Usuń zdjęcia, które nie powinny być widoczne na publicznej stronie
-          łowiska.
-        </p>
-      </div>
-
-      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
-        {form.images.length} zdjęć
-      </span>
-    </div>
-
-    <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {form.images.map((image) => (
-        <div
-          key={image.id}
-          className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-100"
-        >
-          <a href={image.url} target="_blank" rel="noreferrer">
-            <img
-              src={image.url}
-              alt={form.name}
-              className="h-36 w-full object-cover transition duration-300 group-hover:scale-105"
-            />
-          </a>
-
-          <div className="p-3">
-            <button
-              type="button"
-              onClick={async () => {
-                const confirmed = confirm(
-                  "Czy na pewno chcesz usunąć to zdjęcie z łowiska?"
-                );
-
-                if (!confirmed) {
-                  return;
-                }
-
-                const response = await fetch(
-                  `/api/admin/lake-images/${image.id}`,
-                  {
-                    method: "DELETE",
-                  }
-                );
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                  alert(data.message || "Nie udało się usunąć zdjęcia.");
-                  return;
-                }
-
-                setForm((current) => ({
-                  ...current,
-                  images: current.images.filter(
-                    (currentImage) => currentImage.id !== image.id
-                  ),
-                }));
-              }}
-              className="w-full rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
-            >
-              Usuń zdjęcie
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  </section>
-)}
-
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <button
           type="button"
-          onClick={() => router.push(`/lowiska/${form.slug}`)}
+          onClick={() => router.push("/admin/zgloszenia-lowisk")}
           className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
         >
           Anuluj
@@ -504,7 +528,7 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
           disabled={isLoading}
           className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isLoading ? "Zapisywanie..." : "Zapisz zmiany"}
+          {isLoading ? "Zapisywanie..." : "Zapisz zgłoszenie"}
         </button>
       </div>
     </form>

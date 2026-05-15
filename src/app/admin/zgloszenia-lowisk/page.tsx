@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { AdminSubmissionActions } from "@/components/dashboard/AdminSubmissionActions";
+import Link from "next/link";
 
 export default async function LakeSubmissionsAdminPage() {
   const admin = await requireAdmin();
@@ -243,7 +244,16 @@ export default async function LakeSubmissionsAdminPage() {
                   </div>
                 </div>
 
+                <div className="flex shrink-0 flex-col gap-3 sm:flex-row xl:flex-col">
+                <Link
+                  href={`/admin/zgloszenia-lowisk/${submission.id}/edytuj`}
+                  className="rounded-2xl bg-slate-950 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Edytuj
+                </Link>
+
                 <AdminSubmissionActions submissionId={submission.id} />
+              </div>
               </div>
             </article>
           ))}

@@ -88,6 +88,10 @@ export default async function EditLakePage({ params }: EditLakePageProps) {
           rulesText:
             lake.rulesText || lake.rules.map((item) => item.text).join("\n"),
           rulesUrl: lake.rulesUrl || "",
+          images: lake.images.map((image) => ({
+            id: image.id,
+            url: image.url,
+          })),
           contactName: lake.contactName,
           contactPhone: lake.contactPhone,
           contactEmail: lake.contactEmail,
