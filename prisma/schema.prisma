@@ -65,9 +65,29 @@ model Lake {
   images         LakeImage[]
   favourites     Favourite[]
   ratings        Rating[]
+  correctionReports LakeCorrectionReport[]
 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model LakeCorrectionReport {
+  id            String   @id @default(cuid())
+
+  lakeId        String
+  lake          Lake     @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  userId        String
+  userEmail     String?
+
+  category      String
+  description   String
+
+  status        String   @default("pending")
+  adminNote     String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 model PriceItem {

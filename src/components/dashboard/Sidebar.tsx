@@ -14,6 +14,7 @@ type MenuItem = {
 type SidebarProps = {
   isAdmin?: boolean;
   pendingSubmissionsCount?: number;
+  pendingCorrectionsCount?: number;
 };
 
 const mainMenuItems: MenuItem[] = [
@@ -38,10 +39,10 @@ const mainMenuItems: MenuItem[] = [
     icon: <TripIcon />,
   },
   {
-  label: "Checklisty",
-  href: "/checklisty",
-  icon: <ChecklistIcon />,
-},
+    label: "Checklisty",
+    href: "/checklisty",
+    icon: <ChecklistIcon />,
+  },
   {
     label: "Moje połowy",
     href: "/polowy",
@@ -75,6 +76,7 @@ const accountMenuItems: MenuItem[] = [
 export function Sidebar({
   isAdmin = false,
   pendingSubmissionsCount = 0,
+  pendingCorrectionsCount = 0,
 }: SidebarProps) {
   const adminMenuItems: MenuItem[] = [
     {
@@ -82,6 +84,12 @@ export function Sidebar({
       href: "/admin/zgloszenia-lowisk",
       icon: <NotificationIcon />,
       badge: pendingSubmissionsCount,
+    },
+    {
+      label: "Zgłoszone poprawki",
+      href: "/admin/poprawki-lowisk",
+      icon: <ReportIcon />,
+      badge: pendingCorrectionsCount,
     },
   ];
 
@@ -284,6 +292,16 @@ function NotificationIcon() {
     <IconBase>
       <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
       <path d="M10 21h4" />
+    </IconBase>
+  );
+}
+
+function ReportIcon() {
+  return (
+    <IconBase>
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+      <path d="M10.3 4.3 2.8 17.3A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.7L13.7 4.3a2 2 0 0 0-3.4 0Z" />
     </IconBase>
   );
 }
