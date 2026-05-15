@@ -1,8 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { LogoutButton } from "@/components/auth/LogoutButton";
+import Link from "next/link";
+
+type TopbarProps = {
+  userName?: string | null;
+  userEmail?: string | null;
+  userRoleLabel?: string;
+};
 
 const profileMenuItems = [
   {
@@ -22,9 +28,17 @@ const profileMenuItems = [
   },
 ];
 
-export function Topbar() {
+export function Topbar({
+  userName,
+  userEmail,
+  userRoleLabel = "Wędkarz",
+}: TopbarProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+
+  const displayName = userName || getNameFromEmail(userEmail) || "Użytkownik";
+  const displayEmail = userEmail || "Brak adresu e-mail";
+  const initials = getInitials(displayName);
 
   useEffect(() => {
     async function loadUnreadNotificationsCount() {
@@ -46,7 +60,7 @@ export function Topbar() {
     <header className="mb-6 grid gap-4 lg:mb-8 xl:grid-cols-[1fr_minmax(320px,520px)_auto] xl:items-center">
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Cześć, Jakub!
+          Cześć, {displayName}!
         </h1>
 
         <p className="mt-1 text-slate-500">
@@ -89,11 +103,15 @@ export function Topbar() {
             onClick={() => setIsProfileOpen((current) => !current)}
             className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white py-2 pl-2 pr-4 shadow-sm transition hover:bg-slate-50"
           >
-            <div className="h-9 w-9 overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-emerald-400" />
+            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-emerald-400 text-sm font-bold text-white">
+              {initials}
+            </div>
 
             <div className="hidden text-left sm:block">
-              <p className="text-sm font-bold text-slate-900">Piotr Nowak</p>
-              <p className="text-xs text-slate-500">Wędkarz</p>
+              <p className="max-w-32 truncate text-sm font-bold text-slate-900">
+                {displayName}
+              </p>
+              <p className="text-xs text-slate-500">{userRoleLabel}</p>
             </div>
 
             <ChevronDownIcon />
@@ -102,9 +120,11 @@ export function Topbar() {
           {isProfileOpen && (
             <div className="absolute right-0 top-14 z-[800] w-64 rounded-3xl border border-slate-200 bg-white p-2 shadow-xl">
               <div className="border-b border-slate-100 px-3 py-3">
-                <p className="text-sm font-bold text-slate-900">Piotr Nowak</p>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  piotr@example.com
+                <p className="truncate text-sm font-bold text-slate-900">
+                  {displayName}
+                </p>
+                <p className="mt-0.5 truncate text-xs text-slate-500">
+                  {displayEmail}
                 </p>
               </div>
 
@@ -137,6 +157,34 @@ export function Topbar() {
       </div>
     </header>
   );
+}
+
+function getNameFromEmail(email?: string | null) {
+  if (!email) {
+    return null;
+  }
+
+  const namePart = email.split("@")[0];
+
+  return namePart
+    .split(/[._-]/)
+    .filter(Boolean)
+    .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
+    .join(" ");
+}
+
+function getInitials(name: string) {
+  const parts = name.trim().split(" ").filter(Boolean);
+
+  if (parts.length === 0) {
+    return "U";
+  }
+
+  if (parts.length === 1) {
+    return parts[0].charAt(0).toUpperCase();
+  }
+
+  return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
 }
 
 function IconBase({ children }: { children: React.ReactNode }) {

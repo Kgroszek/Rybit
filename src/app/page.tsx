@@ -185,7 +185,15 @@ export default async function Home() {
 
   return (
     <DashboardLayout>
-      <Topbar />
+      <Topbar
+        userName={
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          user.email
+        }
+        userEmail={user.email}
+        userRoleLabel="Wędkarz"
+      />
 
       <div className="grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-5 lg:space-y-6">
