@@ -21,9 +21,17 @@ export async function POST(request: Request, { params }: RouteProps) {
   const { id } = await params;
   const body = await request.json().catch(() => null);
 
+  const adminNote = String(body?.adminNote || "").trim();
+
   const submission = await prisma.lakeSubmission.findUnique({
     where: {
       id,
+    },
+    select: {
+      id: true,
+      userId: true,
+      name: true,
+      status: true,
     },
   });
 
@@ -47,9 +55,24 @@ export async function POST(request: Request, { params }: RouteProps) {
     },
     data: {
       status: "rejected",
-      adminNote: body?.adminNote || null,
+      adminNote: adminNote || null,
     },
   });
+
+  if (submission.userId) {
+    await prisma.userNotification.create({
+      data: {
+        userId: submission.userId,
+        title: "Zgłoszenie łowiska zostało odrzucone",
+        message:
+          adminNote ||
+          `Twoje zgłoszenie łowiska „${submission.name}” zostało odrzucone przez administratora.`,
+        href: `/moje-zgloszenia-lowisk/${submission.id}`,
+        type: "lake_submission_rejected",
+        isRead: false,
+      },
+    });
+  }
 
   return NextResponse.json({
     message: "Zgłoszenie zostało odrzucone.",

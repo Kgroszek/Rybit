@@ -1,30 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 
 const profileMenuItems = [
   {
     label: "Profil",
+    href: "/profil",
     icon: <UserIcon />,
   },
   {
     label: "Historia połowów",
+    href: "/historia-polowow",
     icon: <HistoryIcon />,
   },
   {
     label: "Ustawienia",
+    href: "/ustawienia",
     icon: <SettingsIcon />,
   },
 ];
 
 export function Topbar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+
+  useEffect(() => {
+    async function loadUnreadNotificationsCount() {
+      const response = await fetch("/api/notifications/unread-count");
+
+      if (!response.ok) {
+        return;
+      }
+
+      const data = await response.json();
+
+      setUnreadNotificationsCount(Number(data.count || 0));
+    }
+
+    loadUnreadNotificationsCount();
+  }, []);
 
   return (
     <header className="mb-6 grid gap-4 lg:mb-8 xl:grid-cols-[1fr_minmax(320px,520px)_auto] xl:items-center">
-      {/* LEFT */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           Cześć, Jakub!
@@ -35,7 +54,6 @@ export function Topbar() {
         </p>
       </div>
 
-      {/* CENTER SEARCH */}
       <div className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <input
           className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
@@ -43,24 +61,27 @@ export function Topbar() {
         />
       </div>
 
-      {/* RIGHT ACTIONS */}
       <div className="flex flex-wrap items-center gap-3">
-       <Link
-            href="/lowiska/zglos"
-            className="order-3 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:order-none sm:w-auto"
-          >
-            + Zgłoś łowisko
-          </Link>
+        <Link
+          href="/lowiska/zglos"
+          className="order-3 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:order-none sm:w-auto"
+        >
+          + Zgłoś łowisko
+        </Link>
 
-        <button
-          type="button"
+        <Link
+          href="/powiadomienia"
           className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-950"
           aria-label="Powiadomienia"
         >
           <BellIcon />
 
-          <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white" />
-        </button>
+          {unreadNotificationsCount > 0 && (
+            <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white ring-2 ring-white">
+              {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
+            </span>
+          )}
+        </Link>
 
         <div className="relative">
           <button
@@ -89,8 +110,10 @@ export function Topbar() {
 
               <div className="py-2">
                 {profileMenuItems.map((item) => (
-                  <button
+                  <Link
                     key={item.label}
+                    href={item.href}
+                    onClick={() => setIsProfileOpen(false)}
                     className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-950"
                   >
                     <span className="flex h-5 w-5 items-center justify-center">
@@ -98,7 +121,7 @@ export function Topbar() {
                     </span>
 
                     {item.label}
-                  </button>
+                  </Link>
                 ))}
               </div>
 

@@ -111,7 +111,7 @@ useEffect(() => {
 
   const recommendedLakes = useMemo<RecommendedLake[]>(() => {
     if (!userLocation) {
-      return lakes.slice(0, 3).map((lake) => ({
+      return lakes.slice(0, 5).map((lake) => ({
         ...lake,
         calculatedDistance: null,
       }));

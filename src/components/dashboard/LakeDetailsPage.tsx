@@ -105,7 +105,10 @@ function getNavigationUrl(lat: number, lng: number) {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 }
 
-export function LakeDetailsPage({ lake, isAdmin = false }: LakeDetailsPageProps) {
+export function LakeDetailsPage({
+  lake,
+  isAdmin = false,
+}: LakeDetailsPageProps) {
   const [displayRating, setDisplayRating] = useState(lake.rating);
   const [userRating, setUserRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -113,7 +116,49 @@ export function LakeDetailsPage({ lake, isAdmin = false }: LakeDetailsPageProps)
   const [isLoadingUserData, setIsLoadingUserData] = useState(true);
   const [isFavouriteLoading, setIsFavouriteLoading] = useState(false);
   const [isRatingLoading, setIsRatingLoading] = useState(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(
+    null
+  );
+
+  const previewImage =
+    previewImageIndex !== null ? lake.images[previewImageIndex] : null;
+
+  function openPreview(index: number) {
+    setPreviewImageIndex(index);
+  }
+
+  function closePreview() {
+    setPreviewImageIndex(null);
+  }
+
+  function showPreviousImage() {
+    if (previewImageIndex === null || lake.images.length === 0) {
+      return;
+    }
+
+    setPreviewImageIndex((currentIndex) => {
+      if (currentIndex === null) {
+        return null;
+      }
+
+      return currentIndex === 0 ? lake.images.length - 1 : currentIndex - 1;
+    });
+  }
+
+  function showNextImage() {
+    if (previewImageIndex === null || lake.images.length === 0) {
+      return;
+    }
+
+    setPreviewImageIndex((currentIndex) => {
+      if (currentIndex === null) {
+        return null;
+      }
+
+      return currentIndex === lake.images.length - 1 ? 0 : currentIndex + 1;
+    });
+  }
 
   useEffect(() => {
     async function loadUserData() {
@@ -135,6 +180,32 @@ export function LakeDetailsPage({ lake, isAdmin = false }: LakeDetailsPageProps)
 
     loadUserData();
   }, [lake.slug]);
+
+  useEffect(() => {
+    if (previewImageIndex === null) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closePreview();
+      }
+
+      if (event.key === "ArrowLeft") {
+        showPreviousImage();
+      }
+
+      if (event.key === "ArrowRight") {
+        showNextImage();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [previewImageIndex, lake.images.length]);
 
   async function handleRatingChange(rating: number) {
     setIsRatingLoading(true);
@@ -241,6 +312,7 @@ export function LakeDetailsPage({ lake, isAdmin = false }: LakeDetailsPageProps)
                         ? "♥ W ulubionych"
                         : "♡ Dodaj do ulubionych"}
                   </button>
+
                   {isAdmin && (
                     <Link
                       href={`/admin/lowiska/${lake.slug}/edytuj`}
@@ -264,7 +336,7 @@ export function LakeDetailsPage({ lake, isAdmin = false }: LakeDetailsPageProps)
                 <button
                   key={`${image}-${index}`}
                   type="button"
-                  onClick={() => setPreviewImage(image)}
+                  onClick={() => openPreview(index)}
                   className="group overflow-hidden rounded-2xl bg-slate-100 text-left"
                 >
                   <div
@@ -310,7 +382,7 @@ export function LakeDetailsPage({ lake, isAdmin = false }: LakeDetailsPageProps)
               <button
                 key={`${image}-${index}`}
                 type="button"
-                onClick={() => setPreviewImage(image)}
+                onClick={() => openPreview(index)}
                 className="group overflow-hidden rounded-2xl bg-slate-100 text-left"
               >
                 <img
@@ -587,11 +659,15 @@ export function LakeDetailsPage({ lake, isAdmin = false }: LakeDetailsPageProps)
               <InfoRow label="Strona" value={lake.contact.website} />
             </div>
           </section>
+
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-950">Zauważyłeś błąd?</h2>
+            <h2 className="text-xl font-bold text-slate-950">
+              Zauważyłeś błąd?
+            </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Jeśli dane łowiska są nieaktualne, możesz zgłosić poprawkę administratorowi.
+              Jeśli dane łowiska są nieaktualne, możesz zgłosić poprawkę
+              administratorowi.
             </p>
 
             <LakeCorrectionReportButton lakeSlug={lake.slug} />
@@ -599,10 +675,10 @@ export function LakeDetailsPage({ lake, isAdmin = false }: LakeDetailsPageProps)
         </aside>
       </div>
 
-      {previewImage && (
+      {previewImage && previewImageIndex !== null && (
         <div
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/80 p-4"
-          onClick={() => setPreviewImage(null)}
+          onClick={closePreview}
         >
           <div
             className="relative max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-3xl bg-white p-3 shadow-2xl"
@@ -610,12 +686,38 @@ export function LakeDetailsPage({ lake, isAdmin = false }: LakeDetailsPageProps)
           >
             <button
               type="button"
-              onClick={() => setPreviewImage(null)}
-              className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-xl font-bold text-slate-700 shadow-sm transition hover:bg-white"
+              onClick={closePreview}
+              className="absolute right-5 top-5 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-xl font-bold text-slate-700 shadow-sm transition hover:bg-white"
               aria-label="Zamknij podgląd zdjęcia"
             >
               ×
             </button>
+
+            {lake.images.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={showPreviousImage}
+                  className="absolute left-5 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-3xl font-bold text-slate-700 shadow-sm transition hover:bg-white"
+                  aria-label="Poprzednie zdjęcie"
+                >
+                  ‹
+                </button>
+
+                <button
+                  type="button"
+                  onClick={showNextImage}
+                  className="absolute right-5 top-1/2 z-20 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-3xl font-bold text-slate-700 shadow-sm transition hover:bg-white"
+                  aria-label="Następne zdjęcie"
+                >
+                  ›
+                </button>
+
+                <div className="absolute bottom-5 left-1/2 z-20 -translate-x-1/2 rounded-full bg-slate-950/70 px-4 py-2 text-sm font-bold text-white">
+                  {previewImageIndex + 1} / {lake.images.length}
+                </div>
+              </>
+            )}
 
             <img
               src={previewImage}
