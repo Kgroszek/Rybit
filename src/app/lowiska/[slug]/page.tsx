@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { LakeDetailsPage } from "@/components/dashboard/LakeDetailsPage";
 import { getLakeBySlug } from "@/lib/lakes";
+import { requireAdmin } from "@/lib/auth";
 
 type LakePageProps = {
   params: Promise<{
@@ -12,7 +13,10 @@ type LakePageProps = {
 export default async function LakePage({ params }: LakePageProps) {
   const { slug } = await params;
 
-  const lake = await getLakeBySlug(slug);
+  const [lake, admin] = await Promise.all([
+    getLakeBySlug(slug),
+    requireAdmin(),
+  ]);
 
   if (!lake) {
     notFound();
@@ -20,7 +24,7 @@ export default async function LakePage({ params }: LakePageProps) {
 
   return (
     <DashboardLayout>
-      <LakeDetailsPage lake={lake} />
+      <LakeDetailsPage lake={lake} isAdmin={Boolean(admin)} />
     </DashboardLayout>
   );
 }

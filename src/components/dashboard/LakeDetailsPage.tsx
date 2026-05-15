@@ -6,6 +6,7 @@ import type { LakeDto } from "@/lib/lakes";
 
 type LakeDetailsPageProps = {
   lake: LakeDto;
+  isAdmin?: boolean;
 };
 
 const amenitiesLabels = [
@@ -103,7 +104,7 @@ function getNavigationUrl(lat: number, lng: number) {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 }
 
-export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
+export function LakeDetailsPage({ lake, isAdmin = false }: LakeDetailsPageProps) {
   const [displayRating, setDisplayRating] = useState(lake.rating);
   const [userRating, setUserRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -239,6 +240,14 @@ export function LakeDetailsPage({ lake }: LakeDetailsPageProps) {
                         ? "♥ W ulubionych"
                         : "♡ Dodaj do ulubionych"}
                   </button>
+                  {isAdmin && (
+                    <Link
+                      href={`/admin/lowiska/${lake.slug}/edytuj`}
+                      className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-slate-800"
+                    >
+                      Edytuj łowisko
+                    </Link>
+                  )}
 
                   <div className="rounded-2xl bg-blue-50 px-4 py-3 text-lg font-bold text-blue-700">
                     ★ {displayRating}
