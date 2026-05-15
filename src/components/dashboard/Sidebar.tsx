@@ -96,13 +96,12 @@ export function Sidebar({
   return (
     <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-6 lg:flex lg:flex-col">
       <div className="mb-10 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-xl font-bold text-white">
-          R
-        </div>
-
-        <div>
-          <p className="text-2xl font-bold tracking-tight">Rybit</p>
-          <p className="text-sm text-slate-500">Panel wędkarza</p>
+        <div className="flex  items-center justify-center overflow-hidden">
+          <img
+            src="/logos/logo-rybio.svg"
+            alt="Rybit"
+            className="object-contain"
+          />
         </div>
       </div>
 

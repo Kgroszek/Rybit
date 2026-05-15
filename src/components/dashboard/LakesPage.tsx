@@ -7,6 +7,7 @@ import type { LakeDto } from "@/lib/lakes";
 type OwnerTypeFilter = "all" | "pzw" | "commercial";
 type FishingTypeFilter = "all" | "general" | "spinning" | "carp";
 type SortType = "rating" | "name" | "distance";
+type ViewMode = "grid" | "list";
 
 type AmenityKey =
   | "cottages"
@@ -71,6 +72,7 @@ export function LakesPage({ lakes }: LakesPageProps) {
   const [fish, setFish] = useState("all");
   const [selectedAmenities, setSelectedAmenities] = useState<AmenityKey[]>([]);
   const [areAdvancedFiltersOpen, setAreAdvancedFiltersOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   const voivodeships = useMemo(() => {
     return Array.from(
@@ -388,106 +390,64 @@ export function LakesPage({ lakes }: LakesPageProps) {
           <span className="text-slate-400"> / {lakes.length}</span>
         </p>
 
-        {activeFiltersCount > 0 && (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {activeFiltersCount > 0 && (
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+              Aktywne filtry: {activeFiltersCount}
+            </span>
+          )}
+
           <button
+            type="button"
             onClick={clearFilters}
-            className="text-left text-sm font-semibold text-blue-600 hover:text-blue-700 sm:text-right"
+            disabled={activeFiltersCount === 0}
+            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Wyczyść filtry ({activeFiltersCount})
+            Resetuj filtry
           </button>
-        )}
+
+          <div className="flex rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+                viewMode === "grid"
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              Kafelki
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+                viewMode === "list"
+                  ? "bg-blue-600 text-white"
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              Lista
+            </button>
+          </div>
+        </div>
       </div>
 
       {filteredLakes.length > 0 ? (
-        <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
-          {filteredLakes.map((lake) => (
-            <article
-              key={lake.id}
-              className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-            >
-              <div className="relative h-44 overflow-hidden bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200">
-                {lake.images.length > 0 && (
-                  <img
-                    src={lake.images[0]}
-                    alt={lake.name}
-                    className="h-full w-full object-cover"
-                  />
-                )}
-
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
-
-                <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-bold ${
-                      lake.type === "commercial"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-blue-50 text-blue-700"
-                    }`}
-                  >
-                    {getOwnerTypeLabel(lake.type)}
-                  </span>
-
-                  <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
-                    {getFishingTypeLabel(lake.fishingType)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-5">
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-xl font-bold text-slate-950">
-                      {lake.name}
-                    </h2>
-
-                    <p className="mt-1 text-sm font-medium text-slate-500">
-                      {lake.address.city}, woj. {lake.address.voivodeship}
-                    </p>
-
-                    <p className="mt-2 line-clamp-2 text-sm text-slate-500">
-                      {lake.fish}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
-                    ★ {lake.rating}
-                  </div>
-                </div>
-
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {lake.amenities.noKill && (
-                    <SmallBadge label="No Kill" />
-                  )}
-                  {lake.amenities.parking && (
-                    <SmallBadge label="Parking" />
-                  )}
-                  {lake.amenities.nightFishing && (
-                    <SmallBadge label="Nocka" />
-                  )}
-                  {lake.amenities.cottages && (
-                    <SmallBadge label="Domki" />
-                  )}
-                  {lake.amenities.cardPayment && (
-                    <SmallBadge label="Karta" />
-                  )}
-                </div>
-
-                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-                  <p className="text-sm font-semibold text-slate-500">
-                    {lake.distance}
-                  </p>
-
-                  <Link
-                    href={`/lowiska/${lake.slug}`}
-                    className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-                  >
-                    Zobacz szczegóły
-                  </Link>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+        viewMode === "grid" ? (
+          <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+            {filteredLakes.map((lake) => (
+              <LakeGridCard key={lake.id} lake={lake} />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredLakes.map((lake) => (
+              <LakeListItem key={lake.id} lake={lake} />
+            ))}
+          </div>
+        )
       ) : (
         <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
           <p className="text-xl font-bold text-slate-950">
@@ -507,6 +467,161 @@ export function LakesPage({ lakes }: LakesPageProps) {
         </div>
       )}
     </div>
+  );
+}
+
+function LakeGridCard({ lake }: { lake: LakeDto }) {
+  return (
+    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+      <div className="relative h-44 overflow-hidden bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200">
+        {lake.images.length > 0 && (
+          <img
+            src={lake.images[0]}
+            alt={lake.name}
+            className="h-full w-full object-cover"
+          />
+        )}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
+
+        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-bold ${
+              lake.type === "commercial"
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-blue-50 text-blue-700"
+            }`}
+          >
+            {getOwnerTypeLabel(lake.type)}
+          </span>
+
+          <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
+            {getFishingTypeLabel(lake.fishingType)}
+          </span>
+        </div>
+      </div>
+
+      <div className="p-5">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold text-slate-950">{lake.name}</h2>
+
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              {lake.address.city}, woj. {lake.address.voivodeship}
+            </p>
+
+            <p className="mt-2 line-clamp-2 text-sm text-slate-500">
+              {lake.fish}
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
+            ★ {lake.rating}
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {lake.amenities.noKill && <SmallBadge label="No Kill" />}
+          {lake.amenities.parking && <SmallBadge label="Parking" />}
+          {lake.amenities.nightFishing && <SmallBadge label="Nocka" />}
+          {lake.amenities.cottages && <SmallBadge label="Domki" />}
+          {lake.amenities.cardPayment && <SmallBadge label="Karta" />}
+        </div>
+
+        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+          <p className="text-sm font-semibold text-slate-500">
+            {lake.distance}
+          </p>
+
+          <Link
+            href={`/lowiska/${lake.slug}`}
+            className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            Zobacz szczegóły
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function LakeListItem({ lake }: { lake: LakeDto }) {
+  return (
+    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
+      <div className="grid gap-0 lg:grid-cols-[260px_1fr_auto]">
+        <div className="relative min-h-[190px] overflow-hidden bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200">
+          {lake.images.length > 0 && (
+            <img
+              src={lake.images[0]}
+              alt={lake.name}
+              className="h-full w-full object-cover"
+            />
+          )}
+
+          <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-bold ${
+                lake.type === "commercial"
+                  ? "bg-emerald-50 text-emerald-700"
+                  : "bg-blue-50 text-blue-700"
+              }`}
+            >
+              {getOwnerTypeLabel(lake.type)}
+            </span>
+
+            <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
+              {getFishingTypeLabel(lake.fishingType)}
+            </span>
+          </div>
+        </div>
+
+        <div className="p-5">
+          <div className="mb-3 flex flex-wrap items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-xl font-bold text-slate-950">{lake.name}</h2>
+
+              <p className="mt-1 text-sm font-medium text-slate-500">
+                {lake.address.street}, {lake.address.city}, woj.{" "}
+                {lake.address.voivodeship}
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
+              ★ {lake.rating}
+            </div>
+          </div>
+
+          <p className="line-clamp-2 text-sm leading-6 text-slate-600">
+            {lake.description}
+          </p>
+
+          <p className="mt-3 text-sm font-semibold text-slate-500">
+            Ryby: <span className="text-slate-700">{lake.fish}</span>
+          </p>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {lake.amenities.noKill && <SmallBadge label="No Kill" />}
+            {lake.amenities.parking && <SmallBadge label="Parking" />}
+            {lake.amenities.nightFishing && <SmallBadge label="Nocka" />}
+            {lake.amenities.cottages && <SmallBadge label="Domki" />}
+            {lake.amenities.cardPayment && <SmallBadge label="Karta" />}
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-between gap-4 border-t border-slate-100 p-5 lg:min-w-[220px] lg:border-l lg:border-t-0">
+          <p className="text-sm font-semibold text-slate-500">
+            {lake.distance}
+          </p>
+
+          <Link
+            href={`/lowiska/${lake.slug}`}
+            className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            Zobacz szczegóły
+          </Link>
+        </div>
+      </div>
+    </article>
   );
 }
 
