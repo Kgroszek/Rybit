@@ -5,6 +5,7 @@ import { NearestLakes } from "@/components/dashboard/NearestLakes";
 import { RecentCatches } from "@/components/dashboard/RecentCatches";
 import { RecommendedLakes } from "@/components/dashboard/RecommendedLakes";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
+import { DashboardQuickOverview } from "@/components/dashboard/DashboardQuickOverview";
 import { Topbar } from "@/components/dashboard/Topbar";
 import { WeatherCard } from "@/components/dashboard/WeatherCard";
 import { getLakes } from "@/lib/lakes";
@@ -24,6 +25,7 @@ export default async function Home() {
 
   const lakes = await getLakes();
   const weekStartDate = getWeekStartDate();
+  const now = new Date();
 
   const [
     completedTripsCount,
@@ -35,6 +37,9 @@ export default async function Home() {
     catchesForSpecies,
     catchesForSpeciesThisWeek,
     recentCatches,
+    upcomingTrip,
+    gearCount,
+    recentGear,
   ] = await Promise.all([
     prisma.fishingTrip.count({
       where: {
@@ -124,6 +129,50 @@ export default async function Home() {
         caughtAt: true,
       },
     }),
+
+    prisma.fishingTrip.findFirst({
+      where: {
+        userId: user.id,
+        status: "planned",
+        startsAt: {
+          gte: now,
+        },
+      },
+      orderBy: {
+        startsAt: "asc",
+      },
+      select: {
+        id: true,
+        title: true,
+        lakeName: true,
+        startsAt: true,
+        checklistId: true,
+        status: true,
+      },
+    }),
+
+    prisma.fishingGear.count({
+      where: {
+        userId: user.id,
+      },
+    }),
+
+    prisma.fishingGear.findMany({
+      where: {
+        userId: user.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 3,
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        fishingMethod: true,
+        quantity: true,
+      },
+    }),
   ]);
 
   const uniqueSpeciesCount = new Set(
@@ -143,6 +192,23 @@ export default async function Home() {
           <MapSection lakes={lakes} />
 
           <RecommendedLakes lakes={lakes} />
+
+          <DashboardQuickOverview
+            upcomingTrip={JSON.parse(JSON.stringify(upcomingTrip))}
+            gearCount={gearCount}
+            recentGear={JSON.parse(JSON.stringify(recentGear))}
+          />
+
+          <DashboardStats
+            completedTripsCount={completedTripsCount}
+            completedTripsThisWeekCount={completedTripsThisWeekCount}
+            uniqueSpeciesCount={uniqueSpeciesCount}
+            uniqueSpeciesThisWeekCount={uniqueSpeciesThisWeekCount}
+            savedLakesCount={savedLakesCount}
+            savedLakesThisWeekCount={savedLakesThisWeekCount}
+            catchesCount={catchesCount}
+            catchesThisWeekCount={catchesThisWeekCount}
+          />
         </div>
 
         <aside className="space-y-6">
@@ -150,23 +216,8 @@ export default async function Home() {
 
           <NearestLakes lakes={lakes} />
 
-          <RecentCatches
-            catches={JSON.parse(JSON.stringify(recentCatches))}
-          />
+          <RecentCatches catches={JSON.parse(JSON.stringify(recentCatches))} />
         </aside>
-      </div>
-
-      <div className="mt-6">
-        <DashboardStats
-          completedTripsCount={completedTripsCount}
-          completedTripsThisWeekCount={completedTripsThisWeekCount}
-          uniqueSpeciesCount={uniqueSpeciesCount}
-          uniqueSpeciesThisWeekCount={uniqueSpeciesThisWeekCount}
-          savedLakesCount={savedLakesCount}
-          savedLakesThisWeekCount={savedLakesThisWeekCount}
-          catchesCount={catchesCount}
-          catchesThisWeekCount={catchesThisWeekCount}
-        />
       </div>
     </DashboardLayout>
   );
