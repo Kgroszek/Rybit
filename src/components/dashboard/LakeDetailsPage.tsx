@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { LakeDto } from "@/lib/lakes";
 import { LakeCorrectionReportButton } from "@/components/dashboard/LakeCorrectionReportButton";
+import { CatchReportButton } from "@/components/dashboard/CatchReportButton";
 
 type LakeDetailsPageProps = {
   lake: LakeDto;
@@ -120,6 +121,11 @@ export function LakeDetailsPage({
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(
     null
   );
+
+  const [catchPreviewImage, setCatchPreviewImage] = useState<{
+    url: string;
+    alt: string;
+  } | null>(null);
 
   const previewImage =
     previewImageIndex !== null ? lake.images[previewImageIndex] : null;
@@ -430,7 +436,15 @@ export function LakeDetailsPage({
             </div>
           </section>
 
-          <CatchRankingsSection lake={lake} />
+          <CatchRankingsSection
+            lake={lake}
+            onCatchImageClick={(item) =>
+              setCatchPreviewImage({
+                url: item.imageUrl,
+                alt: `Połów: ${item.fishName}`,
+              })
+            }
+          />
 
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold text-slate-950">Udogodnienia</h2>
@@ -729,6 +743,33 @@ export function LakeDetailsPage({
           </div>
         </div>
       )}
+
+      {catchPreviewImage && (
+        <div
+          className="fixed inset-0 z-[1100] flex items-center justify-center bg-slate-950/80 p-4"
+          onClick={() => setCatchPreviewImage(null)}
+        >
+          <div
+            className="relative max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-3xl bg-white p-3 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setCatchPreviewImage(null)}
+              className="absolute right-5 top-5 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-xl font-bold text-slate-700 shadow-sm transition hover:bg-white"
+              aria-label="Zamknij podgląd zdjęcia"
+            >
+              ×
+            </button>
+
+            <img
+              src={catchPreviewImage.url}
+              alt={catchPreviewImage.alt}
+              className="max-h-[85vh] w-full rounded-2xl object-contain"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -742,7 +783,15 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CatchRankingsSection({ lake }: { lake: LakeDto }) {
+function CatchRankingsSection({
+  lake,
+  onCatchImageClick,
+}: {
+  lake: LakeDto;
+  onCatchImageClick: (
+    item: LakeDto["catchRankings"]["byWeight"][number]
+  ) => void;
+}) {
   const hasWeightRanking = lake.catchRankings.byWeight.length > 0;
   const hasLengthRanking = lake.catchRankings.byLength.length > 0;
 
@@ -805,6 +854,7 @@ function CatchRankingsSection({ lake }: { lake: LakeDto }) {
           emptyText="Brak połowów z podaną wagą."
           type="weight"
           items={lake.catchRankings.byWeight}
+          onCatchImageClick={onCatchImageClick}
         />
 
         <RankingCard
@@ -813,6 +863,7 @@ function CatchRankingsSection({ lake }: { lake: LakeDto }) {
           emptyText="Brak połowów z podaną długością."
           type="length"
           items={lake.catchRankings.byLength}
+          onCatchImageClick={onCatchImageClick}
         />
       </div>
     </section>
@@ -825,12 +876,16 @@ function RankingCard({
   emptyText,
   type,
   items,
+  onCatchImageClick,
 }: {
   title: string;
   description: string;
   emptyText: string;
   type: "weight" | "length";
   items: LakeDto["catchRankings"]["byWeight"];
+  onCatchImageClick: (
+    item: LakeDto["catchRankings"]["byWeight"][number]
+  ) => void;
 }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
@@ -847,6 +902,7 @@ function RankingCard({
               item={item}
               place={index + 1}
               type={type}
+              onImageClick={() => onCatchImageClick(item)}
             />
           ))}
         </div>
@@ -863,30 +919,66 @@ function RankingItem({
   item,
   place,
   type,
+  onImageClick,
 }: {
   item: LakeDto["catchRankings"]["byWeight"][number];
   place: number;
   type: "weight" | "length";
+  onImageClick: () => void;
 }) {
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="grid gap-0 sm:grid-cols-[110px_1fr]">
-        <div className="relative h-32 overflow-hidden bg-slate-100 sm:h-full">
+        <button
+          type="button"
+          onClick={onImageClick}
+          className="relative h-32 overflow-hidden bg-slate-100 text-left sm:h-full"
+        >
           <img
             src={item.imageUrl}
             alt={`Połów: ${item.fishName}`}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition duration-300 hover:scale-105"
           />
 
-          <div className="absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-white text-sm font-black text-slate-950 shadow-sm">
+          <div
+            className={`absolute left-3 top-3 flex h-9 w-9 items-center justify-center rounded-full text-sm font-black shadow-sm ${
+              place === 1
+                ? "bg-amber-400 text-white"
+                : place === 2
+                  ? "bg-slate-300 text-slate-950"
+                  : place === 3
+                    ? "bg-orange-300 text-white"
+                    : "bg-white text-slate-950"
+            }`}
+          >
             {place}
           </div>
-        </div>
+        </button>
 
         <div className="p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h4 className="font-bold text-slate-950">{item.fishName}</h4>
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="font-bold text-slate-950">{item.fishName}</h4>
+
+                {place <= 3 && (
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-black ${
+                      place === 1
+                        ? "bg-amber-100 text-amber-700"
+                        : place === 2
+                          ? "bg-slate-200 text-slate-700"
+                          : "bg-orange-100 text-orange-700"
+                    }`}
+                  >
+                    {place === 1
+                      ? "🥇 TOP 1"
+                      : place === 2
+                        ? "🥈 TOP 2"
+                        : "🥉 TOP 3"}
+                  </span>
+                )}
+              </div>
 
               <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
                 {getMethodLabel(item.method)}
@@ -907,7 +999,11 @@ function RankingItem({
               className={`rounded-2xl px-3 py-2 text-sm font-black ${
                 place === 1
                   ? "bg-amber-50 text-amber-700"
-                  : "bg-blue-50 text-blue-700"
+                  : place === 2
+                    ? "bg-slate-100 text-slate-700"
+                    : place === 3
+                      ? "bg-orange-50 text-orange-700"
+                      : "bg-blue-50 text-blue-700"
               }`}
             >
               {type === "weight"
@@ -940,9 +1036,13 @@ function RankingItem({
             )}
           </div>
 
-          <p className="mt-3 text-xs font-semibold text-slate-400">
-            {formatRankingDate(item.caughtAt)}
-          </p>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs font-semibold text-slate-400">
+              {formatRankingDate(item.caughtAt)}
+            </p>
+
+            <CatchReportButton catchId={item.id} />
+          </div>
         </div>
       </div>
     </article>

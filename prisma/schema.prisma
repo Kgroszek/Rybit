@@ -333,6 +333,8 @@ model FishingCatch {
   isPublic      Boolean @default(false)
   rankingStatus String  @default("pending")
 
+  reports     FishingCatchReport[]
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -340,6 +342,28 @@ model FishingCatch {
   @@index([userId])
   @@index([rankingStatus])
   @@index([isPublic])
+}
+
+model FishingCatchReport {
+  id          String   @id @default(cuid())
+
+  catchId     String
+  fishingCatch FishingCatch @relation(fields: [catchId], references: [id], onDelete: Cascade)
+
+  userId      String
+  userEmail   String?
+
+  reason      String
+  status      String   @default("pending")
+  adminNote   String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([catchId, userId])
+  @@index([catchId])
+  @@index([userId])
+  @@index([status])
 }
 
 model Achievement {
