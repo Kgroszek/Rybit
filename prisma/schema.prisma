@@ -341,3 +341,34 @@ model FishingCatch {
   @@index([rankingStatus])
   @@index([isPublic])
 }
+
+model Achievement {
+  id          String   @id @default(cuid())
+
+  key         String   @unique
+  title       String
+  description String
+  icon        String?
+  category    String   @default("general")
+
+  users       UserAchievement[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}
+
+model UserAchievement {
+  id            String      @id @default(cuid())
+
+  userId        String
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  unlockedAt    DateTime    @default(now())
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+  @@index([achievementId])
+}

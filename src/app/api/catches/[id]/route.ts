@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { checkAndUnlockAchievements } from "@/lib/achievements";
 
 const CATCH_IMAGES_BUCKET = "catch-images";
 
@@ -206,6 +207,8 @@ export async function PUT(request: Request, { params }: RouteProps) {
       rankingStatus: isPublic ? "approved" : "pending",
     },
   });
+
+  await checkAndUnlockAchievements(result.user.id);
 
   return NextResponse.json(updatedCatch);
 }

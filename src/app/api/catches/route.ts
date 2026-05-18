@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { checkAndUnlockAchievements } from "@/lib/achievements";
 
 const CATCH_IMAGES_BUCKET = "catch-images";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -249,6 +250,8 @@ async function handleJsonCatchCreate(
     },
   });
 
+  await checkAndUnlockAchievements(userId);
+
   return NextResponse.json(fishingCatch, { status: 201 });
 }
 
@@ -419,6 +422,8 @@ async function handleMultipartCatchCreate(
         rankingStatus: isPublic ? "approved" : "pending",
       },
     });
+
+    await checkAndUnlockAchievements(userId);
 
     return NextResponse.json(fishingCatch, { status: 201 });
   } catch (error) {

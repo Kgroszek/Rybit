@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getUserAchievements } from "@/lib/achievements";
 
 type PublicAnglerPageProps = {
   params: Promise<{
@@ -13,78 +14,85 @@ export default async function PublicAnglerPage({
 }: PublicAnglerPageProps) {
   const { userId } = await params;
 
-  const [publicCatchesCount, publicLakeIds, userNameSource, catches] =
-    await Promise.all([
-      prisma.fishingCatch.count({
-        where: {
-          userId,
-          isPublic: true,
-          rankingStatus: "approved",
-        },
-      }),
+  const [
+    publicCatchesCount,
+    publicLakeIds,
+    userNameSource,
+    catches,
+    achievements,
+  ] = await Promise.all([
+    prisma.fishingCatch.count({
+      where: {
+        userId,
+        isPublic: true,
+        rankingStatus: "approved",
+      },
+    }),
 
-      prisma.fishingCatch.findMany({
-        where: {
-          userId,
-          isPublic: true,
-          rankingStatus: "approved",
-          lakeId: {
-            not: null,
+    prisma.fishingCatch.findMany({
+      where: {
+        userId,
+        isPublic: true,
+        rankingStatus: "approved",
+        lakeId: {
+          not: null,
+        },
+      },
+      select: {
+        lakeId: true,
+      },
+    }),
+
+    prisma.fishingCatch.findFirst({
+      where: {
+        userId,
+        isPublic: true,
+        rankingStatus: "approved",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        userName: true,
+      },
+    }),
+
+    prisma.fishingCatch.findMany({
+      where: {
+        userId,
+        isPublic: true,
+        rankingStatus: "approved",
+        imageUrl: {
+          not: null,
+        },
+      },
+      orderBy: {
+        caughtAt: "desc",
+      },
+      select: {
+        id: true,
+        userId: true,
+        userName: true,
+        fishName: true,
+        weight: true,
+        length: true,
+        method: true,
+        bait: true,
+        lakeId: true,
+        lakeName: true,
+        caughtAt: true,
+        imageUrl: true,
+        note: true,
+        lake: {
+          select: {
+            slug: true,
           },
         },
-        select: {
-          lakeId: true,
-        },
-      }),
+      },
+    }),
 
-      prisma.fishingCatch.findFirst({
-        where: {
-          userId,
-          isPublic: true,
-          rankingStatus: "approved",
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        select: {
-          userName: true,
-        },
-      }),
-
-      prisma.fishingCatch.findMany({
-        where: {
-          userId,
-          isPublic: true,
-          rankingStatus: "approved",
-          imageUrl: {
-            not: null,
-          },
-        },
-        orderBy: {
-          caughtAt: "desc",
-        },
-        select: {
-          id: true,
-          userId: true,
-          userName: true,
-          fishName: true,
-          weight: true,
-          length: true,
-          method: true,
-          bait: true,
-          lakeId: true,
-          lakeName: true,
-          caughtAt: true,
-          imageUrl: true,
-          note: true,
-          lake: {
-            select: {
-              slug: true,
-            },
-          },
-        },
-      }),
-    ]);
+    getUserAchievements(userId),
+  ]);
 
   if (publicCatchesCount === 0) {
     notFound();
@@ -95,6 +103,10 @@ export default async function PublicAnglerPage({
 
   const totalCatches = publicCatchesCount;
   const catchesWithPhotosCount = catches.length;
+
+  const unlockedAchievements = achievements.filter(
+    (achievement) => achievement.isUnlocked
+  );
 
   const uniqueLakesCount = new Set(
     publicLakeIds
@@ -174,6 +186,68 @@ export default async function PublicAnglerPage({
 
             <StatCard label="Łowiska" value={String(uniqueLakesCount)} />
           </div>
+        </section>
+
+        <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-slate-950">
+                Osiągnięcia wędkarza
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Odblokowane osiągnięcia zdobyte za aktywność w aplikacji.
+              </p>
+            </div>
+
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+              {unlockedAchievements.length} odblokowanych
+            </span>
+          </div>
+
+          {unlockedAchievements.length > 0 ? (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {unlockedAchievements.map((achievement) => (
+                <article
+                  key={achievement.id}
+                  className="rounded-3xl border border-amber-100 bg-amber-50 p-5 shadow-sm"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-2xl shadow-sm">
+                      {achievement.icon || "🏆"}
+                    </div>
+
+                    <div>
+                      <h3 className="font-black text-slate-950">
+                        {achievement.title}
+                      </h3>
+
+                      <p className="mt-1 text-sm leading-6 text-slate-600">
+                        {achievement.description}
+                      </p>
+
+                      {achievement.unlockedAt && (
+                        <p className="mt-3 text-xs font-bold uppercase tracking-[0.12em] text-amber-700">
+                          Odblokowano: {formatDate(achievement.unlockedAt)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-6 rounded-3xl bg-slate-50 p-8 text-center">
+              <p className="text-lg font-bold text-slate-950">
+                Brak odblokowanych osiągnięć
+              </p>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Osiągnięcia pojawią się tutaj po dodaniu publicznych połowów i
+                aktywności w aplikacji.
+              </p>
+            </div>
+          )}
         </section>
 
         <section className="mt-6 grid gap-6 lg:grid-cols-2">

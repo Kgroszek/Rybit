@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { getUserAchievements } from "@/lib/achievements";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -15,45 +16,74 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const [favourites, ratings, submissions] = await Promise.all([
-    prisma.favourite.findMany({
-      where: {
-        userId: user.id,
-      },
-      include: {
-        lake: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    }),
+  const [favourites, ratings, submissions, catchesCount, publicCatchesCount, achievements] =
+    await Promise.all([
+      prisma.favourite.findMany({
+        where: {
+          userId: user.id,
+        },
+        include: {
+          lake: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
 
-    prisma.rating.findMany({
-      where: {
-        userId: user.id,
-      },
-      include: {
-        lake: true,
-      },
-      orderBy: {
-        updatedAt: "desc",
-      },
-    }),
+      prisma.rating.findMany({
+        where: {
+          userId: user.id,
+        },
+        include: {
+          lake: true,
+        },
+        orderBy: {
+          updatedAt: "desc",
+        },
+      }),
 
-    prisma.lakeSubmission.findMany({
-      where: {
-        userId: user.id,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    }),
-  ]);
+      prisma.lakeSubmission.findMany({
+        where: {
+          userId: user.id,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      }),
+
+      prisma.fishingCatch.count({
+        where: {
+          userId: user.id,
+        },
+      }),
+
+      prisma.fishingCatch.count({
+        where: {
+          userId: user.id,
+          isPublic: true,
+          rankingStatus: "approved",
+        },
+      }),
+
+      getUserAchievements(user.id),
+    ]);
 
   const displayName =
     typeof user.user_metadata?.name === "string"
       ? user.user_metadata.name
-      : "Wędkarz Rybit";
+      : typeof user.user_metadata?.full_name === "string"
+        ? user.user_metadata.full_name
+        : typeof user.user_metadata?.display_name === "string"
+          ? user.user_metadata.display_name
+          : "Wędkarz Rybit";
+
+  const unlockedAchievements = achievements.filter(
+    (achievement) => achievement.isUnlocked
+  );
+
+  const lockedAchievements = achievements.filter(
+    (achievement) => !achievement.isUnlocked
+  );
 
   return (
     <DashboardLayout>
@@ -64,8 +94,8 @@ export default async function ProfilePage() {
           </h1>
 
           <p className="mt-2 max-w-3xl text-slate-500">
-            Zarządzaj swoim kontem, sprawdzaj ulubione łowiska, oceny oraz
-            status zgłoszonych miejsc.
+            Zarządzaj swoim kontem, sprawdzaj ulubione łowiska, oceny,
+            zgłoszenia oraz zdobyte osiągnięcia.
           </p>
         </div>
 
@@ -84,12 +114,14 @@ export default async function ProfilePage() {
               {getInitials(displayName)}
             </div>
 
-            <div>
-              <h2 className="text-xl font-bold text-slate-950">
+            <div className="min-w-0">
+              <h2 className="truncate text-xl font-bold text-slate-950">
                 {displayName}
               </h2>
 
-              <p className="mt-1 text-sm text-slate-500">{user.email}</p>
+              <p className="mt-1 truncate text-sm text-slate-500">
+                {user.email}
+              </p>
             </div>
           </div>
 
@@ -100,21 +132,99 @@ export default async function ProfilePage() {
               value={formatDate(user.created_at)}
             />
           </div>
+
+          <Link
+            href={`/wedkarze/${user.id}`}
+            className="mt-5 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            Zobacz publiczny profil
+          </Link>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           <ProfileStat
             label="Ulubione łowiska"
             value={String(favourites.length)}
           />
 
-          <ProfileStat label="Wystawione oceny" value={String(ratings.length)} />
+          <ProfileStat label="Oceny" value={String(ratings.length)} />
+
+          <ProfileStat label="Połowy" value={String(catchesCount)} />
 
           <ProfileStat
-            label="Zgłoszenia łowisk"
-            value={String(submissions.length)}
+            label="Osiągnięcia"
+            value={`${unlockedAchievements.length}/${achievements.length}`}
           />
         </div>
+      </section>
+
+      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-950">
+              Moje osiągnięcia
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Zdobywaj odznaki za dodawanie połowów, zdjęć, rekordów i aktywność
+              na łowiskach.
+            </p>
+          </div>
+
+          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+            {unlockedAchievements.length} / {achievements.length} odblokowanych
+          </span>
+        </div>
+
+        {achievements.length > 0 ? (
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {unlockedAchievements.map((achievement) => (
+              <AchievementCard
+                key={achievement.id}
+                title={achievement.title}
+                description={achievement.description}
+                icon={achievement.icon || "🏆"}
+                isUnlocked
+                unlockedAt={achievement.unlockedAt}
+              />
+            ))}
+
+            {lockedAchievements.map((achievement) => (
+              <AchievementCard
+                key={achievement.id}
+                title={achievement.title}
+                description={achievement.description}
+                icon={achievement.icon || "🏆"}
+                isUnlocked={false}
+                unlockedAt={null}
+              />
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            title="Brak osiągnięć"
+            description="Osiągnięcia pojawią się tutaj po pierwszej aktywności w aplikacji."
+          />
+        )}
+      </section>
+
+      <section className="mb-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <ProfileStat label="Wszystkie połowy" value={String(catchesCount)} />
+
+        <ProfileStat
+          label="Publiczne połowy"
+          value={String(publicCatchesCount)}
+        />
+
+        <ProfileStat
+          label="Zgłoszenia łowisk"
+          value={String(submissions.length)}
+        />
+
+        <ProfileStat
+          label="Ulubione"
+          value={String(favourites.length)}
+        />
       </section>
 
       <div className="grid gap-6 xl:grid-cols-2">
@@ -254,52 +364,37 @@ export default async function ProfilePage() {
                     </p>
 
                     <p className="mt-1 text-sm text-slate-500">
-                      {submission.city}, woj. {submission.voivodeship}
+                      {submission.city}, {submission.voivodeship}
                     </p>
 
                     {submission.adminNote && (
-                      <p className="mt-2 text-sm font-medium text-red-500">
-                        Powód: {submission.adminNote}
+                      <p className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-600">
+                        {submission.adminNote}
                       </p>
                     )}
                   </div>
 
-                  <div className="text-sm font-semibold text-slate-600">
-                    {submission.ownerType === "commercial"
-                      ? "Komercyjne"
-                      : "PZW"}
-                  </div>
+                  <p className="text-sm font-semibold text-slate-600">
+                    {getOwnerTypeLabel(submission.ownerType)}
+                  </p>
 
-                  <div>
-                    <StatusBadge status={submission.status} />
-                  </div>
+                  <StatusBadge status={submission.status} />
 
-                  <div className="text-sm text-slate-500">
+                  <p className="text-sm text-slate-500">
                     {formatDate(submission.createdAt)}
-                  </div>
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         ) : (
           <EmptyState
-            title="Brak zgłoszeń"
-            description="Nie masz jeszcze żadnych zgłoszeń łowisk."
+            title="Brak zgłoszeń łowisk"
+            description="Zgłoszone przez Ciebie łowiska pojawią się w tym miejscu."
           />
         )}
       </section>
     </DashboardLayout>
-  );
-}
-
-function ProfileStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-sm font-semibold text-slate-500">{label}</p>
-      <p className="mt-3 text-4xl font-bold tracking-tight text-slate-950">
-        {value}
-      </p>
-    </div>
   );
 }
 
@@ -317,27 +412,71 @@ function ProfileInfo({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === "approved") {
-    return (
-      <span className="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-        Zaakceptowane
-      </span>
-    );
-  }
-
-  if (status === "rejected") {
-    return (
-      <span className="inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
-        Odrzucone
-      </span>
-    );
-  }
-
+function ProfileStat({ label, value }: { label: string; value: string }) {
   return (
-    <span className="inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-      Oczekuje
-    </span>
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-sm font-semibold text-slate-500">{label}</p>
+
+      <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function AchievementCard({
+  title,
+  description,
+  icon,
+  isUnlocked,
+  unlockedAt,
+}: {
+  title: string;
+  description: string;
+  icon: string;
+  isUnlocked: boolean;
+  unlockedAt: Date | null;
+}) {
+  return (
+    <article
+      className={`rounded-3xl border p-5 shadow-sm ${
+        isUnlocked
+          ? "border-amber-100 bg-amber-50"
+          : "border-slate-200 bg-slate-50 opacity-70"
+      }`}
+    >
+      <div className="flex items-start gap-4">
+        <div
+          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl shadow-sm ${
+            isUnlocked ? "bg-white" : "bg-white grayscale"
+          }`}
+        >
+          {icon}
+        </div>
+
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-black text-slate-950">{title}</h3>
+
+            {!isUnlocked && (
+              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
+                Zablokowane
+              </span>
+            )}
+          </div>
+
+          <p className="mt-1 text-sm leading-6 text-slate-600">
+            {description}
+          </p>
+
+          {isUnlocked && unlockedAt && (
+            <p className="mt-3 text-xs font-bold uppercase tracking-[0.12em] text-amber-700">
+              Odblokowano: {formatDate(unlockedAt)}
+            </p>
+          )}
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -351,26 +490,57 @@ function EmptyState({
   return (
     <div className="rounded-2xl bg-slate-50 p-6 text-center">
       <p className="font-bold text-slate-950">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+
+      <p className="mt-1 text-sm text-slate-500">{description}</p>
     </div>
   );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "accepted") {
+    return (
+      <span className="inline-flex w-fit rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+        Zaakceptowane
+      </span>
+    );
+  }
+
+  if (status === "rejected") {
+    return (
+      <span className="inline-flex w-fit rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
+        Odrzucone
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+      Oczekuje
+    </span>
+  );
+}
+
+function getOwnerTypeLabel(type: string) {
+  if (type === "commercial") return "Komercyjne";
+  if (type === "pzw") return "PZW";
+  return "Inne";
 }
 
 function getInitials(name: string) {
   const parts = name.trim().split(" ").filter(Boolean);
 
   if (parts.length === 0) {
-    return "R";
+    return "WR";
   }
 
   if (parts.length === 1) {
-    return parts[0].charAt(0).toUpperCase();
+    return parts[0].slice(0, 2).toUpperCase();
   }
 
-  return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
 
-function formatDate(date: Date | string) {
+function formatDate(date: string | Date) {
   return new Intl.DateTimeFormat("pl-PL", {
     day: "2-digit",
     month: "2-digit",

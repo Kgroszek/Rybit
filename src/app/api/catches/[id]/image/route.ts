@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { checkAndUnlockAchievements } from "@/lib/achievements";
 
 type RouteProps = {
   params: Promise<{
@@ -139,17 +140,9 @@ export async function POST(request: Request, { params }: RouteProps) {
     );
   }
 
-  const { data: signedUrlData, error: signedUrlError } =
-    await result.supabase.storage
-      .from(BUCKET_NAME)
-      .createSignedUrl(imagePath, 60 * 60);
-
-  if (signedUrlError) {
-    return NextResponse.json(
-      { message: "Zdjęcie zapisane, ale nie udało się utworzyć podglądu." },
-      { status: 500 }
-    );
-  }
+  const {
+    data: { publicUrl },
+  } = result.supabase.storage.from(BUCKET_NAME).getPublicUrl(imagePath);
 
   const updatedCatch = await prisma.fishingCatch.update({
     where: {
@@ -157,14 +150,13 @@ export async function POST(request: Request, { params }: RouteProps) {
     },
     data: {
       imagePath,
-      imageUrl: null,
+      imageUrl: publicUrl,
     },
   });
 
-  return NextResponse.json({
-    ...updatedCatch,
-    imageUrl: signedUrlData.signedUrl,
-  });
+  await checkAndUnlockAchievements(result.user.id);
+
+  return NextResponse.json(updatedCatch);
 }
 
 export async function DELETE(_request: Request, { params }: RouteProps) {
@@ -199,8 +191,7 @@ export async function DELETE(_request: Request, { params }: RouteProps) {
     },
   });
 
-  return NextResponse.json({
-    ...updatedCatch,
-    imageUrl: null,
-  });
+  await checkAndUnlockAchievements(result.fishingCatch.userId);
+
+  return NextResponse.json(updatedCatch);
 }
