@@ -38,9 +38,8 @@ export function AccountSettingsForm({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        currentPassword,
-        newPassword,
-        }),
+        name,
+      }),
     });
 
     const data = await response.json().catch(() => null);
@@ -93,8 +92,20 @@ export function AccountSettingsForm({
     setIsPasswordLoading(true);
     setPasswordMessage("");
 
+    if (!currentPassword.trim()) {
+      setPasswordMessage("Wpisz obecne hasło.");
+      setIsPasswordLoading(false);
+      return;
+    }
+
+    if (!newPassword.trim()) {
+      setPasswordMessage("Wpisz nowe hasło.");
+      setIsPasswordLoading(false);
+      return;
+    }
+
     if (newPassword.length < 6) {
-      setPasswordMessage("Hasło musi mieć minimum 6 znaków.");
+      setPasswordMessage("Nowe hasło musi mieć minimum 6 znaków.");
       setIsPasswordLoading(false);
       return;
     }
@@ -105,13 +116,21 @@ export function AccountSettingsForm({
       return;
     }
 
+    if (currentPassword === newPassword) {
+      setPasswordMessage("Nowe hasło musi być inne niż obecne hasło.");
+      setIsPasswordLoading(false);
+      return;
+    }
+
     const response = await fetch("/api/account/password", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        password: newPassword,
+        oldPassword: currentPassword,
+        currentPassword,
+        newPassword,
       }),
     });
 
@@ -197,53 +216,54 @@ export function AccountSettingsForm({
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-950">Zmiana hasła</h2>
+          <h2 className="text-xl font-bold text-slate-950">Zmiana hasła</h2>
 
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-                Aby zmienić hasło, wpisz najpierw obecne hasło, a następnie ustaw nowe.
-            </p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Aby zmienić hasło, wpisz najpierw obecne hasło, a następnie ustaw
+            nowe.
+          </p>
 
-            <form onSubmit={handlePasswordSubmit} className="mt-5 space-y-5">
-                <Input
-                label="Obecne hasło"
-                value={currentPassword}
-                onChange={setCurrentPassword}
-                placeholder="Wpisz obecne hasło"
-                type="password"
-                required
-                />
+          <form onSubmit={handlePasswordSubmit} className="mt-5 space-y-5">
+            <Input
+              label="Obecne hasło"
+              value={currentPassword}
+              onChange={setCurrentPassword}
+              placeholder="Wpisz obecne hasło"
+              type="password"
+              required
+            />
 
-                <Input
-                label="Nowe hasło"
-                value={newPassword}
-                onChange={setNewPassword}
-                placeholder="Wpisz nowe hasło"
-                type="password"
-                required
-                />
+            <Input
+              label="Nowe hasło"
+              value={newPassword}
+              onChange={setNewPassword}
+              placeholder="Wpisz nowe hasło"
+              type="password"
+              required
+            />
 
-                <Input
-                label="Powtórz nowe hasło"
-                value={newPasswordRepeat}
-                onChange={setNewPasswordRepeat}
-                placeholder="Powtórz nowe hasło"
-                type="password"
-                required
-                />
+            <Input
+              label="Powtórz nowe hasło"
+              value={newPasswordRepeat}
+              onChange={setNewPasswordRepeat}
+              placeholder="Powtórz nowe hasło"
+              type="password"
+              required
+            />
 
-                {passwordMessage && <Message text={passwordMessage} />}
+            {passwordMessage && <Message text={passwordMessage} />}
 
-                <div className="flex justify-end">
-                <button
-                    type="submit"
-                    disabled={isPasswordLoading}
-                    className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                    {isPasswordLoading ? "Zapisywanie..." : "Zmień hasło"}
-                </button>
-                </div>
-            </form>
-            </section>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={isPasswordLoading}
+                className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isPasswordLoading ? "Zapisywanie..." : "Zmień hasło"}
+              </button>
+            </div>
+          </form>
+        </section>
       </div>
 
       <aside className="space-y-6">

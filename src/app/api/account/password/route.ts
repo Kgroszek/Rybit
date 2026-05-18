@@ -17,8 +17,13 @@ export async function PATCH(request: Request) {
 
   const body = await request.json().catch(() => null);
 
-  const currentPassword = String(body?.currentPassword || "");
-  const newPassword = String(body?.newPassword || "");
+  const oldPassword = String(
+    body?.oldPassword || body?.currentPassword || ""
+  );
+
+  const newPassword = String(
+    body?.newPassword || body?.password || ""
+  );
 
   if (!user.email) {
     return NextResponse.json(
@@ -27,9 +32,16 @@ export async function PATCH(request: Request) {
     );
   }
 
-  if (!currentPassword) {
+  if (!oldPassword.trim()) {
     return NextResponse.json(
       { message: "Wpisz obecne hasło." },
+      { status: 400 }
+    );
+  }
+
+  if (!newPassword.trim()) {
+    return NextResponse.json(
+      { message: "Wpisz nowe hasło." },
       { status: 400 }
     );
   }
@@ -41,7 +53,7 @@ export async function PATCH(request: Request) {
     );
   }
 
-  if (currentPassword === newPassword) {
+  if (oldPassword === newPassword) {
     return NextResponse.json(
       { message: "Nowe hasło musi być inne niż obecne hasło." },
       { status: 400 }
@@ -51,7 +63,7 @@ export async function PATCH(request: Request) {
   const { error: verifyPasswordError } =
     await supabase.auth.signInWithPassword({
       email: user.email,
-      password: currentPassword,
+      password: oldPassword,
     });
 
   if (verifyPasswordError) {
