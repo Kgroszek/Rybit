@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 export type CatchRankingItem = {
   id: string;
   userId: string;
+  userName: string | null;
   fishName: string;
   weight: number | null;
   length: number | null;
@@ -91,6 +92,7 @@ async function getLakesFromDatabase() {
 function mapCatchToRankingItem(item: {
   id: string;
   userId: string;
+  userName: string | null;
   fishName: string;
   weight: number | null;
   length: number | null;
@@ -103,6 +105,7 @@ function mapCatchToRankingItem(item: {
   return {
     id: item.id,
     userId: item.userId,
+    userName: item.userName,
     fishName: item.fishName,
     weight: item.weight,
     length: item.length,
@@ -221,6 +224,7 @@ export async function getLakeBySlug(slug: string) {
       select: {
         id: true,
         userId: true,
+        userName: true,
         fishName: true,
         weight: true,
         length: true,
@@ -251,6 +255,7 @@ export async function getLakeBySlug(slug: string) {
       select: {
         id: true,
         userId: true,
+        userName: true,
         fishName: true,
         weight: true,
         length: true,

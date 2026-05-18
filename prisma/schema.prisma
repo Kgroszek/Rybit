@@ -308,6 +308,7 @@ model FishingTrip {
 model FishingCatch {
   id          String   @id @default(cuid())
   userId      String
+  userName    String?
 
   fishName    String
   weight      Float?

@@ -5,6 +5,16 @@ import { createClient } from "@/lib/supabase/server";
 const CATCH_IMAGES_BUCKET = "catch-images";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
+type SupabaseUserForDisplayName = {
+  email?: string | null;
+  user_metadata?: {
+    full_name?: string;
+    name?: string;
+    display_name?: string;
+    user_name?: string;
+  };
+};
+
 function getFormValue(formData: FormData, key: string) {
   const value = formData.get(key);
 
@@ -28,6 +38,29 @@ function sanitizeFileName(fileName: string) {
 
 function isValidImage(file: File) {
   return file.type.startsWith("image/") && file.size <= MAX_FILE_SIZE;
+}
+
+function getUserDisplayName(user: SupabaseUserForDisplayName) {
+  const metadataName =
+    user.user_metadata?.full_name ||
+    user.user_metadata?.name ||
+    user.user_metadata?.display_name ||
+    user.user_metadata?.user_name;
+
+  if (metadataName && metadataName.trim()) {
+    return metadataName.trim();
+  }
+
+  if (user.email) {
+    return user.email
+      .split("@")[0]
+      .split(/[._-]/)
+      .filter(Boolean)
+      .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
+      .join(" ");
+  }
+
+  return "Użytkownik";
 }
 
 export async function GET() {
@@ -70,16 +103,21 @@ export async function POST(request: Request) {
     );
   }
 
+  const userName = getUserDisplayName(user);
   const contentType = request.headers.get("content-type") || "";
 
   if (contentType.includes("multipart/form-data")) {
-    return handleMultipartCatchCreate(request, user.id, supabase);
+    return handleMultipartCatchCreate(request, user.id, userName, supabase);
   }
 
-  return handleJsonCatchCreate(request, user.id);
+  return handleJsonCatchCreate(request, user.id, userName);
 }
 
-async function handleJsonCatchCreate(request: Request, userId: string) {
+async function handleJsonCatchCreate(
+  request: Request,
+  userId: string,
+  userName: string
+) {
   const body = await request.json();
 
   const fishName = String(body.fishName || "").trim();
@@ -185,6 +223,7 @@ async function handleJsonCatchCreate(request: Request, userId: string) {
   const fishingCatch = await prisma.fishingCatch.create({
     data: {
       userId,
+      userName,
 
       fishName,
       weight,
@@ -216,6 +255,7 @@ async function handleJsonCatchCreate(request: Request, userId: string) {
 async function handleMultipartCatchCreate(
   request: Request,
   userId: string,
+  userName: string,
   supabase: Awaited<ReturnType<typeof createClient>>
 ) {
   const formData = await request.formData();
@@ -354,6 +394,7 @@ async function handleMultipartCatchCreate(
     const fishingCatch = await prisma.fishingCatch.create({
       data: {
         userId,
+        userName,
 
         fishName,
         weight,

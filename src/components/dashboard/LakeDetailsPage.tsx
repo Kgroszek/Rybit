@@ -891,6 +891,16 @@ function RankingItem({
               <p className="mt-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
                 {getMethodLabel(item.method)}
               </p>
+
+              <p className="mt-2 text-sm font-semibold text-slate-600">
+                Dodał:{" "}
+                <Link
+                  href={`/wedkarze/${item.userId}`}
+                  className="font-bold text-blue-600 transition hover:text-blue-700 hover:underline"
+                >
+                  {item.userName || "Użytkownik"}
+                </Link>
+              </p>
             </div>
 
             <div
