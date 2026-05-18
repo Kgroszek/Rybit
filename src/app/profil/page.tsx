@@ -2,9 +2,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { ProfileAchievementsCard } from "@/components/dashboard/ProfileAchievementsCard";
+import { ProfileFishRecordsCard } from "@/components/dashboard/ProfileFishRecordsCard";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getUserAchievements } from "@/lib/achievements";
+import { getUserFishRecords } from "@/lib/fish-records";
+import {
+  getUserRankingBadges,
+  type UserRankingBadge,
+} from "@/lib/ranking-badges";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -24,6 +30,8 @@ export default async function ProfilePage() {
     catchesCount,
     publicCatchesCount,
     achievements,
+    rankingBadges,
+    fishRecords,
   ] = await Promise.all([
     prisma.favourite.findMany({
       where: {
@@ -73,6 +81,10 @@ export default async function ProfilePage() {
     }),
 
     getUserAchievements(user.id),
+
+    getUserRankingBadges(user.id),
+
+    getUserFishRecords(user.id),
   ]);
 
   const displayName =
@@ -98,7 +110,7 @@ export default async function ProfilePage() {
 
           <p className="mt-2 max-w-3xl text-slate-500">
             Zarządzaj swoim kontem, sprawdzaj ulubione łowiska, oceny,
-            zgłoszenia oraz zdobyte osiągnięcia.
+            zgłoszenia, rekordy, odznaki i zdobyte osiągnięcia.
           </p>
         </div>
 
@@ -130,6 +142,7 @@ export default async function ProfilePage() {
 
           <div className="mt-6 space-y-4 border-t border-slate-100 pt-5">
             <ProfileInfo label="ID użytkownika" value={user.id} />
+
             <ProfileInfo
               label="Data utworzenia"
               value={formatDate(user.created_at)}
@@ -144,7 +157,7 @@ export default async function ProfilePage() {
           </Link>
         </div>
 
-        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
           <ProfileStat
             label="Ulubione łowiska"
             value={String(favourites.length)}
@@ -155,11 +168,25 @@ export default async function ProfilePage() {
           <ProfileStat label="Połowy" value={String(catchesCount)} />
 
           <ProfileStat
+            label="Rekordy gatunków"
+            value={String(fishRecords.length)}
+          />
+
+          <ProfileStat
             label="Osiągnięcia"
             value={`${unlockedAchievements.length}/${achievements.length}`}
           />
+
+          <ProfileStat
+            label="Odznaki TOP"
+            value={String(rankingBadges.length)}
+          />
         </div>
       </section>
+
+      <RankingBadgesSection badges={rankingBadges} />
+
+      <ProfileFishRecordsCard records={fishRecords} />
 
       <ProfileAchievementsCard achievements={achievements} />
 
@@ -350,6 +377,121 @@ export default async function ProfilePage() {
   );
 }
 
+function RankingBadgesSection({ badges }: { badges: UserRankingBadge[] }) {
+  return (
+    <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-950">
+            Odznaki rankingowe
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Dynamiczne odznaki za miejsca TOP 1, TOP 2 i TOP 3 w rankingach
+            łowisk.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+          {badges.length} odznak
+        </span>
+      </div>
+
+      {badges.length > 0 ? (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {badges.map((badge) => (
+            <RankingBadgeCard key={badge.id} badge={badge} />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          title="Brak odznak rankingowych"
+          description="Odznaki pojawią się tutaj, gdy trafisz do TOP 3 rankingu najcięższych lub najdłuższych ryb na łowisku."
+        />
+      )}
+    </section>
+  );
+}
+
+function RankingBadgeCard({ badge }: { badge: UserRankingBadge }) {
+  const styles = getRankingBadgeStyles(badge.place);
+
+  return (
+    <article className={`rounded-3xl border p-5 shadow-sm ${styles.card}`}>
+      <div className="flex items-start gap-4">
+        <div
+          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl shadow-sm ${styles.icon}`}
+        >
+          {styles.medal}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-black ${styles.badge}`}
+            >
+              TOP {badge.place}
+            </span>
+
+            <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-slate-600">
+              {badge.type === "weight" ? "Waga" : "Długość"}
+            </span>
+          </div>
+
+          <h3 className="mt-3 text-lg font-black text-slate-950">
+            {badge.type === "weight"
+              ? "Najcięższa ryba"
+              : "Najdłuższa ryba"}
+          </h3>
+
+          <p className="mt-1 text-sm font-semibold text-slate-600">
+            {badge.fishName} —{" "}
+            <span className="font-black text-slate-950">
+              {badge.unit === "kg"
+                ? `${badge.value.toFixed(2)} kg`
+                : `${badge.value.toFixed(0)} cm`}
+            </span>
+          </p>
+
+          <Link
+            href={`/lowiska/${badge.lakeSlug}`}
+            className="mt-3 inline-flex text-sm font-bold text-blue-600 transition hover:text-blue-700 hover:underline"
+          >
+            {badge.lakeName}
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function getRankingBadgeStyles(place: 1 | 2 | 3) {
+  if (place === 1) {
+    return {
+      medal: "🥇",
+      card: "border-amber-100 bg-amber-50",
+      icon: "bg-white text-amber-700",
+      badge: "bg-amber-200 text-amber-800",
+    };
+  }
+
+  if (place === 2) {
+    return {
+      medal: "🥈",
+      card: "border-slate-200 bg-slate-50",
+      icon: "bg-white text-slate-700",
+      badge: "bg-slate-200 text-slate-700",
+    };
+  }
+
+  return {
+    medal: "🥉",
+    card: "border-orange-100 bg-orange-50",
+    icon: "bg-white text-orange-700",
+    badge: "bg-orange-200 text-orange-800",
+  };
+}
+
 function ProfileInfo({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -384,7 +526,7 @@ function EmptyState({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-6 text-center">
+    <div className="mt-6 rounded-2xl bg-slate-50 p-6 text-center">
       <p className="font-bold text-slate-950">{title}</p>
 
       <p className="mt-1 text-sm text-slate-500">{description}</p>

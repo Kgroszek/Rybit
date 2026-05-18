@@ -2,6 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getUserAchievements } from "@/lib/achievements";
+import {
+  getUserRankingBadges,
+  type UserRankingBadge,
+} from "@/lib/ranking-badges";
 
 type PublicAnglerPageProps = {
   params: Promise<{
@@ -20,6 +24,7 @@ export default async function PublicAnglerPage({
     userNameSource,
     catches,
     achievements,
+    rankingBadges,
   ] = await Promise.all([
     prisma.fishingCatch.count({
       where: {
@@ -92,6 +97,8 @@ export default async function PublicAnglerPage({
     }),
 
     getUserAchievements(userId),
+
+    getUserRankingBadges(userId),
   ]);
 
   if (publicCatchesCount === 0) {
@@ -174,7 +181,7 @@ export default async function PublicAnglerPage({
             </div>
           </div>
 
-          <div className="grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 p-6 sm:grid-cols-2 lg:grid-cols-5">
             <StatCard label="Publiczne połowy" value={String(totalCatches)} />
 
             <StatCard label="Złowione ryby" value={String(totalCatches)} />
@@ -185,8 +192,15 @@ export default async function PublicAnglerPage({
             />
 
             <StatCard label="Łowiska" value={String(uniqueLakesCount)} />
+
+            <StatCard
+              label="Odznaki TOP"
+              value={String(rankingBadges.length)}
+            />
           </div>
         </section>
+
+        <RankingBadgesSection badges={rankingBadges} />
 
         <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -380,6 +394,127 @@ export default async function PublicAnglerPage({
       </div>
     </main>
   );
+}
+
+function RankingBadgesSection({ badges }: { badges: UserRankingBadge[] }) {
+  return (
+    <section className="mt-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-slate-950">
+            Odznaki rankingowe
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Dynamiczne odznaki za miejsca TOP 1, TOP 2 i TOP 3 w rankingach
+            łowisk.
+          </p>
+        </div>
+
+        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+          {badges.length} odznak
+        </span>
+      </div>
+
+      {badges.length > 0 ? (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {badges.map((badge) => (
+            <RankingBadgeCard key={badge.id} badge={badge} />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-6 rounded-3xl bg-slate-50 p-8 text-center">
+          <p className="text-lg font-bold text-slate-950">
+            Brak odznak rankingowych
+          </p>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Odznaki pojawią się tutaj, gdy użytkownik trafi do TOP 3 rankingu
+            najcięższych lub najdłuższych ryb na łowisku.
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RankingBadgeCard({ badge }: { badge: UserRankingBadge }) {
+  const styles = getRankingBadgeStyles(badge.place);
+
+  return (
+    <article className={`rounded-3xl border p-5 shadow-sm ${styles.card}`}>
+      <div className="flex items-start gap-4">
+        <div
+          className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-3xl shadow-sm ${styles.icon}`}
+        >
+          {styles.medal}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-black ${styles.badge}`}
+            >
+              TOP {badge.place}
+            </span>
+
+            <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-slate-600">
+              {badge.type === "weight" ? "Waga" : "Długość"}
+            </span>
+          </div>
+
+          <h3 className="mt-3 text-lg font-black text-slate-950">
+            {badge.type === "weight"
+              ? "Najcięższa ryba"
+              : "Najdłuższa ryba"}
+          </h3>
+
+          <p className="mt-1 text-sm font-semibold text-slate-600">
+            {badge.fishName} —{" "}
+            <span className="font-black text-slate-950">
+              {badge.unit === "kg"
+                ? `${badge.value.toFixed(2)} kg`
+                : `${badge.value.toFixed(0)} cm`}
+            </span>
+          </p>
+
+          <Link
+            href={`/lowiska/${badge.lakeSlug}`}
+            className="mt-3 inline-flex text-sm font-bold text-blue-600 transition hover:text-blue-700 hover:underline"
+          >
+            {badge.lakeName}
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function getRankingBadgeStyles(place: 1 | 2 | 3) {
+  if (place === 1) {
+    return {
+      medal: "🥇",
+      card: "border-amber-100 bg-amber-50",
+      icon: "bg-white text-amber-700",
+      badge: "bg-amber-200 text-amber-800",
+    };
+  }
+
+  if (place === 2) {
+    return {
+      medal: "🥈",
+      card: "border-slate-200 bg-slate-50",
+      icon: "bg-white text-slate-700",
+      badge: "bg-slate-200 text-slate-700",
+    };
+  }
+
+  return {
+    medal: "🥉",
+    card: "border-orange-100 bg-orange-50",
+    icon: "bg-white text-orange-700",
+    badge: "bg-orange-200 text-orange-800",
+  };
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
