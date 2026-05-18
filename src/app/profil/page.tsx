@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { ProfileAchievementsCard } from "@/components/dashboard/ProfileAchievementsCard";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { getUserAchievements } from "@/lib/achievements";
@@ -16,57 +17,63 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const [favourites, ratings, submissions, catchesCount, publicCatchesCount, achievements] =
-    await Promise.all([
-      prisma.favourite.findMany({
-        where: {
-          userId: user.id,
-        },
-        include: {
-          lake: true,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      }),
+  const [
+    favourites,
+    ratings,
+    submissions,
+    catchesCount,
+    publicCatchesCount,
+    achievements,
+  ] = await Promise.all([
+    prisma.favourite.findMany({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        lake: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
 
-      prisma.rating.findMany({
-        where: {
-          userId: user.id,
-        },
-        include: {
-          lake: true,
-        },
-        orderBy: {
-          updatedAt: "desc",
-        },
-      }),
+    prisma.rating.findMany({
+      where: {
+        userId: user.id,
+      },
+      include: {
+        lake: true,
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    }),
 
-      prisma.lakeSubmission.findMany({
-        where: {
-          userId: user.id,
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      }),
+    prisma.lakeSubmission.findMany({
+      where: {
+        userId: user.id,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    }),
 
-      prisma.fishingCatch.count({
-        where: {
-          userId: user.id,
-        },
-      }),
+    prisma.fishingCatch.count({
+      where: {
+        userId: user.id,
+      },
+    }),
 
-      prisma.fishingCatch.count({
-        where: {
-          userId: user.id,
-          isPublic: true,
-          rankingStatus: "approved",
-        },
-      }),
+    prisma.fishingCatch.count({
+      where: {
+        userId: user.id,
+        isPublic: true,
+        rankingStatus: "approved",
+      },
+    }),
 
-      getUserAchievements(user.id),
-    ]);
+    getUserAchievements(user.id),
+  ]);
 
   const displayName =
     typeof user.user_metadata?.name === "string"
@@ -79,10 +86,6 @@ export default async function ProfilePage() {
 
   const unlockedAchievements = achievements.filter(
     (achievement) => achievement.isUnlocked
-  );
-
-  const lockedAchievements = achievements.filter(
-    (achievement) => !achievement.isUnlocked
   );
 
   return (
@@ -158,55 +161,7 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-slate-950">
-              Moje osiągnięcia
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Zdobywaj odznaki za dodawanie połowów, zdjęć, rekordów i aktywność
-              na łowiskach.
-            </p>
-          </div>
-
-          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-            {unlockedAchievements.length} / {achievements.length} odblokowanych
-          </span>
-        </div>
-
-        {achievements.length > 0 ? (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {unlockedAchievements.map((achievement) => (
-              <AchievementCard
-                key={achievement.id}
-                title={achievement.title}
-                description={achievement.description}
-                icon={achievement.icon || "🏆"}
-                isUnlocked
-                unlockedAt={achievement.unlockedAt}
-              />
-            ))}
-
-            {lockedAchievements.map((achievement) => (
-              <AchievementCard
-                key={achievement.id}
-                title={achievement.title}
-                description={achievement.description}
-                icon={achievement.icon || "🏆"}
-                isUnlocked={false}
-                unlockedAt={null}
-              />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="Brak osiągnięć"
-            description="Osiągnięcia pojawią się tutaj po pierwszej aktywności w aplikacji."
-          />
-        )}
-      </section>
+      <ProfileAchievementsCard achievements={achievements} />
 
       <section className="mb-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <ProfileStat label="Wszystkie połowy" value={String(catchesCount)} />
@@ -221,10 +176,7 @@ export default async function ProfilePage() {
           value={String(submissions.length)}
         />
 
-        <ProfileStat
-          label="Ulubione"
-          value={String(favourites.length)}
-        />
+        <ProfileStat label="Ulubione" value={String(favourites.length)} />
       </section>
 
       <div className="grid gap-6 xl:grid-cols-2">
@@ -421,62 +373,6 @@ function ProfileStat({ label, value }: { label: string; value: string }) {
         {value}
       </p>
     </div>
-  );
-}
-
-function AchievementCard({
-  title,
-  description,
-  icon,
-  isUnlocked,
-  unlockedAt,
-}: {
-  title: string;
-  description: string;
-  icon: string;
-  isUnlocked: boolean;
-  unlockedAt: Date | null;
-}) {
-  return (
-    <article
-      className={`rounded-3xl border p-5 shadow-sm ${
-        isUnlocked
-          ? "border-amber-100 bg-amber-50"
-          : "border-slate-200 bg-slate-50 opacity-70"
-      }`}
-    >
-      <div className="flex items-start gap-4">
-        <div
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl shadow-sm ${
-            isUnlocked ? "bg-white" : "bg-white grayscale"
-          }`}
-        >
-          {icon}
-        </div>
-
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-black text-slate-950">{title}</h3>
-
-            {!isUnlocked && (
-              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
-                Zablokowane
-              </span>
-            )}
-          </div>
-
-          <p className="mt-1 text-sm leading-6 text-slate-600">
-            {description}
-          </p>
-
-          {isUnlocked && unlockedAt && (
-            <p className="mt-3 text-xs font-bold uppercase tracking-[0.12em] text-amber-700">
-              Odblokowano: {formatDate(unlockedAt)}
-            </p>
-          )}
-        </div>
-      </div>
-    </article>
   );
 }
 
