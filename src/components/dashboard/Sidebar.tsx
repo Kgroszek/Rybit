@@ -20,7 +20,7 @@ type SidebarProps = {
 const mainMenuItems: MenuItem[] = [
   {
     label: "Dashboard",
-    href: "/",
+    href: "/dashboard",
     icon: <DashboardIcon />,
   },
   {
