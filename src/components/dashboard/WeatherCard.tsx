@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 type UserLocation = {
   lat: number;
@@ -83,9 +84,9 @@ export function WeatherCard() {
           </p>
         </div>
 
-        <button className="text-sm font-semibold text-blue-600">
+        <Link href="/pogoda" className="text-sm font-bold text-blue-600">
           Zobacz więcej
-        </button>
+        </Link>
       </div>
 
       {!userLocation && (
