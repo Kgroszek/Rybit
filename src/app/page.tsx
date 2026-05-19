@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PublicHeader } from "@/components/public/PublicHeader";
 
 export const metadata: Metadata = {
   title: "Rybio – aplikacja dla wędkarzy i mapa łowisk w Polsce",
@@ -76,16 +77,46 @@ const steps = [
 ];
 
 const seoLinks = [
-  "Łowiska mazowieckie",
-  "Łowiska lubelskie",
-  "Łowiska śląskie",
-  "Łowiska wielkopolskie",
-  "Łowiska małopolskie",
-  "Łowiska podkarpackie",
-  "Łowiska z domkami",
-  "Łowiska karpiowe",
-  "Łowiska No Kill",
-  "Łowiska z noclegiem",
+  {
+    label: "Łowiska mazowieckie",
+    href: "/lowiska-mazowieckie",
+  },
+  {
+    label: "Łowiska śląskie",
+    href: "/lowiska-slaskie",
+  },
+  {
+    label: "Łowiska małopolskie",
+    href: "/lowiska-malopolskie",
+  },
+  {
+    label: "Łowiska lubelskie",
+    href: "/lowiska-lubelskie",
+  },
+  {
+    label: "Łowiska wielkopolskie",
+    href: "/lowiska-wielkopolskie",
+  },
+  {
+    label: "Łowiska podkarpackie",
+    href: "/lowiska-podkarpackie",
+  },
+  {
+    label: "Łowiska z domkami",
+    href: "/lowiska-z-domkami",
+  },
+  {
+    label: "Łowiska karpiowe",
+    href: "/lowiska-karpiowe",
+  },
+  {
+    label: "Łowiska z noclegiem",
+    href: "/lowiska-z-noclegiem",
+  },
+  {
+    label: "Łowiska No Kill",
+    href: "/lowiska-no-kill",
+  },
 ];
 
 const appFeatures = [
@@ -219,56 +250,7 @@ const faq = [
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-lg font-black text-white">
-              R
-            </div>
-
-            <div>
-              <p className="text-xl font-black tracking-tight">Rybio</p>
-              <p className="text-xs font-semibold text-slate-500">
-                Aplikacja dla wędkarzy
-              </p>
-            </div>
-          </Link>
-
-          <nav className="hidden items-center gap-7 text-sm font-semibold text-slate-600 lg:flex">
-            <a href="#czym-jest" className="transition hover:text-blue-600">
-              O aplikacji
-            </a>
-            <a href="/lowiska-w-polsce" className="transition hover:text-blue-600">
-              Łowiska
-            </a>
-            <a href="#dziennik" className="transition hover:text-blue-600">
-              Dziennik połowów
-            </a>
-            <a href="#funkcje" className="transition hover:text-blue-600">
-              Funkcje
-            </a>
-            <a href="#faq" className="transition hover:text-blue-600">
-              FAQ
-            </a>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="hidden rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:inline-flex"
-            >
-              Zaloguj się
-            </Link>
-
-            <Link
-              href="/register"
-              className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
-            >
-              Dołącz do Rybio
-            </Link>
-          </div>
-        </div>
-      </header>
+     <PublicHeader />
 
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_35%),radial-gradient(circle_at_top_right,#ccfbf1,transparent_30%)]" />
@@ -536,23 +518,23 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <div>
-              <p className="mb-4 text-sm font-black uppercase tracking-[0.16em] text-slate-400">
-                Popularne wyszukiwania
-              </p>
+           <div>
+            <p className="mb-4 text-sm font-black uppercase tracking-[0.16em] text-slate-400">
+              Popularne wyszukiwania
+            </p>
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                {seoLinks.map((item) => (
-                  <Link
-                    key={item}
-                    href="/lowiska"
-                    className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700"
-                  >
-                    {item}
-                  </Link>
-                ))}
-              </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {seoLinks.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-blue-50 hover:text-blue-700"
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
+          </div>
           </div>
         </div>
       </section>
