@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getLakeBySlug } from "@/lib/lakes";
 import { PublicLakeDetailsPage } from "@/components/public/PublicLakeDetailsPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicFooter } from "@/components/public/PublicFooter";
 
 type PageProps = {
   params: Promise<{
@@ -42,6 +43,8 @@ export default async function PublicLakePage({ params }: PageProps) {
       <PublicHeader />
 
       <PublicLakeDetailsPage lake={lake} />
+
+      <PublicFooter />
     </main>
   );
 }

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getLakes } from "@/lib/lakes";
 import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicFooter } from "@/components/public/PublicFooter";
 
 export const metadata: Metadata = {
   title: "Łowiska w Polsce – mapa i baza łowisk dla wędkarzy | Rybio",
@@ -56,6 +57,8 @@ export default async function PublicLakesListPage() {
       </section>
 
       <PublicLakesPage lakes={lakes} />
+
+      <PublicFooter />
     </main>
   );
 }
