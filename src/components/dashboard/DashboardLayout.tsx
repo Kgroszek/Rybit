@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import Link from "next/link";
 import { MobileBottomNav } from "./MobileBottomNav";
 
 type DashboardLayoutProps = {
@@ -89,6 +90,35 @@ export async function DashboardLayout({ children }: DashboardLayoutProps) {
 
         <section className="min-w-0 flex-1 px-4 pb-24 pt-4 sm:px-5 lg:p-8">
           {children}
+
+          <footer className="mt-12 border-t border-slate-200 pt-6">
+            <div className="flex flex-col gap-3 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+              <p>© {new Date().getFullYear()} Rybio. Wszystkie prawa zastrzeżone.</p>
+
+              <div className="flex flex-wrap gap-4">
+                <Link
+                  href="/regulamin"
+                  className="font-semibold transition hover:text-blue-600"
+                >
+                  Regulamin
+                </Link>
+
+                <Link
+                  href="/polityka-prywatnosci"
+                  className="font-semibold transition hover:text-blue-600"
+                >
+                  Polityka prywatności
+                </Link>
+
+                <a
+                  href="mailto:kontakt@rybio.pl"
+                  className="font-semibold transition hover:text-blue-600"
+                >
+                  Kontakt
+                </a>
+              </div>
+            </div>
+          </footer>
         </section>
       </div>
 
