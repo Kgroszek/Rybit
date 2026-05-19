@@ -82,6 +82,11 @@ export function Sidebar({
 }: SidebarProps) {
   const adminMenuItems: MenuItem[] = [
     {
+      label: "Panel admina",
+      href: "/admin",
+      icon: <DashboardIcon />,
+    },
+    {
       label: "Zgłoszenia łowisk",
       href: "/admin/zgloszenia-lowisk",
       icon: <NotificationIcon />,
@@ -99,6 +104,11 @@ export function Sidebar({
       icon: <CatchReportsIcon />,
       badge: pendingCatchReportsCount,
     },
+    {
+      label: "Użytkownicy",
+      href: "/admin/uzytkownicy",
+      icon: <UsersIcon />,
+    },
   ];
 
   return (
@@ -108,7 +118,7 @@ export function Sidebar({
           <img
             src="/logos/logo-rybioo.svg"
             alt="Rybio"
-            className="object-contain h-10 w-auto"
+            className="h-10 w-auto object-contain"
           />
         </div>
       </Link>
@@ -284,6 +294,17 @@ function UserIcon() {
     <IconBase>
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21a8 8 0 0 1 16 0" />
+    </IconBase>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <IconBase>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </IconBase>
   );
 }

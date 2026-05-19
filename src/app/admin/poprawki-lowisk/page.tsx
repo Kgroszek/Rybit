@@ -1,14 +1,95 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { AdminCorrectionReportActions } from "@/components/dashboard/AdminCorrectionReportActions";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+
+function getAdminEmails() {
+  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
+  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
+
+  return [singleAdminEmail, multipleAdminEmails]
+    .join(",")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isAdminUser(user: {
+  email?: string;
+  app_metadata?: {
+    role?: string;
+  };
+  user_metadata?: {
+    role?: string;
+  };
+}) {
+  const adminEmails = getAdminEmails();
+  const userEmail = user.email?.trim().toLowerCase() ?? "";
+
+  return (
+    user.app_metadata?.role === "admin" ||
+    user.user_metadata?.role === "admin" ||
+    adminEmails.includes(userEmail)
+  );
+}
+
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat("pl-PL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function getStatusLabel(status: string) {
+  if (status === "pending") return "Oczekuje";
+  if (status === "resolved") return "Rozwiązane";
+  if (status === "rejected") return "Odrzucone";
+  if (status === "approved") return "Zaakceptowane";
+  return status;
+}
+
+function getStatusClass(status: string) {
+  if (status === "pending") return "bg-amber-50 text-amber-700";
+  if (status === "resolved" || status === "approved") {
+    return "bg-emerald-50 text-emerald-700";
+  }
+  if (status === "rejected") return "bg-red-50 text-red-600";
+
+  return "bg-slate-100 text-slate-600";
+}
+
+function getCategoryLabel(category: string) {
+  if (category === "basic") return "Dane podstawowe";
+  if (category === "address") return "Adres";
+  if (category === "contact") return "Kontakt";
+  if (category === "prices") return "Cennik";
+  if (category === "rules") return "Regulamin";
+  if (category === "amenities") return "Udogodnienia";
+  if (category === "fish") return "Ryby";
+  if (category === "images") return "Zdjęcia";
+  if (category === "other") return "Inne";
+
+  return category;
+}
 
 export default async function LakeCorrectionReportsAdminPage() {
-  const admin = await requireAdmin();
+  const supabase = await createClient();
 
-  if (!admin) {
-    redirect("/");
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (!isAdminUser(user)) {
+    redirect("/dashboard");
   }
 
   const reports = await prisma.lakeCorrectionReport.findMany({
@@ -20,148 +101,202 @@ export default async function LakeCorrectionReportsAdminPage() {
         select: {
           name: true,
           slug: true,
+          city: true,
+          voivodeship: true,
         },
       },
     },
   });
 
-  const pendingCount = reports.filter((report) => report.status === "pending")
-    .length;
+  const pendingCount = reports.filter(
+    (report) => report.status === "pending"
+  ).length;
+
+  const resolvedCount = reports.filter(
+    (report) => report.status === "resolved"
+  ).length;
+
+  const rejectedCount = reports.filter(
+    (report) => report.status === "rejected"
+  ).length;
 
   return (
     <DashboardLayout>
-      <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950">
-            Zgłoszone poprawki
-          </h1>
+      <div className="space-y-8">
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+            <div>
+              <p className="mb-3 inline-flex rounded-full bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700">
+                Panel administratora
+              </p>
 
-          <p className="mt-2 max-w-3xl text-slate-500">
-            Tutaj trafiają zgłoszenia od użytkowników dotyczące błędów i
-            nieaktualnych danych łowisk.
-          </p>
-        </div>
+              <h1 className="text-3xl font-black tracking-tight text-slate-950">
+                Zgłoszone poprawki łowisk
+              </h1>
 
-        <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700">
-          Oczekujące: {pendingCount}
-        </div>
-      </div>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
+                Tutaj trafiają zgłoszenia od użytkowników dotyczące błędów,
+                nieaktualnych danych lub brakujących informacji na profilach
+                łowisk.
+              </p>
+            </div>
 
-      {reports.length > 0 ? (
-        <div className="space-y-4">
-          {reports.map((report) => (
-            <article
-              key={report.id}
-              className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+            <Link
+              href="/admin"
+              className="w-fit rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
             >
-              <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${
-                        report.status === "pending"
-                          ? "bg-amber-50 text-amber-700"
-                          : report.status === "resolved"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-red-50 text-red-600"
-                      }`}
-                    >
-                      {getStatusLabel(report.status)}
-                    </span>
+              Wróć do panelu admina
+            </Link>
+          </div>
+        </section>
 
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                      {getCategoryLabel(report.category)}
-                    </span>
-                  </div>
+        <section className="grid gap-4 sm:grid-cols-3">
+          <StatCard label="Oczekujące" value={pendingCount} variant="warning" />
+          <StatCard label="Rozwiązane" value={resolvedCount} variant="success" />
+          <StatCard label="Odrzucone" value={rejectedCount} variant="danger" />
+        </section>
 
-                  <h2 className="text-xl font-bold text-slate-950">
-                    {report.lake.name}
-                  </h2>
+        {reports.length > 0 ? (
+          <div className="space-y-4">
+            {reports.map((report) => (
+              <article
+                key={report.id}
+                className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+              >
+                <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-black ${getStatusClass(
+                          report.status
+                        )}`}
+                      >
+                        {getStatusLabel(report.status)}
+                      </span>
 
-                  <p className="mt-2 text-sm text-slate-500">
-                    Zgłaszający:{" "}
-                    <span className="font-semibold text-slate-700">
-                      {report.userEmail || report.userId}
-                    </span>
-                  </p>
+                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+                        {getCategoryLabel(report.category)}
+                      </span>
+                    </div>
 
-                  <p className="mt-1 text-sm text-slate-500">
-                    Data:{" "}
-                    {new Intl.DateTimeFormat("pl-PL", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }).format(report.createdAt)}
-                  </p>
+                    <h2 className="break-words text-xl font-black text-slate-950">
+                      {report.lake.name}
+                    </h2>
 
-                  <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
-                      Opis problemu
+                    <p className="mt-1 text-sm text-slate-500">
+                      {report.lake.city}, woj. {report.lake.voivodeship}
                     </p>
 
-                    <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-700">
-                      {report.description}
-                    </p>
-                  </div>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <InfoBox
+                        label="Zgłaszający"
+                        value={report.userEmail || report.userId}
+                      />
 
-                  {report.adminNote && (
-                    <div className="mt-4 rounded-2xl bg-blue-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-400">
-                        Notatka admina
+                      <InfoBox
+                        label="Data zgłoszenia"
+                        value={formatDate(report.createdAt)}
+                      />
+                    </div>
+
+                    <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                        Opis problemu
                       </p>
 
-                      <p className="mt-2 whitespace-pre-line text-sm leading-6 text-blue-700">
-                        {report.adminNote}
+                      <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-700">
+                        {report.description}
                       </p>
                     </div>
+
+                    {report.adminNote && (
+                      <div className="mt-4 rounded-2xl bg-blue-50 p-4">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-400">
+                          Notatka admina
+                        </p>
+
+                        <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-blue-700">
+                          {report.adminNote}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <Link
+                        href={`/lowiska/${report.lake.slug}`}
+                        className="inline-flex rounded-2xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+                      >
+                        Otwórz łowisko w panelu
+                      </Link>
+
+                      <Link
+                        href={`/lowiska-w-polsce/${report.lake.slug}`}
+                        className="inline-flex rounded-2xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700 transition hover:bg-blue-100"
+                      >
+                        Podgląd publiczny
+                      </Link>
+                    </div>
+                  </div>
+
+                  {report.status === "pending" && (
+                    <div className="w-full xl:w-[360px] xl:shrink-0">
+                      <AdminCorrectionReportActions reportId={report.id} />
+                    </div>
                   )}
-
-                  <a
-                    href={`/lowiska/${report.lake.slug}`}
-                    className="mt-4 inline-flex rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
-                  >
-                    Otwórz łowisko
-                  </a>
                 </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+            <h2 className="text-xl font-black text-slate-950">
+              Brak zgłoszonych poprawek
+            </h2>
 
-                {report.status === "pending" && (
-                  <AdminCorrectionReportActions reportId={report.id} />
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <p className="text-xl font-bold text-slate-950">
-            Brak zgłoszonych poprawek
-          </p>
-
-          <p className="mt-2 text-slate-500">
-            Gdy użytkownik zgłosi błąd na stronie łowiska, pojawi się on tutaj.
-          </p>
-        </div>
-      )}
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              Gdy użytkownicy zgłoszą błędne lub nieaktualne dane łowisk,
+              pojawią się one w tym miejscu.
+            </p>
+          </div>
+        )}
+      </div>
     </DashboardLayout>
   );
 }
 
-function getStatusLabel(status: string) {
-  if (status === "pending") return "Oczekuje";
-  if (status === "resolved") return "Rozwiązane";
-  if (status === "rejected") return "Odrzucone";
-  return status;
+function StatCard({
+  label,
+  value,
+  variant,
+}: {
+  label: string;
+  value: number;
+  variant: "warning" | "success" | "danger";
+}) {
+  const classes = {
+    warning: "border-amber-100 bg-amber-50 text-amber-700",
+    success: "border-emerald-100 bg-emerald-50 text-emerald-700",
+    danger: "border-red-100 bg-red-50 text-red-700",
+  };
+
+  return (
+    <div className={`rounded-3xl border p-5 shadow-sm ${classes[variant]}`}>
+      <p className="text-sm font-bold">{label}</p>
+      <p className="mt-3 text-4xl font-black">{value}</p>
+    </div>
+  );
 }
 
-function getCategoryLabel(category: string) {
-  if (category === "location") return "Lokalizacja";
-  if (category === "price") return "Cennik";
-  if (category === "rules") return "Regulamin";
-  if (category === "contact") return "Kontakt";
-  if (category === "amenities") return "Udogodnienia";
-  if (category === "fish") return "Ryby";
-  if (category === "closed") return "Łowisko zamknięte";
-  return "Inny problem";
+function InfoBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-4">
+      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-2 break-words text-sm font-bold text-slate-700">
+        {value}
+      </p>
+    </div>
+  );
 }
