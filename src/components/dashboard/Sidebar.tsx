@@ -15,6 +15,7 @@ type SidebarProps = {
   isAdmin?: boolean;
   pendingSubmissionsCount?: number;
   pendingCorrectionsCount?: number;
+  pendingCatchReportsCount?: number;
 };
 
 const mainMenuItems: MenuItem[] = [
@@ -77,6 +78,7 @@ export function Sidebar({
   isAdmin = false,
   pendingSubmissionsCount = 0,
   pendingCorrectionsCount = 0,
+  pendingCatchReportsCount = 0,
 }: SidebarProps) {
   const adminMenuItems: MenuItem[] = [
     {
@@ -91,23 +93,29 @@ export function Sidebar({
       icon: <ReportIcon />,
       badge: pendingCorrectionsCount,
     },
+    {
+      label: "Zgłoszenia połowów",
+      href: "/admin/zgloszenia-polowow",
+      icon: <CatchReportsIcon />,
+      badge: pendingCatchReportsCount,
+    },
   ];
 
   return (
     <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-6 lg:flex lg:flex-col">
-      <div className="mb-10 flex items-center gap-3">
-        <div className="flex  items-center justify-center overflow-hidden">
+      <Link href="/dashboard" className="mb-10 flex items-center gap-3">
+        <div className="flex items-center justify-center overflow-hidden">
           <img
             src="/logos/logo-rybio.svg"
-            alt="Rybit"
+            alt="Rybio"
             className="object-contain"
           />
         </div>
-      </div>
+      </Link>
 
       <nav className="space-y-1">
         {mainMenuItems.map((item) => (
-          <SidebarButton key={item.label} item={item} />
+          <SidebarButton key={item.href} item={item} />
         ))}
       </nav>
 
@@ -118,7 +126,7 @@ export function Sidebar({
 
         <nav className="space-y-1">
           {accountMenuItems.map((item) => (
-            <SidebarButton key={item.label} item={item} />
+            <SidebarButton key={item.href} item={item} />
           ))}
         </nav>
       </div>
@@ -131,7 +139,7 @@ export function Sidebar({
 
           <nav className="space-y-1">
             {adminMenuItems.map((item) => (
-              <SidebarButton key={item.label} item={item} />
+              <SidebarButton key={item.href} item={item} />
             ))}
           </nav>
         </div>
@@ -238,6 +246,19 @@ function TripIcon() {
   );
 }
 
+function ChecklistIcon() {
+  return (
+    <IconBase>
+      <path d="M9 6h11" />
+      <path d="M9 12h11" />
+      <path d="M9 18h11" />
+      <path d="m4 6 1 1 2-2" />
+      <path d="m4 12 1 1 2-2" />
+      <path d="m4 18 1 1 2-2" />
+    </IconBase>
+  );
+}
+
 function FishIcon() {
   return (
     <IconBase>
@@ -300,7 +321,19 @@ function ReportIcon() {
     <IconBase>
       <path d="M12 9v4" />
       <path d="M12 17h.01" />
-      <path d="M10.3 4.3 2.8 17.3A2 2 0 0 0 4.5 20h15a2 2 0 0 0 1.7-2.7L13.7 4.3a2 2 0 0 0-3.4 0Z" />
+      <path d="M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+    </IconBase>
+  );
+}
+
+function CatchReportsIcon() {
+  return (
+    <IconBase>
+      <path d="M4 5h16" />
+      <path d="M4 12h10" />
+      <path d="M4 19h7" />
+      <path d="M17 14l3 3" />
+      <path d="M20 14l-3 3" />
     </IconBase>
   );
 }
@@ -311,18 +344,6 @@ function LogoutIcon() {
       <path d="M10 17l5-5-5-5" />
       <path d="M15 12H3" />
       <path d="M21 3v18" />
-    </IconBase>
-  );
-}
-
-function ChecklistIcon() {
-  return (
-    <IconBase>
-      <path d="M9 11l2 2 4-4" />
-      <path d="M9 17l2 2 4-4" />
-      <path d="M4 5h16" />
-      <path d="M4 12h2" />
-      <path d="M4 19h2" />
     </IconBase>
   );
 }

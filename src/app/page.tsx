@@ -238,7 +238,7 @@ export default function HomePage() {
             <a href="#czym-jest" className="transition hover:text-blue-600">
               O aplikacji
             </a>
-            <a href="#lowiska" className="transition hover:text-blue-600">
+            <a href="/lowiska-w-polsce" className="transition hover:text-blue-600">
               Łowiska
             </a>
             <a href="#dziennik" className="transition hover:text-blue-600">
@@ -292,7 +292,7 @@ export default function HomePage() {
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/lowiska"
+                href="/lowiska-w-polsce"
                 className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-6 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
               >
                 Sprawdź łowiska
@@ -529,7 +529,7 @@ export default function HomePage() {
               </div>
 
               <Link
-                href="/lowiska"
+                href="/lowiska-w-polsce"
                 className="mt-7 inline-flex rounded-2xl bg-blue-600 px-6 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
               >
                 Przeglądaj łowiska
@@ -810,7 +810,7 @@ export default function HomePage() {
             </Link>
 
             <Link
-              href="/lowiska"
+              href="/lowiska-w-polsce"
               className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
             >
               Przeglądaj łowiska
@@ -824,7 +824,7 @@ export default function HomePage() {
           <p>© {new Date().getFullYear()} Rybio. Aplikacja dla wędkarzy.</p>
 
           <div className="flex flex-wrap gap-4">
-            <Link href="/lowiska" className="font-semibold hover:text-blue-600">
+            <Link href="/lowiska-w-polsce" className="font-semibold hover:text-blue-600">
               Łowiska
             </Link>
             <Link href="/login" className="font-semibold hover:text-blue-600">
