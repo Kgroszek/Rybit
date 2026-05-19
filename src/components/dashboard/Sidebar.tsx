@@ -106,9 +106,9 @@ export function Sidebar({
       <Link href="/dashboard" className="mb-10 flex items-center gap-3">
         <div className="flex items-center justify-center overflow-hidden">
           <img
-            src="/logos/logo-rybio.svg"
+            src="/logos/logo-rybioo.svg"
             alt="Rybio"
-            className="object-contain"
+            className="object-contain h-10 w-auto"
           />
         </div>
       </Link>
