@@ -1,6 +1,6 @@
-zimport { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
 type RouteProps = {
   params: Promise<{
@@ -8,113 +8,111 @@ type RouteProps = {
   }>;
 };
 
-export async function PATCH(request: Request, { params }: RouteProps) {
-  const admin = await requireAdmin();
+export async function POST(request: Request, { params }: RouteProps) {
+  const { id } = await params;
 
-  if (!admin) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
     return NextResponse.json(
-      { message: "Brak uprawnień administratora." },
-      { status: 403 }
+      { message: "Musisz być zalogowany, aby zgłosić połów." },
+      { status: 401 }
     );
   }
 
-  const { id } = await params;
   const body = await request.json().catch(() => null);
 
-  const action = String(body?.action || "").trim();
-  const adminNote = String(body?.adminNote || "").trim();
+  const reason = String(body?.reason || "").trim();
 
-  if (!["dismiss", "hide"].includes(action)) {
+  if (!reason) {
     return NextResponse.json(
-      { message: "Nieprawidłowa akcja." },
+      { message: "Uzasadnienie zgłoszenia jest wymagane." },
       { status: 400 }
     );
   }
 
-  const report = await prisma.fishingCatchReport.findUnique({
+  if (reason.length < 10) {
+    return NextResponse.json(
+      { message: "Uzasadnienie powinno mieć minimum 10 znaków." },
+      { status: 400 }
+    );
+  }
+
+  const fishingCatch = await prisma.fishingCatch.findUnique({
     where: {
       id,
     },
-    include: {
-      fishingCatch: true,
+    select: {
+      id: true,
+      userId: true,
+      isPublic: true,
+      rankingStatus: true,
     },
   });
 
-  if (!report) {
+  if (!fishingCatch) {
     return NextResponse.json(
-      { message: "Nie znaleziono zgłoszenia." },
+      { message: "Nie znaleziono połowu." },
       { status: 404 }
     );
   }
 
-  if (report.status !== "pending") {
+  if (!fishingCatch.isPublic) {
     return NextResponse.json(
-      { message: "To zgłoszenie zostało już obsłużone." },
+      { message: "Można zgłaszać tylko publiczne połowy." },
       { status: 400 }
     );
   }
 
-  if (action === "dismiss") {
-    const updatedReport = await prisma.fishingCatchReport.update({
-      where: {
-        id,
-      },
-      data: {
-        status: "rejected",
-        adminNote: adminNote || null,
-      },
-      include: {
-        fishingCatch: true,
-      },
-    });
-
-    await prisma.userNotification.create({
-      data: {
-        userId: report.userId,
-        title: "Zgłoszenie połowu zostało odrzucone",
-        message: `Administrator sprawdził zgłoszenie połowu: ${report.fishingCatch.fishName}.`,
-        href: "/powiadomienia",
-        type: "catch_report",
-      },
-    });
-
-    return NextResponse.json(updatedReport);
+  if (fishingCatch.rankingStatus === "hidden") {
+    return NextResponse.json(
+      { message: "Ten połów jest już ukryty w rankingu." },
+      { status: 400 }
+    );
   }
 
-  const [updatedReport] = await prisma.$transaction([
-    prisma.fishingCatchReport.update({
-      where: {
-        id,
-      },
-      data: {
-        status: "accepted",
-        adminNote: adminNote || null,
-      },
-      include: {
-        fishingCatch: true,
-      },
-    }),
+  if (fishingCatch.userId === user.id) {
+    return NextResponse.json(
+      { message: "Nie możesz zgłosić własnego połowu." },
+      { status: 400 }
+    );
+  }
 
-    prisma.fishingCatch.update({
-      where: {
-        id: report.catchId,
+  const existingReport = await prisma.fishingCatchReport.findUnique({
+    where: {
+      catchId_userId: {
+        catchId: id,
+        userId: user.id,
       },
-      data: {
-        isPublic: false,
-        rankingStatus: "rejected",
-      },
-    }),
-  ]);
-
-  await prisma.userNotification.create({
-    data: {
-      userId: report.fishingCatch.userId,
-      title: "Twój połów został ukryty z rankingu",
-      message: `Połów ${report.fishingCatch.fishName} został ukryty po weryfikacji zgłoszenia.`,
-      href: "/polowy",
-      type: "catch_report",
     },
   });
 
-  return NextResponse.json(updatedReport);
+  if (existingReport) {
+    return NextResponse.json(
+      { message: "Już zgłosiłeś ten połów." },
+      { status: 409 }
+    );
+  }
+
+  const report = await prisma.fishingCatchReport.create({
+    data: {
+      catchId: id,
+      userId: user.id,
+      userEmail: user.email,
+      reason,
+      status: "pending",
+    },
+  });
+
+  return NextResponse.json(
+    {
+      message: "Zgłoszenie zostało wysłane do administratora.",
+      report,
+    },
+    { status: 201 }
+  );
 }

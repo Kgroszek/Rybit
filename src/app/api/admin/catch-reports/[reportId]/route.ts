@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
 type RouteProps = {
   params: Promise<{
@@ -8,10 +8,51 @@ type RouteProps = {
   }>;
 };
 
-export async function PATCH(request: Request, { params }: RouteProps) {
-  const admin = await requireAdmin();
+function getAdminEmails() {
+  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
+  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
 
-  if (!admin) {
+  return [singleAdminEmail, multipleAdminEmails]
+    .join(",")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isAdminUser(user: {
+  email?: string;
+  app_metadata?: {
+    role?: string;
+  };
+  user_metadata?: {
+    role?: string;
+  };
+}) {
+  const adminEmails = getAdminEmails();
+  const userEmail = user.email?.trim().toLowerCase() ?? "";
+
+  return (
+    user.app_metadata?.role === "admin" ||
+    user.user_metadata?.role === "admin" ||
+    adminEmails.includes(userEmail)
+  );
+}
+
+export async function PATCH(request: Request, { params }: RouteProps) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { message: "Musisz być zalogowany." },
+      { status: 401 }
+    );
+  }
+
+  if (!isAdminUser(user)) {
     return NextResponse.json(
       { message: "Brak uprawnień administratora." },
       { status: 403 }
@@ -78,10 +119,13 @@ export async function PATCH(request: Request, { params }: RouteProps) {
       },
     });
 
-    return NextResponse.json(updatedReport);
+    return NextResponse.json({
+      message: "Zgłoszenie zostało odrzucone.",
+      report: updatedReport,
+    });
   }
 
-  const [updatedReport] = await prisma.$transaction([
+  const [updatedReport, updatedCatch] = await prisma.$transaction([
     prisma.fishingCatchReport.update({
       where: {
         id: reportId,
@@ -101,7 +145,7 @@ export async function PATCH(request: Request, { params }: RouteProps) {
       },
       data: {
         isPublic: false,
-        rankingStatus: "rejected",
+        rankingStatus: "hidden",
       },
     }),
   ]);
@@ -126,5 +170,9 @@ export async function PATCH(request: Request, { params }: RouteProps) {
     },
   });
 
-  return NextResponse.json(updatedReport);
+  return NextResponse.json({
+    message: "Połów został ukryty z rankingu.",
+    report: updatedReport,
+    fishingCatch: updatedCatch,
+  });
 }

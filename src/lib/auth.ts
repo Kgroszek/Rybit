@@ -1,29 +1,51 @@
 import { createClient } from "@/lib/supabase/server";
 
-export async function getCurrentUser() {
+export function getAdminEmails() {
+  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
+  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
+
+  return [singleAdminEmail, multipleAdminEmails]
+    .join(",")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function isAdminUser(user: {
+  email?: string;
+  app_metadata?: {
+    role?: string;
+  };
+  user_metadata?: {
+    role?: string;
+  };
+} | null) {
+  if (!user) {
+    return false;
+  }
+
+  const adminEmails = getAdminEmails();
+  const userEmail = user.email?.trim().toLowerCase() ?? "";
+
+  return (
+    user.app_metadata?.role === "admin" ||
+    user.user_metadata?.role === "admin" ||
+    adminEmails.includes(userEmail)
+  );
+}
+
+export async function requireAdmin() {
   const supabase = await createClient();
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return user;
-}
-
-export async function requireAdmin() {
-  const user = await getCurrentUser();
-
   if (!user) {
     return null;
   }
 
-  const adminEmail = process.env.ADMIN_EMAIL;
-
-  if (!adminEmail) {
-    return null;
-  }
-
-  if (user.email !== adminEmail) {
+  if (!isAdminUser(user)) {
     return null;
   }
 

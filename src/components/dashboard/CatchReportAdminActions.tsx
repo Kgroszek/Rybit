@@ -14,41 +14,54 @@ export function CatchReportAdminActions({
 
   const [adminNote, setAdminNote] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentAction, setCurrentAction] = useState<"dismiss" | "hide" | null>(
+    null
+  );
+  const [message, setMessage] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
 
   async function handleAction(action: "dismiss" | "hide") {
-    const confirmed = confirm(
-      action === "hide"
-        ? "Czy na pewno chcesz ukryć ten połów z rankingu?"
-        : "Czy na pewno chcesz odrzucić to zgłoszenie?"
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     setIsLoading(true);
+    setCurrentAction(action);
+    setMessage("");
+    setIsSuccess(false);
 
-    const response = await fetch(`/api/admin/catch-reports/${reportId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        action,
-        adminNote: adminNote.trim() || null,
-      }),
-    });
+    try {
+      const response = await fetch(`/api/admin/catch-reports/${reportId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action,
+          adminNote: adminNote.trim() || null,
+        }),
+      });
 
-    const data = await response.json();
+      const data = await response.json().catch(() => null);
 
-    setIsLoading(false);
+      if (!response.ok) {
+        setMessage(data?.message || "Nie udało się obsłużyć zgłoszenia.");
+        setIsSuccess(false);
+        return;
+      }
 
-    if (!response.ok) {
-      alert(data.message || "Nie udało się obsłużyć zgłoszenia.");
-      return;
+      setMessage(
+        action === "hide"
+          ? "Połów został ukryty z rankingu."
+          : "Zgłoszenie zostało odrzucone."
+      );
+      setIsSuccess(true);
+      setAdminNote("");
+
+      router.refresh();
+    } catch {
+      setMessage("Wystąpił błąd połączenia. Spróbuj ponownie.");
+      setIsSuccess(false);
+    } finally {
+      setIsLoading(false);
+      setCurrentAction(null);
     }
-
-    router.refresh();
   }
 
   return (
@@ -65,6 +78,18 @@ export function CatchReportAdminActions({
         className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
       />
 
+      {message && (
+        <div
+          className={`mt-4 rounded-2xl p-4 text-sm font-semibold ${
+            isSuccess
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-red-50 text-red-700"
+          }`}
+        >
+          {message}
+        </div>
+      )}
+
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
         <button
           type="button"
@@ -72,7 +97,9 @@ export function CatchReportAdminActions({
           onClick={() => handleAction("dismiss")}
           className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Odrzuć zgłoszenie
+          {isLoading && currentAction === "dismiss"
+            ? "Odrzucanie..."
+            : "Odrzuć zgłoszenie"}
         </button>
 
         <button
@@ -81,7 +108,9 @@ export function CatchReportAdminActions({
           onClick={() => handleAction("hide")}
           className="rounded-2xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isLoading ? "Zapisywanie..." : "Ukryj połów z rankingu"}
+          {isLoading && currentAction === "hide"
+            ? "Ukrywanie..."
+            : "Ukryj połów z rankingu"}
         </button>
       </div>
     </div>
