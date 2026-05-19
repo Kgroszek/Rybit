@@ -9,9 +9,9 @@ export default function LoginPage() {
           <div>
             <Link href="/" className="inline-flex items-center">
               <img
-                src="/logos/logo-rybio.svg"
+                src="/logos/logo-rybio-biale.svg"
                 alt="Rybio"
-                className="h-12 w-auto object-contain brightness-0 invert"
+                className="h-12 w-auto object-contain"
               />
             </Link>
           </div>
@@ -43,7 +43,7 @@ export default function LoginPage() {
             <div className="mb-8 lg:hidden">
               <Link href="/" className="inline-flex items-center">
                 <img
-                  src="/logos/logo-rybio.svg"
+                  src="/logos/logo-rybioo.svg"
                   alt="Rybio"
                   className="h-12 w-auto object-contain"
                 />

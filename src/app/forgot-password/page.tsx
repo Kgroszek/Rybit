@@ -9,7 +9,7 @@ export default function ForgotPasswordPage() {
           <div>
             <Link href="/" className="inline-flex items-center">
               <img
-                src="/logos/logo-rybio.svg"
+                src="/logos/logo-rybioo.svg"
                 alt="Rybio"
                 className="h-12 w-auto object-contain brightness-0 invert"
               />
@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
             <div className="mb-8 lg:hidden">
               <Link href="/" className="inline-flex items-center">
                 <img
-                  src="/logos/logo-rybio.svg"
+                  src="/logos/logo-rybioo.svg"
                   alt="Rybio"
                   className="h-12 w-auto object-contain"
                 />
