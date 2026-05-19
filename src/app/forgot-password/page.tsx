@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { LoginForm } from "@/components/auth/LoginForm";
+import { ForgotPasswordForm } from "@/components/auth/ForgotPasswordForm";
 
-export default function LoginPage() {
+export default function ForgotPasswordPage() {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <div className="grid min-h-screen lg:grid-cols-[1fr_1.1fr]">
@@ -18,23 +18,23 @@ export default function LoginPage() {
 
           <div className="max-w-xl">
             <p className="mb-4 inline-flex rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
-              Wróć do swoich łowisk, połowów i wypraw
+              Odzyskiwanie dostępu do konta
             </p>
 
             <h1 className="text-5xl font-bold leading-tight tracking-tight">
-              Zaloguj się i kontynuuj swoją wędkarską historię
+              Zresetuj hasło i wróć do swojego konta Rybio
             </h1>
 
             <p className="mt-5 text-lg leading-8 text-white/80">
-              Sprawdź zapisane łowiska, dodaj nowy połów, wróć do swoich
-              statystyk, osiągnięć i zaplanuj kolejną wyprawę nad wodę.
+              Podaj adres e-mail przypisany do konta, a wyślemy Ci link do
+              ustawienia nowego hasła.
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
-            <FeatureCard value="Łowiska" label="ulubione miejsca" />
-            <FeatureCard value="Połowy" label="historia wyników" />
-            <FeatureCard value="Profil" label="statystyki i odznaki" />
+            <FeatureCard value="Konto" label="odzyskaj dostęp" />
+            <FeatureCard value="Połowy" label="wróć do historii" />
+            <FeatureCard value="Profil" label="zachowaj statystyki" />
           </div>
         </section>
 
@@ -53,51 +53,33 @@ export default function LoginPage() {
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
               <div className="mb-8">
                 <p className="mb-3 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-blue-700">
-                  Logowanie
+                  Reset hasła
                 </p>
 
-                <h2 className="text-3xl font-bold tracking-tight">
-                  Zaloguj się
-                </h2>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  Nie pamiętasz hasła?
+                </h1>
 
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Wróć do swojego konta, zapisanych łowisk, połowów, wypraw i
-                  statystyk wędkarskich.
+                  Wpisz adres e-mail użyty podczas rejestracji. Wyślemy Ci link
+                  do ustawienia nowego hasła.
                 </p>
               </div>
 
-              <LoginForm />
+              <ForgotPasswordForm />
 
               <div className="mt-6 text-center">
                 <p className="text-sm text-slate-500">
-                  Nie masz konta?{" "}
+                  Przypomniałeś sobie hasło?{" "}
                   <Link
-                    href="/register"
+                    href="/login"
                     className="font-semibold text-blue-600 hover:text-blue-700"
                   >
-                    Załóż konto
+                    Wróć do logowania
                   </Link>
                 </p>
               </div>
             </div>
-
-            <p className="mt-6 text-center text-xs leading-6 text-slate-400">
-              Logując się do Rybio, korzystasz z serwisu zgodnie z{" "}
-              <Link
-                href="/regulamin"
-                className="font-semibold text-blue-600 hover:text-blue-700"
-              >
-                Regulaminem
-              </Link>{" "}
-              oraz{" "}
-              <Link
-                href="/polityka-prywatnosci"
-                className="font-semibold text-blue-600 hover:text-blue-700"
-              >
-                Polityką prywatności
-              </Link>
-              .
-            </p>
           </div>
         </section>
       </div>

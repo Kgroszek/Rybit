@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 export function LoginForm() {
   const router = useRouter();
@@ -80,6 +81,15 @@ export function LoginForm() {
       >
         {isLoading ? "Logowanie..." : "Zaloguj się"}
       </button>
+
+      <div className="text-center">
+        <Link
+          href="/forgot-password"
+          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+        >
+          Nie pamiętasz hasła?
+        </Link>
+      </div>
     </form>
   );
 }
