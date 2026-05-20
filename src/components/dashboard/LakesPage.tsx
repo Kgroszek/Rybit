@@ -436,7 +436,7 @@ export function LakesPage({ lakes }: LakesPageProps) {
 
       {filteredLakes.length > 0 ? (
         viewMode === "grid" ? (
-          <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+          <div className="grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-3">
             {filteredLakes.map((lake) => (
               <LakeGridCard key={lake.id} lake={lake} />
             ))}
@@ -471,18 +471,14 @@ export function LakesPage({ lakes }: LakesPageProps) {
 }
 
 function LakeGridCard({ lake }: { lake: LakeDto }) {
-  return (
-    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-      <div className="relative h-44 overflow-hidden bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200">
-        {lake.images.length > 0 && (
-          <img
-            src={lake.images[0]}
-            alt={lake.name}
-            className="h-full w-full object-cover"
-          />
-        )}
+  const image = lake.images[0];
 
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
+  return (
+    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+      <div className="relative h-44 shrink-0 overflow-hidden bg-slate-100">
+        <LakeImagePreview image={image} lakeName={lake.name} />
+
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent" />
 
         <div className="absolute left-4 top-4 flex flex-wrap gap-2">
           <span
@@ -501,34 +497,46 @@ function LakeGridCard({ lake }: { lake: LakeDto }) {
         </div>
       </div>
 
-      <div className="p-5">
+      <div className="flex flex-1 flex-col p-5">
         <div className="mb-3 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-bold text-slate-950">{lake.name}</h2>
+          <div className="min-w-0">
+            <h2 className="line-clamp-2 break-words text-xl font-bold text-slate-950">
+              {lake.name}
+            </h2>
 
-            <p className="mt-1 text-sm font-medium text-slate-500">
+            <p className="mt-1 line-clamp-1 text-sm font-medium text-slate-500">
               {lake.address.city}, woj. {lake.address.voivodeship}
-            </p>
-
-            <p className="mt-2 line-clamp-2 text-sm text-slate-500">
-              {lake.fish}
             </p>
           </div>
 
-          <div className="rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
+          <div className="shrink-0 rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
             ★ {lake.rating}
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="min-h-[44px]">
+          <p className="line-clamp-2 text-sm leading-6 text-slate-500">
+            {lake.fish || "Brak informacji"}
+          </p>
+        </div>
+
+        <div className="mt-4 flex min-h-[30px] flex-wrap gap-2">
           {lake.amenities.noKill && <SmallBadge label="No Kill" />}
           {lake.amenities.parking && <SmallBadge label="Parking" />}
           {lake.amenities.nightFishing && <SmallBadge label="Nocka" />}
           {lake.amenities.cottages && <SmallBadge label="Domki" />}
           {lake.amenities.cardPayment && <SmallBadge label="Karta" />}
+
+          {!lake.amenities.noKill &&
+            !lake.amenities.parking &&
+            !lake.amenities.nightFishing &&
+            !lake.amenities.cottages &&
+            !lake.amenities.cardPayment && (
+              <SmallBadge label="Brak informacji" />
+            )}
         </div>
 
-        <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
+        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
           <p className="text-sm font-semibold text-slate-500">
             {lake.distance}
           </p>
@@ -546,17 +554,13 @@ function LakeGridCard({ lake }: { lake: LakeDto }) {
 }
 
 function LakeListItem({ lake }: { lake: LakeDto }) {
+  const image = lake.images[0];
+
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
-      <div className="grid gap-0 lg:grid-cols-[260px_1fr_auto]">
-        <div className="relative min-h-[190px] overflow-hidden bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200">
-          {lake.images.length > 0 && (
-            <img
-              src={lake.images[0]}
-              alt={lake.name}
-              className="h-full w-full object-cover"
-            />
-          )}
+      <div className="grid min-h-[260px] gap-0 lg:grid-cols-[260px_1fr_auto]">
+        <div className="relative h-56 overflow-hidden bg-slate-100 lg:h-full lg:min-h-[260px]">
+          <LakeImagePreview image={image} lakeName={lake.name} />
 
           <div className="absolute left-4 top-4 flex flex-wrap gap-2">
             <span
@@ -575,36 +579,49 @@ function LakeListItem({ lake }: { lake: LakeDto }) {
           </div>
         </div>
 
-        <div className="p-5">
+        <div className="flex min-w-0 flex-col p-5">
           <div className="mb-3 flex flex-wrap items-start gap-3">
             <div className="min-w-0 flex-1">
-              <h2 className="text-xl font-bold text-slate-950">{lake.name}</h2>
+              <h2 className="break-words text-xl font-bold text-slate-950">
+                {lake.name}
+              </h2>
 
-              <p className="mt-1 text-sm font-medium text-slate-500">
+              <p className="mt-1 break-words text-sm font-medium text-slate-500">
                 {lake.address.street}, {lake.address.city}, woj.{" "}
                 {lake.address.voivodeship}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
+            <div className="shrink-0 rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
               ★ {lake.rating}
             </div>
           </div>
 
           <p className="line-clamp-2 text-sm leading-6 text-slate-600">
-            {lake.description}
+            {lake.description || "Brak opisu łowiska."}
           </p>
 
-          <p className="mt-3 text-sm font-semibold text-slate-500">
-            Ryby: <span className="text-slate-700">{lake.fish}</span>
+          <p className="mt-3 line-clamp-2 text-sm font-semibold text-slate-500">
+            Ryby:{" "}
+            <span className="text-slate-700">
+              {lake.fish || "Brak informacji"}
+            </span>
           </p>
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex min-h-[30px] flex-wrap gap-2">
             {lake.amenities.noKill && <SmallBadge label="No Kill" />}
             {lake.amenities.parking && <SmallBadge label="Parking" />}
             {lake.amenities.nightFishing && <SmallBadge label="Nocka" />}
             {lake.amenities.cottages && <SmallBadge label="Domki" />}
             {lake.amenities.cardPayment && <SmallBadge label="Karta" />}
+
+            {!lake.amenities.noKill &&
+              !lake.amenities.parking &&
+              !lake.amenities.nightFishing &&
+              !lake.amenities.cottages &&
+              !lake.amenities.cardPayment && (
+                <SmallBadge label="Brak informacji" />
+              )}
           </div>
         </div>
 
@@ -622,6 +639,55 @@ function LakeListItem({ lake }: { lake: LakeDto }) {
         </div>
       </div>
     </article>
+  );
+}
+
+function LakeImagePreview({
+  image,
+  lakeName,
+}: {
+  image?: string | null;
+  lakeName: string;
+}) {
+  const [hasImageError, setHasImageError] = useState(false);
+
+  if (!image || hasImageError) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-sky-100 via-cyan-50 to-emerald-50 px-6 text-center">
+        <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-sm">
+          <svg
+            className="h-7 w-7 text-blue-600"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="5" width="18" height="14" rx="3" />
+            <path d="m8 14 2.5-2.5L14 15l2-2 3 3" />
+            <circle cx="8.5" cy="9.5" r="1.5" />
+          </svg>
+        </div>
+
+        <p className="text-sm font-black text-slate-700">
+          Brak zdjęcia łowiska
+        </p>
+
+        <p className="mt-1 max-w-[220px] text-xs leading-5 text-slate-500">
+          Do tego łowiska nie dodano jeszcze zdjęcia.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={image}
+      alt={`Łowisko ${lakeName}`}
+      onError={() => setHasImageError(true)}
+      className="h-full w-full object-cover"
+    />
   );
 }
 
