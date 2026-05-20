@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { PublicProfileImagePreview } from "@/components/dashboard/PublicProfileImagePreview";
 import { getUserAchievements } from "@/lib/achievements";
 import {
   getUserRankingBadges,
@@ -305,13 +306,13 @@ export default async function PublicAnglerPage({
                   key={item.id}
                   className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md"
                 >
-                  <div className="h-48 overflow-hidden bg-slate-100">
-                    <img
-                      src={item.imageUrl || ""}
+                  {item.imageUrl && (
+                    <PublicProfileImagePreview
+                      imageUrl={item.imageUrl}
                       alt={`Połów: ${item.fishName}`}
-                      className="h-full w-full object-cover"
+                      className="h-48 w-full bg-slate-100"
                     />
-                  </div>
+                  )}
 
                   <div className="p-5">
                     <div className="flex items-start justify-between gap-4">
@@ -566,13 +567,13 @@ function HighlightCard({
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
       <div className="grid sm:grid-cols-[220px_1fr]">
-        <div className="h-56 overflow-hidden bg-slate-100 sm:h-full">
-          <img
-            src={catchItem.imageUrl || ""}
+        {catchItem.imageUrl && (
+          <PublicProfileImagePreview
+            imageUrl={catchItem.imageUrl}
             alt={`Połów: ${catchItem.fishName}`}
-            className="h-full w-full object-cover"
+            className="h-56 w-full bg-slate-100 sm:h-full"
           />
-        </div>
+        )}
 
         <div className="p-6">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-500">
