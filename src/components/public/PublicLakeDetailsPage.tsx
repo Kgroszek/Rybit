@@ -28,13 +28,18 @@ const amenitiesLabels = [
 
 export function PublicLakeDetailsPage({ lake }: PublicLakeDetailsPageProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [brokenGalleryImages, setBrokenGalleryImages] = useState<string[]>([]);
+
+const visibleGalleryImages = lake.images.filter(
+  (image) => !brokenGalleryImages.includes(image)
+);
   const [authModalType, setAuthModalType] = useState<
     "rating" | "favourite" | "ranking" | null
   >(null);
 
   return (
     <>
-      <div className="mx-auto w-full max-w-7xl overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div className="mx-auto w-full max-w-[1500px] overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="mb-6 min-w-0">
           <Link
             href="/lowiska-w-polsce"
@@ -98,40 +103,67 @@ export function PublicLakeDetailsPage({ lake }: PublicLakeDetailsPageProps) {
         </section>
 
         {lake.images.length > 0 && (
-          <section className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-            <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div className="min-w-0">
-                <h2 className="break-words text-xl font-black text-slate-950">
+          <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-2xl font-black text-slate-950">
                   Galeria zdjęć łowiska
                 </h2>
 
-                <p className="mt-1 break-words text-sm text-slate-500">
-                  Zdjęcia dodane do profilu łowiska. Kliknij zdjęcie, aby
-                  powiększyć.
+                <p className="mt-1 text-sm leading-6 text-slate-500">
+                  Zdjęcia dodane do profilu łowiska. Kliknij zdjęcie, aby powiększyć.
                 </p>
               </div>
 
               <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
-                {lake.images.length} zdjęć
+                {visibleGalleryImages.length} zdjęć
               </span>
             </div>
 
-            <div className="mt-5 grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {lake.images.map((image, index) => (
-                <button
-                  key={`${image}-${index}`}
-                  type="button"
-                  onClick={() => setPreviewImage(image)}
-                  className="group min-w-0 overflow-hidden rounded-2xl bg-slate-100 text-left"
-                >
-                  <img
-                    src={image}
-                    alt={`Zdjęcie łowiska ${lake.name}`}
-                    className="h-52 w-full object-cover transition duration-300 group-hover:scale-105 sm:h-56"
+            {visibleGalleryImages.length > 0 ? (
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {visibleGalleryImages.map((image, index) => (
+                  <LakeGalleryImage
+                    key={`${image}-${index}`}
+                    image={image}
+                    lakeName={lake.name}
+                    onClick={() => setPreviewImage(image)}
+                    onImageError={() => {
+                      setBrokenGalleryImages((current) =>
+                        current.includes(image) ? current : [...current, image]
+                      );
+                    }}
                   />
-                </button>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-5 flex min-h-[220px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-gradient-to-br from-sky-50 via-cyan-50 to-emerald-50 px-6 text-center">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
+                  <svg
+                    className="h-8 w-8 text-blue-600"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <rect x="3" y="5" width="18" height="14" rx="3" />
+                    <path d="m8 14 2.5-2.5L14 15l2-2 3 3" />
+                    <circle cx="8.5" cy="9.5" r="1.5" />
+                  </svg>
+                </div>
+
+                <p className="text-base font-black text-slate-800">
+                  Brak zdjęć łowiska
+                </p>
+
+                <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+                  Do tego łowiska nie dodano jeszcze zdjęć. Galeria pojawi się po
+                  uzupełnieniu zdjęć.
+                </p>
+              </div>
+            )}
           </section>
         )}
 
@@ -455,6 +487,34 @@ function getOwnerTypeLabel(type: string) {
   if (type === "pzw") return "Łowisko PZW";
   if (type === "commercial") return "Łowisko komercyjne";
   return "Inne łowisko";
+}
+
+function LakeGalleryImage({
+  image,
+  lakeName,
+  onClick,
+  onImageError,
+}: {
+  image: string;
+  lakeName: string;
+  onClick: () => void;
+  onImageError: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="group block h-48 w-full overflow-hidden rounded-2xl bg-slate-100 text-left"
+      aria-label={`Powiększ zdjęcie łowiska ${lakeName}`}
+    >
+      <img
+        src={image}
+        alt={`Zdjęcie łowiska ${lakeName}`}
+        onError={onImageError}
+        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+      />
+    </button>
+  );
 }
 
 function getFishingTypeLabel(type: string) {
