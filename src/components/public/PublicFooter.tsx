@@ -80,7 +80,7 @@ const legalLinks = [
 export function PublicFooter() {
   return (
     <footer className="border-t border-slate-200 bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[1500px] px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr_0.9fr_0.8fr]">
           <div>
             <Link href="/" className="inline-flex items-center">

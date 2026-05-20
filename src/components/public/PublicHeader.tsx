@@ -45,7 +45,7 @@ export function PublicHeader({ subtitle = "Aplikacja dla wędkarzy" }: PublicHea
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex min-w-0 items-center gap-3">
           <div className="flex h-12 w-auto shrink-0 items-center">
             <img
