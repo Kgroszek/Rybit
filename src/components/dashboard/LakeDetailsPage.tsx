@@ -402,8 +402,8 @@ export function LakeDetailsPage({
         </section>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
-        <div className="space-y-6">
+        <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-6">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold text-slate-950">Opis łowiska</h2>
 
@@ -489,43 +489,78 @@ export function LakeDetailsPage({
             </div>
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-xl font-bold text-slate-950">Cennik</h2>
+          <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="break-words text-xl font-bold text-slate-950">
+                  Cennik
+                </h2>
 
-              {lake.priceListUrl && (
-                <a
-                  href={lake.priceListUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-2xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 transition hover:bg-blue-100"
-                >
-                  Otwórz cennik
-                </a>
-              )}
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {lake.priceList.length > 0 ? (
-                lake.priceList.map((priceItem) => (
-                  <div
-                    key={priceItem}
-                    className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700"
+                {lake.priceListUrl && (
+                  <a
+                    href={lake.priceListUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 transition hover:bg-blue-100 sm:w-auto"
                   >
-                    {priceItem}
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
-                  Brak dodanego cennika.
-                </div>
-              )}
-            </div>
-          </section>
+                    Otwórz cennik
+                  </a>
+                )}
+              </div>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-xl font-bold text-slate-950">
+              <div className="mt-5 space-y-3">
+                {lake.priceList.filter((priceItem) => {
+                  const normalizedItem = priceItem.toLowerCase().trim();
+
+                  return (
+                    !normalizedItem.startsWith("link do cennika") &&
+                    !normalizedItem.includes("http://") &&
+                    !normalizedItem.includes("https://")
+                  );
+                }).length > 0 ? (
+                  lake.priceList
+                    .filter((priceItem) => {
+                      const normalizedItem = priceItem.toLowerCase().trim();
+
+                      return (
+                        !normalizedItem.startsWith("link do cennika") &&
+                        !normalizedItem.includes("http://") &&
+                        !normalizedItem.includes("https://")
+                      );
+                    })
+                    .map((priceItem) => (
+                      <div
+                        key={priceItem}
+                        className="min-w-0 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700"
+                      >
+                        <p className="break-words">{priceItem}</p>
+                      </div>
+                    ))
+                ) : !lake.priceListUrl ? (
+                  <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                    Brak dodanego cennika.
+                  </div>
+                ) : null}
+
+                {lake.priceListUrl && (
+                  <div className="min-w-0 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+                    <span className="text-slate-500">Link do cennika: </span>
+
+                    <a
+                      href={lake.priceListUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-blue-600 transition hover:text-blue-700 hover:underline"
+                    >
+                      Link
+                    </a>
+                  </div>
+                )}
+              </div>
+            </section>
+
+          <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="break-words text-xl font-bold text-slate-950">
                 Zasady na łowisku
               </h2>
 
@@ -534,7 +569,7 @@ export function LakeDetailsPage({
                   href={lake.rulesUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-2xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 transition hover:bg-blue-100"
+                  className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 transition hover:bg-blue-100 sm:w-auto"
                 >
                   Otwórz regulamin
                 </a>
@@ -542,24 +577,57 @@ export function LakeDetailsPage({
             </div>
 
             <div className="mt-5 space-y-3">
-              {lake.rules.length > 0 ? (
-                lake.rules.map((rule) => (
-                  <div
-                    key={rule}
-                    className="flex gap-3 rounded-2xl bg-slate-50 p-4"
-                  >
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
-                      ✓
-                    </span>
+              {lake.rules.filter((rule) => {
+                const normalizedRule = rule.toLowerCase().trim();
 
-                    <p className="text-sm font-medium leading-6 text-slate-700">
-                      {rule}
-                    </p>
-                  </div>
-                ))
-              ) : (
+                return (
+                  !normalizedRule.startsWith("link do regulaminu") &&
+                  !normalizedRule.includes("http://") &&
+                  !normalizedRule.includes("https://")
+                );
+              }).length > 0 ? (
+                lake.rules
+                  .filter((rule) => {
+                    const normalizedRule = rule.toLowerCase().trim();
+
+                    return (
+                      !normalizedRule.startsWith("link do regulaminu") &&
+                      !normalizedRule.includes("http://") &&
+                      !normalizedRule.includes("https://")
+                    );
+                  })
+                  .map((rule) => (
+                    <div
+                      key={rule}
+                      className="flex min-w-0 gap-3 rounded-2xl bg-slate-50 p-4"
+                    >
+                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+                        ✓
+                      </span>
+
+                      <p className="min-w-0 break-words text-sm font-medium leading-6 text-slate-700">
+                        {rule}
+                      </p>
+                    </div>
+                  ))
+              ) : !lake.rulesUrl ? (
                 <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
                   Brak dodanych zasad łowiska.
+                </div>
+              ) : null}
+
+              {lake.rulesUrl && (
+                <div className="min-w-0 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+                  <span className="text-slate-500">Link do regulaminu: </span>
+
+                  <a
+                    href={lake.rulesUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-blue-600 transition hover:text-blue-700 hover:underline"
+                  >
+                    Link
+                  </a>
                 </div>
               )}
             </div>

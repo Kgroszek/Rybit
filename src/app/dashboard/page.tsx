@@ -6,7 +6,6 @@ import { RecentCatches } from "@/components/dashboard/RecentCatches";
 import { RecommendedLakes } from "@/components/dashboard/RecommendedLakes";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { DashboardQuickOverview } from "@/components/dashboard/DashboardQuickOverview";
-import { Topbar } from "@/components/dashboard/Topbar";
 import { WeatherCard } from "@/components/dashboard/WeatherCard";
 import { getLakes } from "@/lib/lakes";
 import { createClient } from "@/lib/supabase/server";
@@ -185,15 +184,6 @@ export default async function Home() {
 
   return (
     <DashboardLayout>
-      <Topbar
-        userName={
-          user.user_metadata?.full_name ||
-          user.user_metadata?.name ||
-          user.email
-        }
-        userEmail={user.email}
-        userRoleLabel="Wędkarz"
-      />
 
       <div className="grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="space-y-5 lg:space-y-6">

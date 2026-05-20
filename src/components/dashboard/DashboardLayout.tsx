@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { DashboardTopbar } from "./DashboardTopbar";
 
 type DashboardLayoutProps = {
   children: React.ReactNode;
@@ -89,6 +90,17 @@ export async function DashboardLayout({ children }: DashboardLayoutProps) {
         />
 
         <section className="min-w-0 flex-1 px-4 pb-24 pt-4 sm:px-5 lg:p-8">
+
+        <DashboardTopbar
+          userName={
+            typeof user.user_metadata?.name === "string"
+              ? user.user_metadata.name
+              : null
+          }
+          userEmail={user.email}
+        />
+
+
           {children}
 
           <footer className="mt-12 border-t border-slate-200 pt-6">
