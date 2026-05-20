@@ -4,12 +4,36 @@ import { createClient } from "@/lib/supabase/server";
 import { checkAndUnlockAchievements } from "@/lib/achievements";
 
 const CATCH_IMAGES_BUCKET = "catch-images";
+const FUTURE_DATE_TOLERANCE_MS = 2 * 60 * 1000;
 
 type RouteProps = {
   params: Promise<{
     id: string;
   }>;
 };
+
+function parseCaughtAt(value: string) {
+  const caughtAt = new Date(value);
+
+  if (Number.isNaN(caughtAt.getTime())) {
+    return {
+      date: null,
+      error: "Podaj prawidłową datę połowu.",
+    };
+  }
+
+  if (caughtAt.getTime() > Date.now() + FUTURE_DATE_TOLERANCE_MS) {
+    return {
+      date: null,
+      error: "Nie możesz ustawić daty połowu z przyszłości.",
+    };
+  }
+
+  return {
+    date: caughtAt,
+    error: null,
+  };
+}
 
 async function getUserCatch(id: string) {
   const supabase = await createClient();
@@ -84,17 +108,28 @@ export async function PUT(request: Request, { params }: RouteProps) {
 
   const fishName = String(body.fishName || "").trim();
   const method = String(body.method || "").trim();
-  const caughtAt = String(body.caughtAt || "").trim();
+  const caughtAtValue = String(body.caughtAt || "").trim();
   const selectedLakeId = String(body.lakeId || "").trim();
   const selectedTripId = String(body.tripId || "").trim();
   const isPublic = Boolean(body.isPublic);
 
-  if (!fishName || !method || !caughtAt) {
+  if (!fishName || !method || !caughtAtValue) {
     return NextResponse.json(
       { message: "Gatunek ryby, metoda i data połowu są wymagane." },
       { status: 400 }
     );
   }
+
+  const caughtAtResult = parseCaughtAt(caughtAtValue);
+
+  if (caughtAtResult.error || !caughtAtResult.date) {
+    return NextResponse.json(
+      { message: caughtAtResult.error },
+      { status: 400 }
+    );
+  }
+
+  const caughtAt = caughtAtResult.date;
 
   const weight =
     body.weight !== undefined && body.weight !== "" ? Number(body.weight) : null;
@@ -193,7 +228,7 @@ export async function PUT(request: Request, { params }: RouteProps) {
 
       method,
       bait: body.bait || null,
-      caughtAt: new Date(caughtAt),
+      caughtAt,
 
       lakeId,
       lakeName,

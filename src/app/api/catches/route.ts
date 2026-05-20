@@ -5,6 +5,7 @@ import { checkAndUnlockAchievements } from "@/lib/achievements";
 
 const CATCH_IMAGES_BUCKET = "catch-images";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const FUTURE_DATE_TOLERANCE_MS = 2 * 60 * 1000;
 
 type SupabaseUserForDisplayName = {
   email?: string | null;
@@ -39,6 +40,29 @@ function sanitizeFileName(fileName: string) {
 
 function isValidImage(file: File) {
   return file.type.startsWith("image/") && file.size <= MAX_FILE_SIZE;
+}
+
+function parseCaughtAt(value: string) {
+  const caughtAt = new Date(value);
+
+  if (Number.isNaN(caughtAt.getTime())) {
+    return {
+      date: null,
+      error: "Podaj prawidłową datę połowu.",
+    };
+  }
+
+  if (caughtAt.getTime() > Date.now() + FUTURE_DATE_TOLERANCE_MS) {
+    return {
+      date: null,
+      error: "Nie możesz dodać połowu z przyszłości.",
+    };
+  }
+
+  return {
+    date: caughtAt,
+    error: null,
+  };
 }
 
 function getUserDisplayName(user: SupabaseUserForDisplayName) {
@@ -123,16 +147,27 @@ async function handleJsonCatchCreate(
 
   const fishName = String(body.fishName || "").trim();
   const method = String(body.method || "").trim();
-  const caughtAt = String(body.caughtAt || "").trim();
+  const caughtAtValue = String(body.caughtAt || "").trim();
   const lakeId = String(body.lakeId || "").trim();
   const isPublic = Boolean(body.isPublic);
 
-  if (!fishName || !method || !caughtAt) {
+  if (!fishName || !method || !caughtAtValue) {
     return NextResponse.json(
       { message: "Gatunek ryby, metoda i data połowu są wymagane." },
       { status: 400 }
     );
   }
+
+  const caughtAtResult = parseCaughtAt(caughtAtValue);
+
+  if (caughtAtResult.error || !caughtAtResult.date) {
+    return NextResponse.json(
+      { message: caughtAtResult.error },
+      { status: 400 }
+    );
+  }
+
+  const caughtAt = caughtAtResult.date;
 
   const weight =
     body.weight !== undefined && body.weight !== "" ? Number(body.weight) : null;
@@ -232,7 +267,7 @@ async function handleJsonCatchCreate(
 
       method,
       bait: body.bait || null,
-      caughtAt: new Date(caughtAt),
+      caughtAt,
 
       lakeId: finalLakeId,
       lakeName,
@@ -265,17 +300,28 @@ async function handleMultipartCatchCreate(
 
   const fishName = getFormValue(formData, "fishName");
   const method = getFormValue(formData, "method");
-  const caughtAt = getFormValue(formData, "caughtAt");
+  const caughtAtValue = getFormValue(formData, "caughtAt");
   const lakeId = getFormValue(formData, "lakeId");
   const tripIdFromForm = getFormValue(formData, "tripId");
   const isPublic = getFormBoolean(formData, "isPublic");
 
-  if (!fishName || !method || !caughtAt) {
+  if (!fishName || !method || !caughtAtValue) {
     return NextResponse.json(
       { message: "Gatunek ryby, metoda i data połowu są wymagane." },
       { status: 400 }
     );
   }
+
+  const caughtAtResult = parseCaughtAt(caughtAtValue);
+
+  if (caughtAtResult.error || !caughtAtResult.date) {
+    return NextResponse.json(
+      { message: caughtAtResult.error },
+      { status: 400 }
+    );
+  }
+
+  const caughtAt = caughtAtResult.date;
 
   const weightValue = getFormValue(formData, "weight");
   const lengthValue = getFormValue(formData, "length");
@@ -405,7 +451,7 @@ async function handleMultipartCatchCreate(
 
         method,
         bait: getFormValue(formData, "bait") || null,
-        caughtAt: new Date(caughtAt),
+        caughtAt,
 
         lakeId: finalLakeId,
         lakeName,
