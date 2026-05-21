@@ -1,5 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
 
+type AuthUserLike = {
+  email?: string | null;
+  app_metadata?: {
+    role?: string;
+    [key: string]: unknown;
+  };
+  user_metadata?: {
+    role?: string;
+    [key: string]: unknown;
+  };
+};
+
 export function getAdminEmails() {
   const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
   const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
@@ -11,19 +23,7 @@ export function getAdminEmails() {
     .filter(Boolean);
 }
 
-export function isAdminUser(
-  user: {
-    email?: string | null;
-    app_metadata?: {
-      role?: string;
-      [key: string]: unknown;
-    };
-    user_metadata?: {
-      role?: string;
-      [key: string]: unknown;
-    };
-  } | null
-) {
+export function isAdminUser(user: AuthUserLike | null) {
   if (!user) {
     return false;
   }
