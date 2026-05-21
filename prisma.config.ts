@@ -4,7 +4,7 @@ import { defineConfig } from "prisma/config";
 const databaseUrl = process.env.DATABASE_URL;
 
 if (!databaseUrl) {
-  throw new Error("postgresql://postgres.golklaeyesvyhenugirq:D1zzy-%40gency123!@aws-1-eu-central-2.pooler.supabase.com:5432/postgres");
+  throw new Error("Brakuje DATABASE_URL w pliku .env lub .env.local.");
 }
 
 export default defineConfig({
