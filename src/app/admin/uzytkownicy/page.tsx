@@ -15,9 +15,15 @@ function getAdminEmails() {
 }
 
 function isAdminUser(user: {
-  email?: string;
-  app_metadata?: { role?: string };
-  user_metadata?: { role?: string };
+  email?: string | null;
+  app_metadata?: {
+    role?: string;
+    [key: string]: unknown;
+  };
+  user_metadata?: {
+    role?: string;
+    [key: string]: unknown;
+  };
 }) {
   const adminEmails = getAdminEmails();
   const userEmail = user.email?.trim().toLowerCase() ?? "";

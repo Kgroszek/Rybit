@@ -11,15 +11,19 @@ export function getAdminEmails() {
     .filter(Boolean);
 }
 
-export function isAdminUser(user: {
-  email?: string;
-  app_metadata?: {
-    role?: string;
-  };
-  user_metadata?: {
-    role?: string;
-  };
-} | null) {
+export function isAdminUser(
+  user: {
+    email?: string | null;
+    app_metadata?: {
+      role?: string;
+      [key: string]: unknown;
+    };
+    user_metadata?: {
+      role?: string;
+      [key: string]: unknown;
+    };
+  } | null
+) {
   if (!user) {
     return false;
   }
