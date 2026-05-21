@@ -14,7 +14,25 @@ export type CatchRankingItem = {
   note: string | null;
 };
 
-export type LakeDto = {
+export type LakeAmenitiesDto = {
+  cottages: boolean;
+  campfire: boolean;
+  noKill: boolean;
+  tent: boolean;
+  parking: boolean;
+  pier: boolean;
+  toilet: boolean;
+  shop: boolean;
+  nightFishing: boolean;
+  boatRental: boolean;
+  gearRental: boolean;
+  shelter: boolean;
+  coveredSpots: boolean;
+  playground: boolean;
+  cardPayment: boolean;
+};
+
+export type LakeListDto = {
   id: string;
   name: string;
   slug: string;
@@ -24,8 +42,6 @@ export type LakeDto = {
   fishSpecies: string[];
   type: "pzw" | "commercial";
   fishingType: "general" | "spinning" | "carp";
-  lat: number;
-  lng: number;
   address: {
     street: string;
     city: string;
@@ -33,23 +49,13 @@ export type LakeDto = {
     voivodeship: string;
   };
   description: string;
-  amenities: {
-    cottages: boolean;
-    campfire: boolean;
-    noKill: boolean;
-    tent: boolean;
-    parking: boolean;
-    pier: boolean;
-    toilet: boolean;
-    shop: boolean;
-    nightFishing: boolean;
-    boatRental: boolean;
-    gearRental: boolean;
-    shelter: boolean;
-    coveredSpots: boolean;
-    playground: boolean;
-    cardPayment: boolean;
-  };
+  amenities: LakeAmenitiesDto;
+  images: string[];
+};
+
+export type LakeDto = LakeListDto & {
+  lat: number;
+  lng: number;
   details: {
     area: string;
     averageDepth: string;
@@ -66,7 +72,6 @@ export type LakeDto = {
     email: string;
     website: string;
   };
-  images: string[];
   catchRankings: {
     byWeight: CatchRankingItem[];
     byLength: CatchRankingItem[];
@@ -128,7 +133,7 @@ function mapLakeToDto(
     id: lake.id,
     name: lake.name,
     slug: lake.slug,
-    rating: lake.rating.toFixed(1),
+    rating: Number(lake.rating).toFixed(1),
     distance: "0 km",
     fish: lake.fish,
     fishSpecies: lake.fishSpecies.map((fish) => fish.name),
@@ -161,24 +166,153 @@ function mapLakeToDto(
       cardPayment: lake.cardPayment,
     },
     details: {
-      area: lake.area,
-      averageDepth: lake.averageDepth,
-      bottomType: lake.bottomType,
-      waterType: lake.waterType,
+      area: lake.area || "",
+      averageDepth: lake.averageDepth || "",
+      bottomType: lake.bottomType || "",
+      waterType: lake.waterType || "",
     },
     priceList: lake.priceList.map((item) => item.text),
     priceListUrl: lake.priceListUrl,
     rules: lake.rules.map((rule) => rule.text),
     rulesUrl: lake.rulesUrl,
     contact: {
-      name: lake.contactName,
-      phone: lake.contactPhone,
-      email: lake.contactEmail,
-      website: lake.contactWebsite,
+      name: lake.contactName || "",
+      phone: lake.contactPhone || "",
+      email: lake.contactEmail || "",
+      website: lake.contactWebsite || "",
     },
     images: lake.images.map((image) => image.url),
     catchRankings,
   };
+}
+
+function mapLakeToListDto(lake: {
+  id: string;
+  name: string;
+  slug: string;
+  rating: number | { toString: () => string };
+  fish: string;
+  ownerType: string;
+  fishingType: string;
+  street: string;
+  city: string;
+  postalCode: string;
+  voivodeship: string;
+  description: string;
+  cottages: boolean;
+  campfire: boolean;
+  noKill: boolean;
+  tent: boolean;
+  parking: boolean;
+  pier: boolean;
+  toilet: boolean;
+  shop: boolean;
+  nightFishing: boolean;
+  boatRental: boolean;
+  gearRental: boolean;
+  shelter: boolean;
+  coveredSpots: boolean;
+  playground: boolean;
+  cardPayment: boolean;
+  fishSpecies: {
+    name: string;
+  }[];
+  images: {
+    url: string;
+  }[];
+}): LakeListDto {
+  return {
+    id: lake.id,
+    name: lake.name,
+    slug: lake.slug,
+    rating: Number(lake.rating).toFixed(1),
+    distance: "0 km",
+    fish: lake.fish,
+    fishSpecies: lake.fishSpecies.map((fish) => fish.name),
+    type: lake.ownerType as "pzw" | "commercial",
+    fishingType: lake.fishingType as "general" | "spinning" | "carp",
+    address: {
+      street: lake.street,
+      city: lake.city,
+      postalCode: lake.postalCode,
+      voivodeship: lake.voivodeship,
+    },
+    description: lake.description,
+    amenities: {
+      cottages: lake.cottages,
+      campfire: lake.campfire,
+      noKill: lake.noKill,
+      tent: lake.tent,
+      parking: lake.parking,
+      pier: lake.pier,
+      toilet: lake.toilet,
+      shop: lake.shop,
+      nightFishing: lake.nightFishing,
+      boatRental: lake.boatRental,
+      gearRental: lake.gearRental,
+      shelter: lake.shelter,
+      coveredSpots: lake.coveredSpots,
+      playground: lake.playground,
+      cardPayment: lake.cardPayment,
+    },
+    images: lake.images.map((image) => image.url),
+  };
+}
+
+export async function getLakesList() {
+  const lakes = await prisma.lake.findMany({
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      rating: true,
+      fish: true,
+      ownerType: true,
+      fishingType: true,
+      street: true,
+      city: true,
+      postalCode: true,
+      voivodeship: true,
+      description: true,
+
+      cottages: true,
+      campfire: true,
+      noKill: true,
+      tent: true,
+      parking: true,
+      pier: true,
+      toilet: true,
+      shop: true,
+      nightFishing: true,
+      boatRental: true,
+      gearRental: true,
+      shelter: true,
+      coveredSpots: true,
+      playground: true,
+      cardPayment: true,
+
+      fishSpecies: {
+        select: {
+          name: true,
+        },
+      },
+
+      images: {
+        select: {
+          url: true,
+        },
+        take: 1,
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return lakes.map((lake) => mapLakeToListDto(lake));
 }
 
 export async function getLakes() {

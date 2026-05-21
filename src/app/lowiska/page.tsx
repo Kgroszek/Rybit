@@ -1,9 +1,9 @@
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { LakesPage } from "@/components/dashboard/LakesPage";
-import { getLakes } from "@/lib/lakes";
+import { getLakesList } from "@/lib/lakes";
 
 export default async function LowiskaPage() {
-  const lakes = await getLakes();
+  const lakes = await getLakesList();
 
   return (
     <DashboardLayout>

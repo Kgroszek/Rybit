@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { LakeDto } from "@/lib/lakes";
+import type { LakeListDto } from "@/lib/lakes";
 
 type OwnerTypeFilter = "all" | "pzw" | "commercial";
 type FishingTypeFilter = "all" | "general" | "spinning" | "carp";
@@ -27,7 +27,7 @@ type AmenityKey =
   | "cardPayment";
 
 type LakesPageProps = {
-  lakes: LakeDto[];
+  lakes: LakeListDto[];
 };
 
 const amenityFilters: {
@@ -53,6 +53,7 @@ const amenityFilters: {
 function getOwnerTypeLabel(type: string) {
   if (type === "pzw") return "PZW";
   if (type === "commercial") return "Komercyjne";
+
   return "Inne";
 }
 
@@ -60,6 +61,7 @@ function getFishingTypeLabel(type: string) {
   if (type === "general") return "Ogólne";
   if (type === "spinning") return "Spinningowe";
   if (type === "carp") return "Karpiowe";
+
   return "Inne";
 }
 
@@ -140,7 +142,8 @@ export function LakesPage({ lakes }: LakesPageProps) {
           fishingType === "all" || lake.fishingType === fishingType;
 
         const matchesVoivodeship =
-          voivodeship === "all" || lake.address.voivodeship === voivodeship;
+          voivodeship === "all" ||
+          lake.address.voivodeship === voivodeship;
 
         const matchesFish =
           fish === "all" ||
@@ -212,7 +215,7 @@ export function LakesPage({ lakes }: LakesPageProps) {
             Łowiska
           </h1>
 
-          <p className="mt-2 max-w-2xl text-slate-500">
+          <p className="mt-2 max-w-3xl text-slate-500">
             Przeglądaj bazę łowisk, filtruj miejsca według rodzaju, typu
             łowienia, ryb, lokalizacji i dostępnych udogodnień.
           </p>
@@ -220,18 +223,18 @@ export function LakesPage({ lakes }: LakesPageProps) {
 
         <Link
           href="/lowiska/zglos"
-          className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+          className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
           + Dodaj łowisko
         </Link>
       </div>
 
       <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 xl:grid-cols-[1fr_220px]">
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
+        <div className="grid gap-4 xl:grid-cols-[1.3fr_260px]">
+          <label>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
               Szukaj łowiska
-            </label>
+            </span>
 
             <input
               value={search}
@@ -239,12 +242,12 @@ export function LakesPage({ lakes }: LakesPageProps) {
               placeholder="Wpisz nazwę, miasto, województwo, opis albo gatunek ryby..."
               className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500"
             />
-          </div>
+          </label>
 
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
+          <label>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
               Sortowanie
-            </label>
+            </span>
 
             <select
               value={sortType}
@@ -255,12 +258,12 @@ export function LakesPage({ lakes }: LakesPageProps) {
               <option value="name">Nazwa A-Z</option>
               <option value="distance">Najbliżej</option>
             </select>
-          </div>
+          </label>
         </div>
 
         <div className="mt-5 grid gap-5 xl:grid-cols-2">
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+            <p className="mb-3 text-sm font-semibold text-slate-700">
               Rodzaj łowiska
             </p>
 
@@ -286,7 +289,7 @@ export function LakesPage({ lakes }: LakesPageProps) {
           </div>
 
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+            <p className="mb-3 text-sm font-semibold text-slate-700">
               Typ łowienia
             </p>
 
@@ -318,11 +321,11 @@ export function LakesPage({ lakes }: LakesPageProps) {
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4 xl:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <label>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
               Województwo
-            </label>
+            </span>
 
             <select
               value={voivodeship}
@@ -330,18 +333,19 @@ export function LakesPage({ lakes }: LakesPageProps) {
               className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
             >
               <option value="all">Wszystkie województwa</option>
+
               {voivodeships.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
               ))}
             </select>
-          </div>
+          </label>
 
-          <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
+          <label>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
               Gatunek ryby
-            </label>
+            </span>
 
             <select
               value={fish}
@@ -349,19 +353,22 @@ export function LakesPage({ lakes }: LakesPageProps) {
               className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
             >
               <option value="all">Wszystkie ryby</option>
+
               {fishOptions.map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
               ))}
             </select>
-          </div>
+          </label>
         </div>
 
-        <div className="mt-5 border-t border-slate-100 pt-5">
+        <div className="mt-5">
           <button
             type="button"
-            onClick={() => setAreAdvancedFiltersOpen((current) => !current)}
+            onClick={() =>
+              setAreAdvancedFiltersOpen((current) => !current)
+            }
             className="flex w-full items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
           >
             <span>Udogodnienia i filtry zaawansowane</span>
@@ -369,7 +376,7 @@ export function LakesPage({ lakes }: LakesPageProps) {
           </button>
 
           {areAdvancedFiltersOpen && (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {amenityFilters.map((amenity) => (
                 <CheckboxFilter
                   key={amenity.key}
@@ -381,32 +388,33 @@ export function LakesPage({ lakes }: LakesPageProps) {
             </div>
           )}
         </div>
-      </section>
 
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-semibold text-slate-600">
-          Wyniki:{" "}
-          <span className="text-slate-950">{filteredLakes.length}</span>
-          <span className="text-slate-400"> / {lakes.length}</span>
-        </p>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          {activeFiltersCount > 0 && (
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-              Aktywne filtry: {activeFiltersCount}
+        <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-5 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+            <span>
+              Wyniki:{" "}
+              <strong className="font-bold text-slate-950">
+                {filteredLakes.length}
+              </strong>{" "}
+              / {lakes.length}
             </span>
-          )}
 
-          <button
-            type="button"
-            onClick={clearFilters}
-            disabled={activeFiltersCount === 0}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Resetuj filtry
-          </button>
+            {activeFiltersCount > 0 && (
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                Aktywne filtry: {activeFiltersCount}
+              </span>
+            )}
 
-          <div className="flex rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-sm font-bold text-blue-600 transition hover:text-blue-700"
+            >
+              Resetuj filtry
+            </button>
+          </div>
+
+          <div className="inline-flex w-fit rounded-2xl border border-slate-200 bg-white p-1">
             <button
               type="button"
               onClick={() => setViewMode("grid")}
@@ -432,45 +440,48 @@ export function LakesPage({ lakes }: LakesPageProps) {
             </button>
           </div>
         </div>
-      </div>
+      </section>
 
-      {filteredLakes.length > 0 ? (
-        viewMode === "grid" ? (
-          <div className="grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-3">
-            {filteredLakes.map((lake) => (
-              <LakeGridCard key={lake.id} lake={lake} />
-            ))}
-          </div>
+      <div>
+        {filteredLakes.length > 0 ? (
+          viewMode === "grid" ? (
+            <div className="grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-3">
+              {filteredLakes.map((lake) => (
+                <LakeGridCard key={lake.id} lake={lake} />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredLakes.map((lake) => (
+                <LakeListItem key={lake.id} lake={lake} />
+              ))}
+            </div>
+          )
         ) : (
-          <div className="space-y-4">
-            {filteredLakes.map((lake) => (
-              <LakeListItem key={lake.id} lake={lake} />
-            ))}
+          <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+            <p className="text-xl font-bold text-slate-950">
+              Brak łowisk dla wybranych filtrów
+            </p>
+
+            <p className="mt-2 text-slate-500">
+              Zmień kryteria wyszukiwania albo wyczyść filtry.
+            </p>
+
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="mt-5 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Wyczyść filtry
+            </button>
           </div>
-        )
-      ) : (
-        <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <p className="text-xl font-bold text-slate-950">
-            Brak łowisk dla wybranych filtrów
-          </p>
-
-          <p className="mt-2 text-slate-500">
-            Zmień kryteria wyszukiwania albo wyczyść filtry.
-          </p>
-
-          <button
-            onClick={clearFilters}
-            className="mt-5 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            Wyczyść filtry
-          </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
 
-function LakeGridCard({ lake }: { lake: LakeDto }) {
+function LakeGridCard({ lake }: { lake: LakeListDto }) {
   const image = lake.images[0];
 
   return (
@@ -553,86 +564,82 @@ function LakeGridCard({ lake }: { lake: LakeDto }) {
   );
 }
 
-function LakeListItem({ lake }: { lake: LakeDto }) {
+function LakeListItem({ lake }: { lake: LakeListDto }) {
   const image = lake.images[0];
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
-      <div className="grid min-h-[260px] gap-0 lg:grid-cols-[260px_1fr_auto]">
-        <div className="relative h-56 overflow-hidden bg-slate-100 lg:h-full lg:min-h-[260px]">
-          <LakeImagePreview image={image} lakeName={lake.name} />
+    <article className="grid overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md lg:grid-cols-[280px_1fr]">
+      <div className="relative h-56 bg-slate-100 lg:h-full">
+        <LakeImagePreview image={image} lakeName={lake.name} />
+      </div>
 
-          <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-bold ${
-                lake.type === "commercial"
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-blue-50 text-blue-700"
-              }`}
-            >
-              {getOwnerTypeLabel(lake.type)}
-            </span>
+      <div className="flex flex-col p-5">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+          <div>
+            <div className="mb-3 flex flex-wrap gap-2">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-bold ${
+                  lake.type === "commercial"
+                    ? "bg-emerald-50 text-emerald-700"
+                    : "bg-blue-50 text-blue-700"
+                }`}
+              >
+                {getOwnerTypeLabel(lake.type)}
+              </span>
 
-            <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
-              {getFishingTypeLabel(lake.fishingType)}
-            </span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                {getFishingTypeLabel(lake.fishingType)}
+              </span>
+            </div>
+
+            <h2 className="break-words text-2xl font-bold text-slate-950">
+              {lake.name}
+            </h2>
+
+            <p className="mt-1 text-sm font-medium text-slate-500">
+              {lake.address.street}, {lake.address.city}, woj.{" "}
+              {lake.address.voivodeship}
+            </p>
+          </div>
+
+          <div className="w-fit shrink-0 rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
+            ★ {lake.rating}
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col p-5">
-          <div className="mb-3 flex flex-wrap items-start gap-3">
-            <div className="min-w-0 flex-1">
-              <h2 className="break-words text-xl font-bold text-slate-950">
-                {lake.name}
-              </h2>
+        <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-500">
+          {lake.description || "Brak opisu łowiska."}
+        </p>
 
-              <p className="mt-1 break-words text-sm font-medium text-slate-500">
-                {lake.address.street}, {lake.address.city}, woj.{" "}
-                {lake.address.voivodeship}
-              </p>
-            </div>
+        <p className="mt-4 text-sm text-slate-600">
+          <span className="font-bold text-slate-950">Ryby:</span>{" "}
+          {lake.fish || "Brak informacji"}
+        </p>
 
-            <div className="shrink-0 rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
-              ★ {lake.rating}
-            </div>
-          </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {lake.amenities.noKill && <SmallBadge label="No Kill" />}
+          {lake.amenities.parking && <SmallBadge label="Parking" />}
+          {lake.amenities.nightFishing && <SmallBadge label="Nocka" />}
+          {lake.amenities.cottages && <SmallBadge label="Domki" />}
+          {lake.amenities.cardPayment && <SmallBadge label="Karta" />}
 
-          <p className="line-clamp-2 text-sm leading-6 text-slate-600">
-            {lake.description || "Brak opisu łowiska."}
-          </p>
-
-          <p className="mt-3 line-clamp-2 text-sm font-semibold text-slate-500">
-            Ryby:{" "}
-            <span className="text-slate-700">
-              {lake.fish || "Brak informacji"}
-            </span>
-          </p>
-
-          <div className="mt-4 flex min-h-[30px] flex-wrap gap-2">
-            {lake.amenities.noKill && <SmallBadge label="No Kill" />}
-            {lake.amenities.parking && <SmallBadge label="Parking" />}
-            {lake.amenities.nightFishing && <SmallBadge label="Nocka" />}
-            {lake.amenities.cottages && <SmallBadge label="Domki" />}
-            {lake.amenities.cardPayment && <SmallBadge label="Karta" />}
-
-            {!lake.amenities.noKill &&
-              !lake.amenities.parking &&
-              !lake.amenities.nightFishing &&
-              !lake.amenities.cottages &&
-              !lake.amenities.cardPayment && (
-                <SmallBadge label="Brak informacji" />
-              )}
-          </div>
+          {!lake.amenities.noKill &&
+            !lake.amenities.parking &&
+            !lake.amenities.nightFishing &&
+            !lake.amenities.cottages &&
+            !lake.amenities.cardPayment && (
+              <SmallBadge label="Brak informacji" />
+            )}
         </div>
 
-        <div className="flex flex-col justify-between gap-4 border-t border-slate-100 p-5 lg:min-w-[220px] lg:border-l lg:border-t-0">
+        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
           <p className="text-sm font-semibold text-slate-500">
             {lake.distance}
           </p>
 
           <Link
             href={`/lowiska/${lake.slug}`}
-            className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+            className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
             Zobacz szczegóły
           </Link>
@@ -653,28 +660,12 @@ function LakeImagePreview({
 
   if (!image || hasImageError) {
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-sky-100 via-cyan-50 to-emerald-50 px-6 text-center">
-        <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-sm">
-          <svg
-            className="h-7 w-7 text-blue-600"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <rect x="3" y="5" width="18" height="14" rx="3" />
-            <path d="m8 14 2.5-2.5L14 15l2-2 3 3" />
-            <circle cx="8.5" cy="9.5" r="1.5" />
-          </svg>
-        </div>
-
-        <p className="text-sm font-black text-slate-700">
+      <div className="flex h-full w-full flex-col items-center justify-center bg-slate-100 px-6 text-center">
+        <p className="text-sm font-bold text-slate-500">
           Brak zdjęcia łowiska
         </p>
 
-        <p className="mt-1 max-w-[220px] text-xs leading-5 text-slate-500">
+        <p className="mt-1 text-xs text-slate-400">
           Do tego łowiska nie dodano jeszcze zdjęcia.
         </p>
       </div>
@@ -684,7 +675,8 @@ function LakeImagePreview({
   return (
     <img
       src={image}
-      alt={`Łowisko ${lakeName}`}
+      alt={lakeName}
+      loading="lazy"
       onError={() => setHasImageError(true)}
       className="h-full w-full object-cover"
     />
@@ -704,10 +696,10 @@ function FilterButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+      className={`rounded-2xl px-4 py-2.5 text-sm font-bold transition ${
         isActive
-          ? "bg-blue-600 text-white"
-          : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+          ? "bg-blue-600 text-white shadow-sm"
+          : "bg-slate-50 text-slate-600 hover:bg-slate-100"
       }`}
     >
       {label}
@@ -725,34 +717,22 @@ function CheckboxFilter({
   onChange: () => void;
 }) {
   return (
-    <label
-      className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition ${
-        checked
-          ? "border-blue-200 bg-blue-50"
-          : "border-slate-200 bg-slate-50 hover:bg-slate-100"
-      }`}
-    >
+    <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition hover:bg-slate-50">
       <input
         type="checkbox"
         checked={checked}
         onChange={onChange}
-        className="h-4 w-4 rounded border-slate-300 text-blue-600"
+        className="h-4 w-4 rounded border-slate-300 accent-blue-600"
       />
 
-      <span
-        className={`text-sm font-semibold ${
-          checked ? "text-blue-700" : "text-slate-700"
-        }`}
-      >
-        {label}
-      </span>
+      <span className="text-sm font-semibold text-slate-700">{label}</span>
     </label>
   );
 }
 
 function SmallBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex w-fit items-center rounded-full bg-slate-100 px-3 py-2 mb-2 text-[12px] font-bold leading-none text-slate-600">
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
       {label}
     </span>
   );
