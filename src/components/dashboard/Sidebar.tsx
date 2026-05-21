@@ -269,12 +269,23 @@ function ChecklistIcon() {
   );
 }
 
-function FishIcon() {
+function FishIcon({ className = "h-5 w-5" }: { className?: string }) {
   return (
-    <IconBase>
-      <path d="M16.5 10.5c2.5 0 4.5 1.5 4.5 1.5s-2 1.5-4.5 1.5c-2.8 0-5.2-2-7.5-4.5C6.5 11 4 12 3 12c1 0 3.5 1 6 3.5 2.3-2.5 4.7-5 7.5-5Z" />
-      <circle cx="14" cy="12" r="0.8" fill="currentColor" stroke="none" />
-    </IconBase>
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 12s3.5-5 9-5c3.2 0 5.2 1.2 7 3 1 .9 2 2 2 2s-1 1.1-2 2c-1.8 1.8-3.8 3-7 3-5.5 0-9-5-9-5Z" />
+      <path d="M3 12 1.5 10.5" />
+      <path d="M3 12 1.5 13.5" />
+      <circle cx="15.5" cy="10.5" r="0.9" fill="currentColor" stroke="none" />
+      <path d="M8 12h.01" />
+    </svg>
   );
 }
 
