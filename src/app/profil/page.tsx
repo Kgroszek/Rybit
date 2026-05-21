@@ -1,3 +1,4 @@
+import { Suspense, cache } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -5,15 +6,26 @@ import { ProfileAchievementsCard } from "@/components/dashboard/ProfileAchieveme
 import { ProfileFishRecordsCard } from "@/components/dashboard/ProfileFishRecordsCard";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import {
-  checkAndUnlockAchievements,
-  getUserAchievements,
-} from "@/lib/achievements";
+import { getUserAchievements } from "@/lib/achievements";
 import { getUserFishRecords } from "@/lib/fish-records";
 import {
   getUserRankingBadges,
   type UserRankingBadge,
 } from "@/lib/ranking-badges";
+
+const getProfileHeavyData = cache(async (userId: string) => {
+  const [achievements, rankingBadges, fishRecords] = await Promise.all([
+    getUserAchievements(userId),
+    getUserRankingBadges(userId),
+    getUserFishRecords(userId),
+  ]);
+
+  return {
+    achievements,
+    rankingBadges,
+    fishRecords,
+  };
+});
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -28,23 +40,38 @@ export default async function ProfilePage() {
 
   const [
     favourites,
+    favouritesCount,
     ratings,
+    ratingsCount,
     submissions,
+    submissionsCount,
     catchesCount,
     publicCatchesCount,
-    achievements,
-    rankingBadges,
-    fishRecords,
   ] = await Promise.all([
     prisma.favourite.findMany({
       where: {
         userId: user.id,
       },
-      include: {
-        lake: true,
+      select: {
+        id: true,
+        lake: {
+          select: {
+            name: true,
+            slug: true,
+            fish: true,
+            rating: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
+      },
+      take: 5,
+    }),
+
+    prisma.favourite.count({
+      where: {
+        userId: user.id,
       },
     }),
 
@@ -52,11 +79,26 @@ export default async function ProfilePage() {
       where: {
         userId: user.id,
       },
-      include: {
-        lake: true,
+      select: {
+        id: true,
+        value: true,
+        updatedAt: true,
+        lake: {
+          select: {
+            name: true,
+            slug: true,
+          },
+        },
       },
       orderBy: {
         updatedAt: "desc",
+      },
+      take: 5,
+    }),
+
+    prisma.rating.count({
+      where: {
+        userId: user.id,
       },
     }),
 
@@ -64,8 +106,25 @@ export default async function ProfilePage() {
       where: {
         userId: user.id,
       },
+      select: {
+        id: true,
+        name: true,
+        city: true,
+        voivodeship: true,
+        ownerType: true,
+        status: true,
+        adminNote: true,
+        createdAt: true,
+      },
       orderBy: {
         createdAt: "desc",
+      },
+      take: 10,
+    }),
+
+    prisma.lakeSubmission.count({
+      where: {
+        userId: user.id,
       },
     }),
 
@@ -82,12 +141,6 @@ export default async function ProfilePage() {
         rankingStatus: "approved",
       },
     }),
-
-    getUserAchievements(user.id),
-
-    getUserRankingBadges(user.id),
-
-    getUserFishRecords(user.id),
   ]);
 
   const displayName =
@@ -98,16 +151,6 @@ export default async function ProfilePage() {
         : typeof user.user_metadata?.display_name === "string"
           ? user.user_metadata.display_name
           : "Wędkarz Rybit";
-
-  const unlockedAchievements = achievements.filter(
-    (achievement) => achievement.isUnlocked
-  );
-
-  if (!user) {
-  redirect("/login");
-}
-
-await checkAndUnlockAchievements(user.id);
 
   return (
     <DashboardLayout>
@@ -150,8 +193,6 @@ await checkAndUnlockAchievements(user.id);
           </div>
 
           <div className="mt-6 space-y-4 border-t border-slate-100 pt-5">
-            
-
             <ProfileInfo
               label="Data utworzenia"
               value={formatDate(user.created_at)}
@@ -169,35 +210,38 @@ await checkAndUnlockAchievements(user.id);
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
           <ProfileStat
             label="Ulubione łowiska"
-            value={String(favourites.length)}
+            value={String(favouritesCount)}
           />
 
-          <ProfileStat label="Oceny" value={String(ratings.length)} />
+          <ProfileStat label="Oceny" value={String(ratingsCount)} />
 
           <ProfileStat label="Połowy" value={String(catchesCount)} />
 
-          <ProfileStat
-            label="Rekordy gatunków"
-            value={String(fishRecords.length)}
-          />
-
-          <ProfileStat
-            label="Osiągnięcia"
-            value={`${unlockedAchievements.length}/${achievements.length}`}
-          />
-
-          <ProfileStat
-            label="Odznaki TOP"
-            value={String(rankingBadges.length)}
-          />
+          <Suspense
+            fallback={
+              <>
+                <ProfileStat label="Rekordy gatunków" value="..." />
+                <ProfileStat label="Osiągnięcia" value="..." />
+                <ProfileStat label="Odznaki TOP" value="..." />
+              </>
+            }
+          >
+            <ProfileHeavyStats userId={user.id} />
+          </Suspense>
         </div>
       </section>
 
-      <RankingBadgesSection badges={rankingBadges} />
+      <Suspense fallback={<SectionSkeleton title="Odznaki rankingowe" />}>
+        <RankingBadgesLoader userId={user.id} />
+      </Suspense>
 
-      <ProfileFishRecordsCard records={fishRecords} />
+      <Suspense fallback={<SectionSkeleton title="Rekordy gatunków" />}>
+        <FishRecordsLoader userId={user.id} />
+      </Suspense>
 
-      <ProfileAchievementsCard achievements={achievements} />
+      <Suspense fallback={<SectionSkeleton title="Osiągnięcia" />}>
+        <AchievementsLoader userId={user.id} />
+      </Suspense>
 
       <section className="mb-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <ProfileStat label="Wszystkie połowy" value={String(catchesCount)} />
@@ -209,10 +253,10 @@ await checkAndUnlockAchievements(user.id);
 
         <ProfileStat
           label="Zgłoszenia łowisk"
-          value={String(submissions.length)}
+          value={String(submissionsCount)}
         />
 
-        <ProfileStat label="Ulubione" value={String(favourites.length)} />
+        <ProfileStat label="Ulubione" value={String(favouritesCount)} />
       </section>
 
       <div className="grid gap-6 xl:grid-cols-2">
@@ -224,7 +268,7 @@ await checkAndUnlockAchievements(user.id);
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Łowiska zapisane przez Ciebie do ulubionych.
+                Ostatnio zapisane przez Ciebie łowiska.
               </p>
             </div>
 
@@ -255,7 +299,7 @@ await checkAndUnlockAchievements(user.id);
                   </div>
 
                   <div className="shrink-0 rounded-xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
-                    ★ {favourite.lake.rating.toFixed(1)}
+                    ★ {Number(favourite.lake.rating).toFixed(1)}
                   </div>
                 </Link>
               ))}
@@ -273,7 +317,7 @@ await checkAndUnlockAchievements(user.id);
             <h2 className="text-xl font-bold text-slate-950">Moje oceny</h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Łowiska, które zostały przez Ciebie ocenione.
+              Ostatnio ocenione przez Ciebie łowiska.
             </p>
           </div>
 
@@ -318,8 +362,7 @@ await checkAndUnlockAchievements(user.id);
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Sprawdź, czy Twoje zgłoszenia zostały zaakceptowane przez
-              administratora.
+              Sprawdź ostatnie zgłoszenia dodane przez Twoje konto.
             </p>
           </div>
 
@@ -386,6 +429,72 @@ await checkAndUnlockAchievements(user.id);
   );
 }
 
+async function ProfileHeavyStats({ userId }: { userId: string }) {
+  const { achievements, rankingBadges, fishRecords } =
+    await getProfileHeavyData(userId);
+
+  const unlockedAchievements = achievements.filter(
+    (achievement) => achievement.isUnlocked
+  );
+
+  return (
+    <>
+      <ProfileStat
+        label="Rekordy gatunków"
+        value={String(fishRecords.length)}
+      />
+
+      <ProfileStat
+        label="Osiągnięcia"
+        value={`${unlockedAchievements.length}/${achievements.length}`}
+      />
+
+      <ProfileStat label="Odznaki TOP" value={String(rankingBadges.length)} />
+    </>
+  );
+}
+
+async function RankingBadgesLoader({ userId }: { userId: string }) {
+  const { rankingBadges } = await getProfileHeavyData(userId);
+
+  return <RankingBadgesSection badges={rankingBadges} />;
+}
+
+async function FishRecordsLoader({ userId }: { userId: string }) {
+  const { fishRecords } = await getProfileHeavyData(userId);
+
+  return <ProfileFishRecordsCard records={fishRecords} />;
+}
+
+async function AchievementsLoader({ userId }: { userId: string }) {
+  const { achievements } = await getProfileHeavyData(userId);
+
+  return <ProfileAchievementsCard achievements={achievements} />;
+}
+
+function SectionSkeleton({ title }: { title: string }) {
+  return (
+    <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="animate-pulse">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xl font-bold text-slate-950">{title}</p>
+            <div className="mt-3 h-4 w-64 rounded-full bg-slate-100" />
+          </div>
+
+          <div className="h-7 w-24 rounded-full bg-slate-100" />
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="h-28 rounded-3xl bg-slate-100" />
+          <div className="h-28 rounded-3xl bg-slate-100" />
+          <div className="h-28 rounded-3xl bg-slate-100" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function RankingBadgesSection({ badges }: { badges: UserRankingBadge[] }) {
   return (
     <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -448,9 +557,7 @@ function RankingBadgeCard({ badge }: { badge: UserRankingBadge }) {
           </div>
 
           <h3 className="mt-3 text-lg font-black text-slate-950">
-            {badge.type === "weight"
-              ? "Najcięższa ryba"
-              : "Najdłuższa ryba"}
+            {badge.type === "weight" ? "Najcięższa ryba" : "Najdłuższa ryba"}
           </h3>
 
           <p className="mt-1 text-sm font-semibold text-slate-600">
@@ -574,7 +681,8 @@ function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
-function getOwnerTypeLabel(type: string) {
+
+function getOwnerTypeLabel(type: string | null) {
   if (type === "commercial") return "Komercyjne";
   if (type === "pzw") return "PZW";
   return "Inne";
