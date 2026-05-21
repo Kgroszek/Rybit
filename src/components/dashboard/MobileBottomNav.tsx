@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 type MobileBottomNavProps = {
   isAdmin?: boolean;
@@ -25,7 +26,11 @@ export function MobileBottomNav({
   pendingCatchReportsCount = 0,
 }: MobileBottomNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const mainItems: MenuItem[] = [
     {
@@ -141,6 +146,18 @@ export function MobileBottomNav({
     setIsMenuOpen(false);
   }
 
+  async function handleLogout() {
+    setIsLoggingOut(true);
+
+    await supabase.auth.signOut();
+
+    setIsLoggingOut(false);
+    setIsMenuOpen(false);
+
+    router.push("/login");
+    router.refresh();
+  }
+
   return (
     <>
       {isMenuOpen && (
@@ -188,6 +205,21 @@ export function MobileBottomNav({
                     onClick={closeMenu}
                   />
                 ))}
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="flex items-center gap-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span className="flex h-5 w-5 items-center justify-center">
+                    <LogoutIcon />
+                  </span>
+
+                  <span className="flex-1 text-left">
+                    {isLoggingOut ? "Wylogowywanie..." : "Wyloguj się"}
+                  </span>
+                </button>
               </MobileMenuGroup>
 
               {isAdmin && (
@@ -478,6 +510,17 @@ function UsersIcon() {
       <circle cx="9" cy="7" r="4" />
       <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </IconBase>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <IconBase>
+      <path d="M10 17l5-5-5-5" />
+      <path d="M15 12H3" />
+      <path d="M21 19V5a2 2 0 0 0-2-2h-6" />
+      <path d="M13 21h6a2 2 0 0 0 2-2" />
     </IconBase>
   );
 }

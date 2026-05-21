@@ -122,13 +122,19 @@ export function LakeDetailsPage({
     null
   );
 
+  const [brokenImages, setBrokenImages] = useState<string[]>([]);
+
   const [catchPreviewImage, setCatchPreviewImage] = useState<{
     url: string;
     alt: string;
   } | null>(null);
 
+  const visibleImages = lake.images.filter(
+    (image) => !brokenImages.includes(image)
+  );
+
   const previewImage =
-    previewImageIndex !== null ? lake.images[previewImageIndex] : null;
+    previewImageIndex !== null ? visibleImages[previewImageIndex] : null;
 
   function openPreview(index: number) {
     setPreviewImageIndex(index);
@@ -138,8 +144,16 @@ export function LakeDetailsPage({
     setPreviewImageIndex(null);
   }
 
+  function handleImageError(image: string) {
+    setBrokenImages((current) =>
+      current.includes(image) ? current : [...current, image]
+    );
+
+    setPreviewImageIndex(null);
+  }
+
   function showPreviousImage() {
-    if (previewImageIndex === null || lake.images.length === 0) {
+    if (previewImageIndex === null || visibleImages.length === 0) {
       return;
     }
 
@@ -148,12 +162,12 @@ export function LakeDetailsPage({
         return null;
       }
 
-      return currentIndex === 0 ? lake.images.length - 1 : currentIndex - 1;
+      return currentIndex === 0 ? visibleImages.length - 1 : currentIndex - 1;
     });
   }
 
   function showNextImage() {
-    if (previewImageIndex === null || lake.images.length === 0) {
+    if (previewImageIndex === null || visibleImages.length === 0) {
       return;
     }
 
@@ -162,7 +176,7 @@ export function LakeDetailsPage({
         return null;
       }
 
-      return currentIndex === lake.images.length - 1 ? 0 : currentIndex + 1;
+      return currentIndex === visibleImages.length - 1 ? 0 : currentIndex + 1;
     });
   }
 
@@ -211,7 +225,7 @@ export function LakeDetailsPage({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [previewImageIndex, lake.images.length]);
+  }, [previewImageIndex, visibleImages.length]);
 
   async function handleRatingChange(rating: number) {
     setIsRatingLoading(true);
@@ -336,55 +350,52 @@ export function LakeDetailsPage({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 p-4">
-            {lake.images.length > 0 ? (
-              lake.images.slice(0, 4).map((image, index) => (
-                <button
-                  key={`${image}-${index}`}
-                  type="button"
-                  onClick={() => openPreview(index)}
-                  className="group overflow-hidden rounded-2xl bg-slate-100 text-left"
-                >
-                  <div
-                    className="h-full min-h-[150px] bg-cover bg-center transition duration-300 group-hover:scale-105"
-                    style={{
-                      backgroundImage: `url(${image})`,
-                    }}
-                  />
-                </button>
-              ))
+          <div className="p-4">
+            {visibleImages.length > 0 ? (
+              <div className="grid h-full grid-cols-2 gap-3">
+                {visibleImages.slice(0, 4).map((image, index) => (
+                  <button
+                    key={`${image}-${index}`}
+                    type="button"
+                    onClick={() => openPreview(index)}
+                    className="group overflow-hidden rounded-2xl bg-slate-100 text-left"
+                  >
+                    <img
+                      src={image}
+                      alt={`Zdjęcie łowiska ${lake.name}`}
+                      onError={() => handleImageError(image)}
+                      className="h-full min-h-[150px] w-full object-cover transition duration-300 group-hover:scale-105"
+                    />
+                  </button>
+                ))}
+              </div>
             ) : (
-              <>
-                <div className="rounded-2xl bg-slate-100" />
-                <div className="rounded-2xl bg-slate-100" />
-                <div className="rounded-2xl bg-slate-100" />
-                <div className="rounded-2xl bg-slate-100" />
-              </>
+              <LakeEmptyImagePlaceholder />
             )}
           </div>
         </div>
       </section>
 
-      {lake.images.length > 0 && (
-        <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-slate-950">
-                Galeria zdjęć
-              </h2>
+      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-950">
+              Galeria zdjęć
+            </h2>
 
-              <p className="mt-1 text-sm text-slate-500">
-                Zdjęcia dodane do łowiska.
-              </p>
-            </div>
-
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
-              {lake.images.length} zdjęć
-            </span>
+            <p className="mt-1 text-sm text-slate-500">
+              Zdjęcia dodane do łowiska.
+            </p>
           </div>
 
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+            {visibleImages.length} zdjęć
+          </span>
+        </div>
+
+        {visibleImages.length > 0 ? (
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {lake.images.map((image, index) => (
+            {visibleImages.map((image, index) => (
               <button
                 key={`${image}-${index}`}
                 type="button"
@@ -394,16 +405,21 @@ export function LakeDetailsPage({
                 <img
                   src={image}
                   alt={`Zdjęcie łowiska ${lake.name}`}
+                  onError={() => handleImageError(image)}
                   className="h-56 w-full object-cover transition duration-300 group-hover:scale-105"
                 />
               </button>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <div className="mt-5">
+            <LakeEmptyImagePlaceholder />
+          </div>
+        )}
+      </section>
 
-        <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-6">
+      <div className="grid min-w-0 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-6">
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold text-slate-950">Opis łowiska</h2>
 
@@ -490,73 +506,73 @@ export function LakeDetailsPage({
           </section>
 
           <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
-              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="break-words text-xl font-bold text-slate-950">
-                  Cennik
-                </h2>
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="break-words text-xl font-bold text-slate-950">
+                Cennik
+              </h2>
 
-                {lake.priceListUrl && (
+              {lake.priceListUrl && (
+                <a
+                  href={lake.priceListUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 transition hover:bg-blue-100 sm:w-auto"
+                >
+                  Otwórz cennik
+                </a>
+              )}
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {lake.priceList.filter((priceItem) => {
+                const normalizedItem = priceItem.toLowerCase().trim();
+
+                return (
+                  !normalizedItem.startsWith("link do cennika") &&
+                  !normalizedItem.includes("http://") &&
+                  !normalizedItem.includes("https://")
+                );
+              }).length > 0 ? (
+                lake.priceList
+                  .filter((priceItem) => {
+                    const normalizedItem = priceItem.toLowerCase().trim();
+
+                    return (
+                      !normalizedItem.startsWith("link do cennika") &&
+                      !normalizedItem.includes("http://") &&
+                      !normalizedItem.includes("https://")
+                    );
+                  })
+                  .map((priceItem) => (
+                    <div
+                      key={priceItem}
+                      className="min-w-0 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700"
+                    >
+                      <p className="break-words">{priceItem}</p>
+                    </div>
+                  ))
+              ) : !lake.priceListUrl ? (
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                  Brak dodanego cennika.
+                </div>
+              ) : null}
+
+              {lake.priceListUrl && (
+                <div className="min-w-0 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
+                  <span className="text-slate-500">Link do cennika: </span>
+
                   <a
                     href={lake.priceListUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-50 px-4 py-2 text-sm font-bold text-blue-600 transition hover:bg-blue-100 sm:w-auto"
+                    className="font-bold text-blue-600 transition hover:text-blue-700 hover:underline"
                   >
-                    Otwórz cennik
+                    Link
                   </a>
-                )}
-              </div>
-
-              <div className="mt-5 space-y-3">
-                {lake.priceList.filter((priceItem) => {
-                  const normalizedItem = priceItem.toLowerCase().trim();
-
-                  return (
-                    !normalizedItem.startsWith("link do cennika") &&
-                    !normalizedItem.includes("http://") &&
-                    !normalizedItem.includes("https://")
-                  );
-                }).length > 0 ? (
-                  lake.priceList
-                    .filter((priceItem) => {
-                      const normalizedItem = priceItem.toLowerCase().trim();
-
-                      return (
-                        !normalizedItem.startsWith("link do cennika") &&
-                        !normalizedItem.includes("http://") &&
-                        !normalizedItem.includes("https://")
-                      );
-                    })
-                    .map((priceItem) => (
-                      <div
-                        key={priceItem}
-                        className="min-w-0 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700"
-                      >
-                        <p className="break-words">{priceItem}</p>
-                      </div>
-                    ))
-                ) : !lake.priceListUrl ? (
-                  <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
-                    Brak dodanego cennika.
-                  </div>
-                ) : null}
-
-                {lake.priceListUrl && (
-                  <div className="min-w-0 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
-                    <span className="text-slate-500">Link do cennika: </span>
-
-                    <a
-                      href={lake.priceListUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-bold text-blue-600 transition hover:text-blue-700 hover:underline"
-                    >
-                      Link
-                    </a>
-                  </div>
-                )}
-              </div>
-            </section>
+                </div>
+              )}
+            </div>
+          </section>
 
           <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -777,7 +793,7 @@ export function LakeDetailsPage({
               ×
             </button>
 
-            {lake.images.length > 1 && (
+            {visibleImages.length > 1 && (
               <>
                 <button
                   type="button"
@@ -798,7 +814,7 @@ export function LakeDetailsPage({
                 </button>
 
                 <div className="absolute bottom-5 left-1/2 z-20 -translate-x-1/2 rounded-full bg-slate-950/70 px-4 py-2 text-sm font-bold text-white">
-                  {previewImageIndex + 1} / {lake.images.length}
+                  {previewImageIndex + 1} / {visibleImages.length}
                 </div>
               </>
             )}
@@ -806,6 +822,7 @@ export function LakeDetailsPage({
             <img
               src={previewImage}
               alt={`Zdjęcie łowiska ${lake.name}`}
+              onError={() => handleImageError(previewImage)}
               className="max-h-[85vh] w-full rounded-2xl object-contain"
             />
           </div>
@@ -842,11 +859,44 @@ export function LakeDetailsPage({
   );
 }
 
+function LakeEmptyImagePlaceholder() {
+  return (
+    <div className="flex min-h-[260px] w-full flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 via-cyan-50 to-emerald-50 px-6 text-center">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-sm">
+        <svg
+          className="h-8 w-8 text-blue-600"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <rect x="3" y="5" width="18" height="14" rx="3" />
+          <path d="m8 14 2.5-2.5L14 15l2-2 3 3" />
+          <circle cx="8.5" cy="9.5" r="1.5" />
+        </svg>
+      </div>
+
+      <p className="text-base font-black text-slate-800">
+        Brak zdjęcia łowiska
+      </p>
+
+      <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">
+        Do tego łowiska nie dodano jeszcze zdjęcia.
+      </p>
+    </div>
+  );
+}
+
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4 last:border-none last:pb-0">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="text-right text-sm font-bold text-slate-950">{value}</p>
+    <div className="flex min-w-0 flex-col gap-1 border-b border-slate-100 pb-4 last:border-none last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <p className="shrink-0 text-sm text-slate-500">{label}</p>
+
+      <p className="min-w-0 break-words text-left text-sm font-bold text-slate-950 sm:text-right">
+        {value || "Brak informacji"}
+      </p>
     </div>
   );
 }
@@ -1067,11 +1117,7 @@ function RankingItem({
               className={`rounded-2xl px-3 py-2 text-sm font-black ${
                 place === 1
                   ? "bg-amber-50 text-amber-700"
-                  : place === 2
-                    ? "bg-slate-100 text-slate-700"
-                    : place === 3
-                      ? "bg-orange-50 text-orange-700"
-                      : "bg-blue-50 text-blue-700"
+                  : "bg-blue-50 text-blue-700"
               }`}
             >
               {type === "weight"

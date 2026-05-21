@@ -1041,9 +1041,13 @@ export async function checkAndUnlockAchievements(userId: string) {
   if (totalSubmissions >= 1) achievementKeysToUnlock.push("first_lake_submission");
   if (totalSubmissions >= 5) achievementKeysToUnlock.push("five_lake_submissions");
   if (totalSubmissions >= 20) achievementKeysToUnlock.push("twenty_lake_submissions");
-  if (lakeSubmissions.some((item) => item.status === "accepted")) {
-    achievementKeysToUnlock.push("accepted_lake_submission");
-  }
+  if (
+  lakeSubmissions.some(
+    (item) => item.status === "approved" || item.status === "accepted"
+  )
+) {
+  achievementKeysToUnlock.push("accepted_lake_submission");
+}
   if (ratingsCount >= 1) achievementKeysToUnlock.push("first_rating");
   if (ratingsCount >= 5) achievementKeysToUnlock.push("five_ratings");
   if (ratingsCount >= 25) achievementKeysToUnlock.push("twenty_five_ratings");

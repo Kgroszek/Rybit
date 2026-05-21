@@ -520,7 +520,7 @@ function LakeGridCard({ lake }: { lake: LakeDto }) {
           </p>
         </div>
 
-        <div className="mt-4 flex min-h-[30px] flex-wrap gap-2">
+        <div className="mt-4 flex min-h-[26px] flex-wrap gap-2">
           {lake.amenities.noKill && <SmallBadge label="No Kill" />}
           {lake.amenities.parking && <SmallBadge label="Parking" />}
           {lake.amenities.nightFishing && <SmallBadge label="Nocka" />}
@@ -752,7 +752,7 @@ function CheckboxFilter({
 
 function SmallBadge({ label }: { label: string }) {
   return (
-    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+    <span className="inline-flex w-fit items-center rounded-full bg-slate-100 px-3 py-2 mb-2 text-[12px] font-bold leading-none text-slate-600">
       {label}
     </span>
   );

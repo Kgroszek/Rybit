@@ -97,119 +97,131 @@ export async function POST(_request: Request, { params }: RouteProps) {
     rulesItems.push(`Link do regulaminu: ${submission.rulesUrl}`);
   }
 
-  const createdLake = await prisma.lake.create({
-    data: {
-      name: submission.name,
-      slug: lakeSlug,
-      description: submission.description,
-      rating: 0,
+  const createdLake = await prisma.$transaction(async (tx) => {
+    const lake = await tx.lake.create({
+      data: {
+        name: submission.name,
+        slug: lakeSlug,
+        description: submission.description,
+        rating: 0,
 
-      ownerType: submission.ownerType,
-      fishingType: submission.fishingType,
-      fish: submission.fish,
+        ownerType: submission.ownerType,
+        fishingType: submission.fishingType,
+        fish: submission.fish,
 
-      lat: submission.lat,
-      lng: submission.lng,
+        lat: submission.lat,
+        lng: submission.lng,
 
-      street: submission.street,
-      city: submission.city,
-      postalCode: submission.postalCode,
-      voivodeship: submission.voivodeship,
+        street: submission.street,
+        city: submission.city,
+        postalCode: submission.postalCode,
+        voivodeship: submission.voivodeship,
 
-      area: submission.area || "Brak danych",
-      averageDepth: submission.averageDepth || "Brak danych",
-      bottomType: submission.bottomType || "Brak danych",
-      waterType: submission.waterType || "Brak danych",
+        area: submission.area || "Brak danych",
+        averageDepth: submission.averageDepth || "Brak danych",
+        bottomType: submission.bottomType || "Brak danych",
+        waterType: submission.waterType || "Brak danych",
 
-      cottages: submission.cottages,
-      campfire: submission.campfire,
-      noKill: submission.noKill,
-      tent: submission.tent,
-      parking: submission.parking,
-      pier: submission.pier,
-      toilet: submission.toilet,
-      shop: submission.shop,
-      nightFishing: submission.nightFishing,
-      boatRental: submission.boatRental,
+        cottages: submission.cottages,
+        campfire: submission.campfire,
+        noKill: submission.noKill,
+        tent: submission.tent,
+        parking: submission.parking,
+        pier: submission.pier,
+        toilet: submission.toilet,
+        shop: submission.shop,
+        nightFishing: submission.nightFishing,
+        boatRental: submission.boatRental,
 
-      gearRental: submission.gearRental,
-      shelter: submission.shelter,
-      coveredSpots: submission.coveredSpots,
-      playground: submission.playground,
-      cardPayment: submission.cardPayment,
+        gearRental: submission.gearRental,
+        shelter: submission.shelter,
+        coveredSpots: submission.coveredSpots,
+        playground: submission.playground,
+        cardPayment: submission.cardPayment,
 
-      priceListText: submission.priceListText,
-      priceListUrl: submission.priceListUrl,
-      rulesText: submission.rulesText,
-      rulesUrl: submission.rulesUrl,
+        priceListText: submission.priceListText,
+        priceListUrl: submission.priceListUrl,
+        rulesText: submission.rulesText,
+        rulesUrl: submission.rulesUrl,
 
-      contactName: submission.contactName || "Brak danych",
-      contactPhone: submission.contactPhone || "Brak danych",
-      contactEmail: submission.contactEmail || "Brak danych",
-      contactWebsite: submission.contactWebsite || "Brak danych",
+        contactName: submission.contactName || "Brak danych",
+        contactPhone: submission.contactPhone || "Brak danych",
+        contactEmail: submission.contactEmail || "Brak danych",
+        contactWebsite: submission.contactWebsite || "Brak danych",
 
-      fishSpecies: {
-        create: splitFishNames(submission.fish).map((fishName) => ({
-          name: fishName,
-        })),
+        fishSpecies: {
+          create: splitFishNames(submission.fish).map((fishName) => ({
+            name: fishName,
+          })),
+        },
+
+        priceList: {
+          create:
+            priceListItems.length > 0
+              ? priceListItems.map((text) => ({
+                  text,
+                }))
+              : [
+                  {
+                    text: "Brak dodanego cennika.",
+                  },
+                ],
+        },
+
+        rules: {
+          create:
+            rulesItems.length > 0
+              ? rulesItems.map((text) => ({
+                  text,
+                }))
+              : [
+                  {
+                    text: "Brak dodanych zasad łowiska.",
+                  },
+                ],
+        },
+
+        ...(submission.images.length > 0
+          ? {
+              images: {
+                create: submission.images.map((image) => ({
+                  url: image.url,
+                  imagePath: image.imagePath,
+                })),
+              },
+            }
+          : {}),
       },
-
-      priceList: {
-        create:
-          priceListItems.length > 0
-            ? priceListItems.map((text) => ({
-                text,
-              }))
-            : [
-                {
-                  text: "Brak dodanego cennika.",
-                },
-              ],
+      include: {
+        images: true,
+        fishSpecies: true,
+        priceList: true,
+        rules: true,
       },
+    });
 
-      rules: {
-        create:
-          rulesItems.length > 0
-            ? rulesItems.map((text) => ({
-                text,
-              }))
-            : [
-                {
-                  text: "Brak dodanych zasad łowiska.",
-                },
-              ],
+    await tx.lakeSubmission.update({
+      where: {
+        id,
       },
-
-      images: {
-        create:
-          submission.images.length > 0
-            ? submission.images.map((image) => ({
-                url: image.url,
-                imagePath: image.imagePath,
-              }))
-            : [
-                {
-                  url: "/images/lakes/lake-placeholder-1.jpg",
-                  imagePath: null,
-                },
-              ],
+      data: {
+        status: "approved",
       },
-    },
-    include: {
-      images: true,
-      fishSpecies: true,
-      priceList: true,
-      rules: true,
-    },
-  });
+    });
 
-  await prisma.lakeSubmission.update({
-    where: {
-      id,
-    },
-    data: {
-      status: "approved",
-    },
+    if (submission.userId) {
+      await tx.userNotification.create({
+        data: {
+          userId: submission.userId,
+          title: "Twoje zgłoszenie łowiska zostało zaakceptowane",
+          message: `Łowisko ${submission.name} zostało zaakceptowane i dodane do bazy Rybio.`,
+          href: `/lowiska-w-polsce/${lake.slug}`,
+          type: "lake_submission_approved",
+        },
+      });
+    }
+
+    return lake;
   });
 
   return NextResponse.json({

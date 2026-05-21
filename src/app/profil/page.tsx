@@ -5,7 +5,10 @@ import { ProfileAchievementsCard } from "@/components/dashboard/ProfileAchieveme
 import { ProfileFishRecordsCard } from "@/components/dashboard/ProfileFishRecordsCard";
 import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { getUserAchievements } from "@/lib/achievements";
+import {
+  checkAndUnlockAchievements,
+  getUserAchievements,
+} from "@/lib/achievements";
 import { getUserFishRecords } from "@/lib/fish-records";
 import {
   getUserRankingBadges,
@@ -100,6 +103,12 @@ export default async function ProfilePage() {
     (achievement) => achievement.isUnlocked
   );
 
+  if (!user) {
+  redirect("/login");
+}
+
+await checkAndUnlockAchievements(user.id);
+
   return (
     <DashboardLayout>
       <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
@@ -141,7 +150,7 @@ export default async function ProfilePage() {
           </div>
 
           <div className="mt-6 space-y-4 border-t border-slate-100 pt-5">
-            <ProfileInfo label="ID użytkownika" value={user.id} />
+            
 
             <ProfileInfo
               label="Data utworzenia"
@@ -535,7 +544,7 @@ function EmptyState({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (status === "accepted") {
+  if (status === "approved" || status === "accepted") {
     return (
       <span className="inline-flex w-fit rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
         Zaakceptowane
@@ -551,13 +560,20 @@ function StatusBadge({ status }: { status: string }) {
     );
   }
 
+  if (status === "pending") {
+    return (
+      <span className="inline-flex w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+        Oczekuje
+      </span>
+    );
+  }
+
   return (
-    <span className="inline-flex w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-      Oczekuje
+    <span className="inline-flex w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+      {status}
     </span>
   );
 }
-
 function getOwnerTypeLabel(type: string) {
   if (type === "commercial") return "Komercyjne";
   if (type === "pzw") return "PZW";

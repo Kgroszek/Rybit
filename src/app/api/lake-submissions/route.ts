@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { checkAndUnlockAchievements } from "@/lib/achievements";
 
 const BUCKET_NAME = "lake-images";
 const MAX_IMAGES = 10;
@@ -194,6 +195,8 @@ export async function POST(request: Request) {
       contactWebsite: getFormValue(formData, "contactWebsite") || null,
     },
   });
+
+  await checkAndUnlockAchievements(user.id);
 
   const uploadedImages: {
     imagePath: string;

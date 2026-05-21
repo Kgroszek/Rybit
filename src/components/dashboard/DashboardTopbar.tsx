@@ -13,7 +13,7 @@ export function DashboardTopbar({
   const initials = getInitials(displayName || userEmail || "R");
 
   return (
-    <header className="sticky top-0 z-[100] mb-6 border-b border-slate-200 bg-slate-50/90 py-4 backdrop-blur lg:static lg:border-b-0 lg:bg-transparent lg:py-0">
+    <header className="mb-6 hidden border-b border-slate-200 bg-slate-50/90 py-4 backdrop-blur lg:block lg:border-b-0 lg:bg-transparent lg:py-0">
       <div className="relative min-h-12">
         <form
           action="/lowiska"
