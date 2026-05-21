@@ -142,59 +142,50 @@ export async function POST(request: Request) {
   }
 
   const submission = await prisma.lakeSubmission.create({
-    data: {
-      userId: user.id,
-      status: "pending",
-
-      name,
-      slug: `${createSlug(name)}-${Date.now()}`,
-      description,
-
-      ownerType,
-      fishingType,
-      fish,
-
-      lat: latitude,
-      lng: longitude,
-
-      street,
-      city,
-      postalCode,
-      voivodeship,
-
-      area: getFormValue(formData, "area") || null,
-      averageDepth: getFormValue(formData, "averageDepth") || null,
-      bottomType: getFormValue(formData, "bottomType") || null,
-      waterType: getFormValue(formData, "waterType") || null,
-
-      priceListText: getFormValue(formData, "priceListText") || null,
-      priceListUrl: getFormValue(formData, "priceListUrl") || null,
-      rulesText: getFormValue(formData, "rulesText") || null,
-      rulesUrl: getFormValue(formData, "rulesUrl") || null,
-
-      cottages: getFormBoolean(formData, "cottages"),
-      campfire: getFormBoolean(formData, "campfire"),
-      noKill: getFormBoolean(formData, "noKill"),
-      tent: getFormBoolean(formData, "tent"),
-      parking: getFormBoolean(formData, "parking"),
-      pier: getFormBoolean(formData, "pier"),
-      toilet: getFormBoolean(formData, "toilet"),
-      shop: getFormBoolean(formData, "shop"),
-      nightFishing: getFormBoolean(formData, "nightFishing"),
-      boatRental: getFormBoolean(formData, "boatRental"),
-
-      gearRental: getFormBoolean(formData, "gearRental"),
-      shelter: getFormBoolean(formData, "shelter"),
-      coveredSpots: getFormBoolean(formData, "coveredSpots"),
-      playground: getFormBoolean(formData, "playground"),
-      cardPayment: getFormBoolean(formData, "cardPayment"),
-
-      contactName: getFormValue(formData, "contactName") || null,
-      contactPhone: getFormValue(formData, "contactPhone") || null,
-      contactEmail: getFormValue(formData, "contactEmail") || null,
-      contactWebsite: getFormValue(formData, "contactWebsite") || null,
-    },
-  });
+  data: {
+    userId: user.id,
+    status: "pending",
+    name,
+    slug: `${createSlug(name)}-${Date.now()}`,
+    description,
+    ownerType,
+    fishingType,
+    fish,
+    lat: latitude,
+    lng: longitude,
+    street,
+    city,
+    postalCode,
+    voivodeship,
+    area: getFormValue(formData, "area") || null,
+    averageDepth: getFormValue(formData, "averageDepth") || null,
+    bottomType: getFormValue(formData, "bottomType") || null,
+    waterType: getFormValue(formData, "waterType") || null,
+    priceListText: getFormValue(formData, "priceListText") || null,
+    priceListUrl: getFormValue(formData, "priceListUrl") || null,
+    rulesText: getFormValue(formData, "rulesText") || null,
+    rulesUrl: getFormValue(formData, "rulesUrl") || null,
+    cottages: getFormBoolean(formData, "cottages"),
+    campfire: getFormBoolean(formData, "campfire"),
+    noKill: getFormBoolean(formData, "noKill"),
+    tent: getFormBoolean(formData, "tent"),
+    parking: getFormBoolean(formData, "parking"),
+    pier: getFormBoolean(formData, "pier"),
+    toilet: getFormBoolean(formData, "toilet"),
+    shop: getFormBoolean(formData, "shop"),
+    nightFishing: getFormBoolean(formData, "nightFishing"),
+    boatRental: getFormBoolean(formData, "boatRental"),
+    gearRental: getFormBoolean(formData, "gearRental"),
+    shelter: getFormBoolean(formData, "shelter"),
+    coveredSpots: getFormBoolean(formData, "coveredSpots"),
+    playground: getFormBoolean(formData, "playground"),
+    cardPayment: getFormBoolean(formData, "cardPayment"),
+    contactName: getFormValue(formData, "contactName") || null,
+    contactPhone: getFormValue(formData, "contactPhone") || null,
+    contactEmail: getFormValue(formData, "contactEmail") || null,
+    contactWebsite: getFormValue(formData, "contactWebsite") || null,
+  },
+});
 
   await checkAndUnlockAchievements(user.id);
 
@@ -204,42 +195,33 @@ export async function POST(request: Request) {
   }[] = [];
 
   try {
-    for (const image of images) {
-      const cleanFileName = sanitizeFileName(image.name);
+    const uploadedImages = await Promise.all(
+      images.map(async (image, index) => {
+        const cleanFileName = sanitizeFileName(image.name);
+        const imagePath = `submissions/${user.id}/${submission.id}/${Date.now()}-${index}-${cleanFileName}`;
 
-      const imagePath = `submissions/${user.id}/${submission.id}/${Date.now()}-${cleanFileName}`;
+        const { error: uploadError } = await supabase.storage
+          .from(BUCKET_NAME)
+          .upload(imagePath, image, {
+            cacheControl: "3600",
+            upsert: false,
+            contentType: image.type,
+          });
 
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET_NAME)
-        .upload(imagePath, image, {
-          cacheControl: "3600",
-          upsert: false,
-          contentType: image.type,
-        });
+        if (uploadError) {
+          throw new Error(uploadError.message);
+        }
 
-      if (uploadError) {
-        throw new Error(uploadError.message);
-      }
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from(BUCKET_NAME).getPublicUrl(imagePath);
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from(BUCKET_NAME).getPublicUrl(imagePath);
-
-      uploadedImages.push({
-        imagePath,
-        url: publicUrl,
-      });
-    }
-
-    if (uploadedImages.length > 0) {
-      await prisma.lakeSubmissionImage.createMany({
-        data: uploadedImages.map((image) => ({
-          submissionId: submission.id,
-          imagePath: image.imagePath,
-          url: image.url,
-        })),
-      });
-    }
+        return {
+          imagePath,
+          url: publicUrl,
+        };
+      })
+    );
   } catch (error) {
     if (uploadedImages.length > 0) {
       await supabase.storage

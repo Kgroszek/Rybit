@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type MobileBottomNavProps = {
@@ -31,6 +31,39 @@ export function MobileBottomNav({
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+useEffect(() => {
+  function isFormField(element: Element | null) {
+    return (
+      element instanceof HTMLInputElement ||
+      element instanceof HTMLTextAreaElement ||
+      element instanceof HTMLSelectElement
+    );
+  }
+
+  function handleFocusIn(event: FocusEvent) {
+    if (isFormField(event.target as Element)) {
+      setIsKeyboardOpen(true);
+    }
+  }
+
+  function handleFocusOut() {
+    window.setTimeout(() => {
+      if (!isFormField(document.activeElement)) {
+        setIsKeyboardOpen(false);
+      }
+    }, 120);
+  }
+
+  window.addEventListener("focusin", handleFocusIn);
+  window.addEventListener("focusout", handleFocusOut);
+
+  return () => {
+    window.removeEventListener("focusin", handleFocusIn);
+    window.removeEventListener("focusout", handleFocusOut);
+  };
+}, []);
 
   const mainItems: MenuItem[] = [
     {
@@ -234,7 +267,13 @@ export function MobileBottomNav({
         </div>
       )}
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white/95 px-2 pb-2 pt-2 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
+    <nav
+        className={`fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white px-3 pt-2 shadow-lg transition-all duration-200 lg:hidden ${
+              isKeyboardOpen
+                ? "pointer-events-none translate-y-full opacity-0"
+                : "translate-y-0 opacity-100"
+            } pb-[max(0.75rem,env(safe-area-inset-bottom))]`}
+          >
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           {bottomItems.map((item) => (
             <BottomNavLink key={item.href} item={item} pathname={pathname} />
