@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import type { LakeDto } from "@/lib/lakes";
+import { useMemo } from "react";
 
-type UserLocation = {
-  lat: number;
-  lng: number;
-};
+import { calculateDistanceInKm, formatDistanceInKm } from "@/lib/location";
+import { useUserLocation } from "@/hooks/useUserLocation";
+import type { LakeDto } from "@/lib/lakes";
 
 type NearestLake = LakeDto & {
   calculatedDistance: number | null;
@@ -17,69 +15,8 @@ type NearestLakesProps = {
   lakes: LakeDto[];
 };
 
-function calculateDistanceInKm(
-  firstPoint: UserLocation,
-  secondPoint: UserLocation
-) {
-  const earthRadiusInKm = 6371;
-
-  const latDifference = degreesToRadians(secondPoint.lat - firstPoint.lat);
-  const lngDifference = degreesToRadians(secondPoint.lng - firstPoint.lng);
-
-  const firstLatInRadians = degreesToRadians(firstPoint.lat);
-  const secondLatInRadians = degreesToRadians(secondPoint.lat);
-
-  const haversineValue =
-    Math.sin(latDifference / 2) * Math.sin(latDifference / 2) +
-    Math.cos(firstLatInRadians) *
-      Math.cos(secondLatInRadians) *
-      Math.sin(lngDifference / 2) *
-      Math.sin(lngDifference / 2);
-
-  const centralAngle =
-    2 * Math.atan2(Math.sqrt(haversineValue), Math.sqrt(1 - haversineValue));
-
-  return earthRadiusInKm * centralAngle;
-}
-
-function degreesToRadians(degrees: number) {
-  return degrees * (Math.PI / 180);
-}
-
 export function NearestLakes({ lakes }: NearestLakesProps) {
- const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-
-useEffect(() => {
-  const timeoutId = window.setTimeout(() => {
-    const savedLocation = localStorage.getItem("rybit-user-location");
-
-    if (!savedLocation) {
-      return;
-    }
-
-    try {
-      setUserLocation(JSON.parse(savedLocation) as UserLocation);
-    } catch {
-      setUserLocation(null);
-    }
-  }, 0);
-
-  function handleLocationUpdated(event: Event) {
-    const customEvent = event as CustomEvent<UserLocation>;
-    setUserLocation(customEvent.detail);
-  }
-
-  window.addEventListener("rybit:user-location-updated", handleLocationUpdated);
-
-  return () => {
-    window.clearTimeout(timeoutId);
-
-    window.removeEventListener(
-      "rybit:user-location-updated",
-      handleLocationUpdated
-    );
-  };
-}, []);
+  const { userLocation } = useUserLocation();
 
   const nearestLakes = useMemo<NearestLake[]>(() => {
     if (!userLocation) {
@@ -112,20 +49,22 @@ useEffect(() => {
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex items-center justify-between gap-3">
         <div>
-          <h2 className="font-bold">Najbliższe łowiska</h2>
+          <h2 className="text-xl font-bold text-slate-950">
+            Najbliższe łowiska
+          </h2>
 
           {!userLocation && (
-            <p className="mt-1 text-xs text-slate-500">
-              Kliknij „Moja lokalizacja” na mapie, aby policzyć odległość.
+            <p className="mt-1 text-sm text-slate-500">
+              Włącz lokalizację, aby policzyć odległość.
             </p>
           )}
         </div>
 
         <Link
           href="/lowiska"
-          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+          className="text-sm font-bold text-blue-600 transition hover:text-blue-700"
         >
           Zobacz
         </Link>
@@ -136,25 +75,31 @@ useEffect(() => {
           <Link
             key={lake.id}
             href={`/lowiska/${lake.slug}`}
-            className="flex items-center gap-3 rounded-2xl transition hover:bg-slate-50"
+            className="flex items-center gap-3 rounded-2xl p-2 transition hover:bg-slate-50"
           >
-            <div className="h-14 w-14 shrink-0 rounded-xl bg-gradient-to-br from-emerald-100 to-blue-100" />
+            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl bg-cyan-100">
+              {lake.images[0] ? (
+                <img
+                  src={lake.images[0]}
+                  alt={lake.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : null}
+            </div>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold text-slate-950">
+              <p className="truncate text-sm font-black text-slate-950">
                 {lake.name}
               </p>
 
-              <div className="mt-1 flex items-center gap-2 text-sm text-slate-500">
-                <span>★ {lake.rating}</span>
-                <span>•</span>
-                <span className="truncate">{lake.fish.split(",")[0]}</span>
-              </div>
+              <p className="mt-1 truncate text-xs font-semibold text-slate-500">
+                ★ {lake.rating} • {lake.fish.split(",")[0] || "Brak informacji"}
+              </p>
             </div>
 
-            <p className="shrink-0 text-right text-sm font-semibold text-slate-600">
+            <p className="shrink-0 text-sm font-black text-slate-600">
               {lake.calculatedDistance !== null
-                ? `${lake.calculatedDistance.toFixed(1)} km`
+                ? formatDistanceInKm(lake.calculatedDistance)
                 : lake.distance}
             </p>
           </Link>

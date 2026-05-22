@@ -10,12 +10,12 @@ import {
   useMap,
 } from "react-leaflet";
 
+import { useUserLocation } from "@/hooks/useUserLocation";
+import {
+  requestUserLocation,
+  type UserLocation,
+} from "@/lib/location";
 import type { LakeDto } from "@/lib/lakes";
-
-type UserLocation = {
-  lat: number;
-  lng: number;
-};
 
 type LakeOwnerType = "all" | "pzw" | "commercial";
 type FishingType = "all" | "general" | "spinning" | "carp";
@@ -23,8 +23,6 @@ type FishingType = "all" | "general" | "spinning" | "carp";
 type InteractiveMapProps = {
   lakes: LakeDto[];
 };
-
-const USER_LOCATION_STORAGE_KEY = "rybit-user-location";
 
 function createLakeIcon(color: string, shadowColor: string) {
   return L.divIcon({
@@ -95,99 +93,53 @@ function getNavigationUrl(lat: number, lng: number) {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 }
 
-function getSavedUserLocation() {
-  try {
-    const savedLocation = localStorage.getItem(USER_LOCATION_STORAGE_KEY);
-
-    if (!savedLocation) {
-      return null;
-    }
-
-    const parsedLocation = JSON.parse(savedLocation) as UserLocation;
-
-    if (
-      typeof parsedLocation.lat !== "number" ||
-      typeof parsedLocation.lng !== "number"
-    ) {
-      localStorage.removeItem(USER_LOCATION_STORAGE_KEY);
-      return null;
-    }
-
-    return parsedLocation;
-  } catch {
-    localStorage.removeItem(USER_LOCATION_STORAGE_KEY);
-    return null;
-  }
-}
-
-function saveUserLocation(location: UserLocation) {
-  localStorage.setItem(USER_LOCATION_STORAGE_KEY, JSON.stringify(location));
-
-  window.dispatchEvent(
-    new CustomEvent("rybit:user-location-updated", {
-      detail: location,
-    })
-  );
-}
-
 function AutoLocateUser({
+  userLocation,
   onLocationFound,
 }: {
+  userLocation: UserLocation | null;
   onLocationFound: (location: UserLocation) => void;
 }) {
   const map = useMap();
   const hasRequestedLocation = useRef(false);
+  const hasCenteredSavedLocation = useRef(false);
 
   useEffect(() => {
-    if (hasRequestedLocation.current) {
-      return;
-    }
+    if (userLocation && !hasCenteredSavedLocation.current) {
+      hasCenteredSavedLocation.current = true;
 
-    hasRequestedLocation.current = true;
-
-    const savedLocation = getSavedUserLocation();
-
-    if (savedLocation) {
-      onLocationFound(savedLocation);
-
-      map.flyTo([savedLocation.lat, savedLocation.lng], 11, {
+      map.flyTo([userLocation.lat, userLocation.lng], 11, {
         duration: 1,
       });
 
       return;
     }
 
-    if (!navigator.geolocation) {
+    if (userLocation || hasRequestedLocation.current) {
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
+    hasRequestedLocation.current = true;
 
-        onLocationFound(userLocation);
-        saveUserLocation(userLocation);
+    requestUserLocation({
+      enableHighAccuracy: false,
+      timeout: 8000,
+      maximumAge: 5 * 60 * 1000,
+    })
+      .then((location) => {
+        onLocationFound(location);
 
-        map.flyTo([userLocation.lat, userLocation.lng], 11, {
+        map.flyTo([location.lat, location.lng], 11, {
           duration: 1,
         });
-      },
-      (error) => {
+      })
+      .catch((error) => {
         console.warn(
           "[InteractiveMap] Nie udało się automatycznie pobrać lokalizacji:",
           error
         );
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 8000,
-        maximumAge: 5 * 60 * 1000,
-      }
-    );
-  }, [map, onLocationFound]);
+      });
+  }, [map, onLocationFound, userLocation]);
 
   return null;
 }
@@ -200,40 +152,30 @@ function LocateButton({
   const map = useMap();
   const [isLoading, setIsLoading] = useState(false);
 
-  function handleLocateUser() {
-    if (!navigator.geolocation) {
-      alert("Twoja przeglądarka nie obsługuje geolokalizacji.");
-      return;
-    }
-
+  async function handleLocateUser() {
     setIsLoading(true);
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-
-        onLocationFound(userLocation);
-        saveUserLocation(userLocation);
-
-        map.flyTo([userLocation.lat, userLocation.lng], 13, {
-          duration: 1.2,
-        });
-
-        setIsLoading(false);
-      },
-      () => {
-        alert("Nie udało się pobrać lokalizacji. Sprawdź zgodę w przeglądarce.");
-        setIsLoading(false);
-      },
-      {
+    try {
+      const userLocation = await requestUserLocation({
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0,
-      }
-    );
+      });
+
+      onLocationFound(userLocation);
+
+      map.flyTo([userLocation.lat, userLocation.lng], 13, {
+        duration: 1.2,
+      });
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Nie udało się pobrać lokalizacji."
+      );
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -273,16 +215,20 @@ function FilterButton({
 }
 
 export function InteractiveMap({ lakes }: InteractiveMapProps) {
-  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const { userLocation, setUserLocation } = useUserLocation();
+
   const [ownerTypeFilter, setOwnerTypeFilter] =
     useState<LakeOwnerType>("all");
   const [fishingTypeFilter, setFishingTypeFilter] =
     useState<FishingType>("all");
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
 
-  const handleLocationFound = useCallback((location: UserLocation) => {
-    setUserLocation(location);
-  }, []);
+  const handleLocationFound = useCallback(
+    (location: UserLocation) => {
+      setUserLocation(location);
+    },
+    [setUserLocation]
+  );
 
   const filteredLakes = useMemo(() => {
     return lakes.filter((lake) => {
@@ -309,12 +255,18 @@ export function InteractiveMap({ lakes }: InteractiveMapProps) {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        <AutoLocateUser onLocationFound={handleLocationFound} />
+        <AutoLocateUser
+          userLocation={userLocation}
+          onLocationFound={handleLocationFound}
+        />
 
         <LocateButton onLocationFound={handleLocationFound} />
 
         {userLocation && (
-          <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
+          <Marker
+            position={[userLocation.lat, userLocation.lng]}
+            icon={userIcon}
+          >
             <Popup>Jesteś tutaj</Popup>
           </Marker>
         )}
@@ -466,7 +418,9 @@ export function InteractiveMap({ lakes }: InteractiveMapProps) {
       </div>
 
       <div className="absolute bottom-5 left-5 z-[1000] hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-lg sm:block">
-        <p className="mb-3 text-sm font-bold text-slate-950">Rodzaj łowiska</p>
+        <p className="mb-3 text-sm font-bold text-slate-950">
+          Rodzaj łowiska
+        </p>
 
         <div className="space-y-2 text-sm font-semibold text-slate-600">
           <div className="flex items-center gap-2">
