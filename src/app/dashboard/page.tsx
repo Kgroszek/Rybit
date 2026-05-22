@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardQuickOverview } from "@/components/dashboard/DashboardQuickOverview";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
-import { MapSection } from "@/components/dashboard/MapSection";
+import { DashboardDesktopMap } from "@/components/dashboard/DashboardDesktopMap";
 import { NearestLakes } from "@/components/dashboard/NearestLakes";
 import { RecentCatches } from "@/components/dashboard/RecentCatches";
 import { RecommendedLakes } from "@/components/dashboard/RecommendedLakes";
@@ -201,7 +201,7 @@ export default async function Home() {
       <div className="hidden lg:block">
         <div className="grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-5 lg:space-y-6">
-            <MapSection lakes={lakes} />
+            <DashboardDesktopMap lakes={lakes} />
 
             <RecommendedLakes lakes={lakes} />
 
