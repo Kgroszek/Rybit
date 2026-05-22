@@ -9,6 +9,7 @@ import { NearestLakes } from "@/components/dashboard/NearestLakes";
 import { RecentCatches } from "@/components/dashboard/RecentCatches";
 import { RecommendedLakes } from "@/components/dashboard/RecommendedLakes";
 import { WeatherCard } from "@/components/dashboard/WeatherCard";
+import { DashboardLocationInitializer } from "@/components/dashboard/DashboardLocationInitializer";
 
 import { getLakes } from "@/lib/lakes";
 import { prisma } from "@/lib/prisma";
@@ -195,6 +196,7 @@ export default async function Home() {
 
   return (
     <DashboardLayout>
+      <DashboardLocationInitializer />
       {/* DESKTOP — zostaje układ z mapą jako głównym widokiem */}
       <div className="hidden lg:block">
         <div className="grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">

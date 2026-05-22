@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { MapSection } from "@/components/dashboard/MapSection";
@@ -10,6 +10,11 @@ type OwnerTypeFilter = "all" | "pzw" | "commercial";
 type FishingTypeFilter = "all" | "general" | "spinning" | "carp";
 type SortType = "rating" | "name" | "distance";
 type ViewMode = "grid" | "list" | "map";
+
+type UserLocation = {
+  lat: number;
+  lng: number;
+};
 
 type AmenityKey =
   | "cottages"
@@ -32,6 +37,8 @@ type LakesPageProps = {
   lakes: LakeListDto[];
   initialView?: "grid" | "map";
 };
+
+const USER_LOCATION_STORAGE_KEY = "rybit-user-location";
 
 const amenityFilters: {
   key: AmenityKey;
@@ -68,6 +75,85 @@ function getFishingTypeLabel(type: string) {
   return "Inne";
 }
 
+function isValidLocation(location: unknown): location is UserLocation {
+  if (!location || typeof location !== "object") {
+    return false;
+  }
+
+  const parsedLocation = location as Partial<UserLocation>;
+
+  return (
+    typeof parsedLocation.lat === "number" &&
+    typeof parsedLocation.lng === "number" &&
+    Number.isFinite(parsedLocation.lat) &&
+    Number.isFinite(parsedLocation.lng)
+  );
+}
+
+function getSavedUserLocation() {
+  try {
+    const savedLocation = localStorage.getItem(USER_LOCATION_STORAGE_KEY);
+
+    if (!savedLocation) {
+      return null;
+    }
+
+    const parsedLocation = JSON.parse(savedLocation);
+
+    if (!isValidLocation(parsedLocation)) {
+      localStorage.removeItem(USER_LOCATION_STORAGE_KEY);
+      return null;
+    }
+
+    return parsedLocation;
+  } catch {
+    localStorage.removeItem(USER_LOCATION_STORAGE_KEY);
+    return null;
+  }
+}
+
+function toRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function calculateDistanceInKm(userLocation: UserLocation, lake: LakeListDto) {
+  const earthRadiusInKm = 6371;
+
+  const userLat = toRadians(userLocation.lat);
+  const lakeLat = toRadians(lake.lat);
+  const latDifference = toRadians(lake.lat - userLocation.lat);
+  const lngDifference = toRadians(lake.lng - userLocation.lng);
+
+  const a =
+    Math.sin(latDifference / 2) * Math.sin(latDifference / 2) +
+    Math.cos(userLat) *
+      Math.cos(lakeLat) *
+      Math.sin(lngDifference / 2) *
+      Math.sin(lngDifference / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusInKm * c;
+}
+
+function getDistanceLabel(userLocation: UserLocation | null, lake: LakeListDto) {
+  if (!userLocation) {
+    return "Włącz lokalizację";
+  }
+
+  const distance = calculateDistanceInKm(userLocation, lake);
+
+  if (distance < 1) {
+    return `${Math.round(distance * 1000)} m`;
+  }
+
+  if (distance < 10) {
+    return `${distance.toFixed(1)} km`;
+  }
+
+  return `${Math.round(distance)} km`;
+}
+
 export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
   const [search, setSearch] = useState("");
   const [ownerType, setOwnerType] = useState<OwnerTypeFilter>("all");
@@ -79,6 +165,32 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
   const [areAdvancedFiltersOpen, setAreAdvancedFiltersOpen] = useState(false);
   const [areMobileFiltersOpen, setAreMobileFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+
+  useEffect(() => {
+    const savedLocation = getSavedUserLocation();
+
+    if (savedLocation) {
+      setUserLocation(savedLocation);
+    }
+
+    function handleLocationUpdate(event: Event) {
+      const customEvent = event as CustomEvent<UserLocation>;
+
+      if (isValidLocation(customEvent.detail)) {
+        setUserLocation(customEvent.detail);
+      }
+    }
+
+    window.addEventListener("rybit:user-location-updated", handleLocationUpdate);
+
+    return () => {
+      window.removeEventListener(
+        "rybit:user-location-updated",
+        handleLocationUpdate
+      );
+    };
+  }, []);
 
   const voivodeships = useMemo(() => {
     return Array.from(
@@ -174,8 +286,13 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
         }
 
         if (sortType === "distance") {
+          if (!userLocation) {
+            return 0;
+          }
+
           return (
-            parseFloat(firstLake.distance) - parseFloat(secondLake.distance)
+            calculateDistanceInKm(userLocation, firstLake) -
+            calculateDistanceInKm(userLocation, secondLake)
           );
         }
 
@@ -190,6 +307,7 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
     fish,
     selectedAmenities,
     sortType,
+    userLocation,
   ]);
 
   function toggleAmenity(amenity: AmenityKey) {
@@ -524,20 +642,32 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
 
               <div className="hidden grid items-stretch gap-5 md:grid md:grid-cols-2 2xl:grid-cols-3">
                 {filteredLakes.map((lake) => (
-                  <LakeGridCard key={lake.id} lake={lake} />
+                  <LakeGridCard
+                    key={lake.id}
+                    lake={lake}
+                    userLocation={userLocation}
+                  />
                 ))}
               </div>
             </>
           ) : viewMode === "grid" ? (
             <div className="grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-3">
               {filteredLakes.map((lake) => (
-                <LakeGridCard key={lake.id} lake={lake} />
+                <LakeGridCard
+                  key={lake.id}
+                  lake={lake}
+                  userLocation={userLocation}
+                />
               ))}
             </div>
           ) : (
             <div className="space-y-4">
               {filteredLakes.map((lake) => (
-                <LakeListItem key={lake.id} lake={lake} />
+                <LakeListItem
+                  key={lake.id}
+                  lake={lake}
+                  userLocation={userLocation}
+                />
               ))}
             </div>
           )
@@ -565,7 +695,13 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
   );
 }
 
-function LakeGridCard({ lake }: { lake: LakeListDto }) {
+function LakeGridCard({
+  lake,
+  userLocation,
+}: {
+  lake: LakeListDto;
+  userLocation: UserLocation | null;
+}) {
   const image = lake.images[0];
 
   return (
@@ -633,7 +769,7 @@ function LakeGridCard({ lake }: { lake: LakeListDto }) {
 
         <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
           <p className="text-sm font-semibold text-slate-500">
-            {lake.distance}
+            {getDistanceLabel(userLocation, lake)}
           </p>
 
           <Link
@@ -648,7 +784,13 @@ function LakeGridCard({ lake }: { lake: LakeListDto }) {
   );
 }
 
-function LakeListItem({ lake }: { lake: LakeListDto }) {
+function LakeListItem({
+  lake,
+  userLocation,
+}: {
+  lake: LakeListDto;
+  userLocation: UserLocation | null;
+}) {
   const image = lake.images[0];
 
   return (
@@ -718,7 +860,7 @@ function LakeListItem({ lake }: { lake: LakeListDto }) {
 
         <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
           <p className="text-sm font-semibold text-slate-500">
-            {lake.distance}
+            {getDistanceLabel(userLocation, lake)}
           </p>
 
           <Link
