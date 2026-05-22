@@ -199,12 +199,12 @@ export default async function ProfilePage() {
             />
           </div>
 
-          <Link
+          {/* <Link
             href={`/wedkarze/${user.id}`}
             className="mt-5 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
             Zobacz publiczny profil
-          </Link>
+          </Link> */}
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
