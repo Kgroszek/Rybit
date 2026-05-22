@@ -958,7 +958,7 @@ function CheckboxFilter({
 
 function SmallBadge({ label }: { label: string }) {
   return (
-    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 mb-2">
       {label}
     </span>
   );

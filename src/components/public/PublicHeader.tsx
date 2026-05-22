@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type PublicHeaderProps = {
   subtitle?: string;
@@ -29,24 +29,81 @@ const navLinks = [
     label: "FAQ",
     href: "/#faq",
   },
+  {
+    label: "Kontakt",
+    href: "/kontakt",
+  },
 ];
 
-export function PublicHeader({ subtitle = "Aplikacja dla wędkarzy" }: PublicHeaderProps) {
+export function PublicHeader({
+  subtitle = "Aplikacja dla wędkarzy",
+}: PublicHeaderProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [currentHash, setCurrentHash] = useState("");
+
+  useEffect(() => {
+    function updateHash() {
+      setCurrentHash(window.location.hash);
+    }
+
+    updateHash();
+
+    window.addEventListener("hashchange", updateHash);
+    window.addEventListener("popstate", updateHash);
+
+    return () => {
+      window.removeEventListener("hashchange", updateHash);
+      window.removeEventListener("popstate", updateHash);
+    };
+  }, []);
+
+  function isHashLink(href: string) {
+    return href.startsWith("/#");
+  }
+
+  function getHashFromHref(href: string) {
+    if (!isHashLink(href)) {
+      return "";
+    }
+
+    return href.replace("/", "");
+  }
 
   function isActive(href: string) {
+    if (isHashLink(href)) {
+      return pathname === "/" && currentHash === getHashFromHref(href);
+    }
+
     if (href === "/") {
-      return pathname === "/";
+      return pathname === "/" && !currentHash;
     }
 
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
+  function handleNavClick(href: string) {
+    setIsMenuOpen(false);
+
+    if (isHashLink(href)) {
+      setCurrentHash(getHashFromHref(href));
+      return;
+    }
+
+    setCurrentHash("");
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex min-w-0 items-center gap-3">
+        <Link
+          href="/"
+          className="flex min-w-0 items-center gap-3"
+          onClick={() => {
+            setIsMenuOpen(false);
+            setCurrentHash("");
+          }}
+        >
           <div className="flex h-12 w-auto shrink-0 items-center">
             <img
               src="/logos/logo-rybioo.svg"
@@ -54,6 +111,8 @@ export function PublicHeader({ subtitle = "Aplikacja dla wędkarzy" }: PublicHea
               className="h-10 w-auto object-contain"
             />
           </div>
+
+          <span className="sr-only">{subtitle}</span>
         </Link>
 
         <nav className="hidden items-center gap-1 text-sm font-semibold text-slate-600 xl:flex">
@@ -61,6 +120,7 @@ export function PublicHeader({ subtitle = "Aplikacja dla wędkarzy" }: PublicHea
             <Link
               key={link.href}
               href={link.href}
+              onClick={() => handleNavClick(link.href)}
               className={`rounded-2xl px-4 py-2 transition ${
                 isActive(link.href)
                   ? "bg-blue-50 text-blue-700"
@@ -75,6 +135,7 @@ export function PublicHeader({ subtitle = "Aplikacja dla wędkarzy" }: PublicHea
         <div className="hidden items-center gap-3 lg:flex">
           <Link
             href="/login"
+            onClick={() => setCurrentHash("")}
             className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
           >
             Zaloguj się
@@ -82,6 +143,7 @@ export function PublicHeader({ subtitle = "Aplikacja dla wędkarzy" }: PublicHea
 
           <Link
             href="/register"
+            onClick={() => setCurrentHash("")}
             className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
           >
             Załóż konto
@@ -92,7 +154,8 @@ export function PublicHeader({ subtitle = "Aplikacja dla wędkarzy" }: PublicHea
           type="button"
           onClick={() => setIsMenuOpen((current) => !current)}
           className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-xl font-black text-slate-700 shadow-sm transition hover:bg-slate-50 xl:hidden"
-          aria-label="Otwórz menu"
+          aria-label={isMenuOpen ? "Zamknij menu" : "Otwórz menu"}
+          aria-expanded={isMenuOpen}
         >
           {isMenuOpen ? "×" : "☰"}
         </button>
@@ -105,7 +168,7 @@ export function PublicHeader({ subtitle = "Aplikacja dla wędkarzy" }: PublicHea
               <Link
                 key={link.href}
                 href={link.href}
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => handleNavClick(link.href)}
                 className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
                   isActive(link.href)
                     ? "bg-blue-50 text-blue-700"
@@ -119,7 +182,10 @@ export function PublicHeader({ subtitle = "Aplikacja dla wędkarzy" }: PublicHea
             <div className="mt-3 grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
               <Link
                 href="/login"
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  setCurrentHash("");
+                }}
                 className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
               >
                 Zaloguj się
@@ -127,7 +193,10 @@ export function PublicHeader({ subtitle = "Aplikacja dla wędkarzy" }: PublicHea
 
               <Link
                 href="/register"
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  setCurrentHash("");
+                }}
                 className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
               >
                 Załóż konto

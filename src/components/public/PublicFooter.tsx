@@ -21,6 +21,10 @@ const mainLinks = [
     label: "FAQ",
     href: "/#faq",
   },
+  {
+    label: "Kontakt",
+    href: "/kontakt",
+  },
 ];
 
 const seoLinks = [
@@ -74,6 +78,10 @@ const legalLinks = [
   {
     label: "Polityka prywatności",
     href: "/polityka-prywatnosci",
+  },
+  {
+    label: "Kontakt",
+    href: "/kontakt",
   },
 ];
 
@@ -165,53 +173,36 @@ export function PublicFooter() {
                   {link.label}
                 </Link>
               ))}
+            </nav>
+
+            <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
+              <p className="text-sm font-black text-slate-950">
+                Kontakt
+              </p>
 
               <a
                 href="mailto:kontakt@rybio.pl"
-                className="text-sm font-bold text-slate-600 transition hover:text-blue-600"
+                className="mt-2 inline-flex text-sm font-bold text-blue-600 transition hover:text-blue-700 hover:underline"
               >
                 kontakt@rybio.pl
               </a>
-            </nav>
 
-            <div className="mt-6 rounded-3xl bg-blue-50 p-5">
-              <p className="text-sm font-black text-blue-950">
-                Prowadzisz łowisko?
+              <p className="mt-3 text-xs leading-5 text-slate-500">
+                Masz pytanie, chcesz zgłosić łowisko albo zaproponować
+                współpracę? Napisz do nas.
               </p>
-
-              <p className="mt-2 text-sm leading-6 text-blue-800">
-                Dodaj swoje łowisko do Rybio i pokaż je wędkarzom szukającym
-                nowych miejsc na wyprawę.
-              </p>
-
-              <Link
-                href="/register"
-                className="mt-4 inline-flex rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
-              >
-                Dodaj łowisko
-              </Link>
             </div>
           </div>
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 border-t border-slate-200 pt-6 text-sm text-slate-500 md:flex-row md:items-center md:justify-between">
-          <p>© {new Date().getFullYear()} Rybio. Wszystkie prawa zastrzeżone.</p>
+        <div className="mt-10 flex flex-col gap-3 border-t border-slate-200 pt-6 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+          <p>
+            © {new Date().getFullYear()} Rybio. Wszystkie prawa zastrzeżone.
+          </p>
 
-          <div className="flex flex-wrap gap-4">
-            <Link
-              href="/regulamin"
-              className="font-semibold transition hover:text-blue-600"
-            >
-              Regulamin
-            </Link>
-
-            <Link
-              href="/polityka-prywatnosci"
-              className="font-semibold transition hover:text-blue-600"
-            >
-              Polityka prywatności
-            </Link>
-          </div>
+          <p>
+            Publiczna baza łowisk i aplikacja dla wędkarzy.
+          </p>
         </div>
       </div>
     </footer>
