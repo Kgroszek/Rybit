@@ -1,15 +1,18 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { DashboardQuickOverview } from "@/components/dashboard/DashboardQuickOverview";
+import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { MapSection } from "@/components/dashboard/MapSection";
 import { NearestLakes } from "@/components/dashboard/NearestLakes";
 import { RecentCatches } from "@/components/dashboard/RecentCatches";
 import { RecommendedLakes } from "@/components/dashboard/RecommendedLakes";
-import { DashboardStats } from "@/components/dashboard/DashboardStats";
-import { DashboardQuickOverview } from "@/components/dashboard/DashboardQuickOverview";
 import { WeatherCard } from "@/components/dashboard/WeatherCard";
+
 import { getLakes } from "@/lib/lakes";
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -23,6 +26,7 @@ export default async function Home() {
   }
 
   const lakes = await getLakes();
+
   const weekStartDate = getWeekStartDate();
   const now = new Date();
 
@@ -182,49 +186,237 @@ export default async function Home() {
     catchesForSpeciesThisWeek.map((item) => item.fishName)
   ).size;
 
+  const displayName = getUserDisplayName(user);
+  const firstName = displayName.split(" ")[0];
+
+  const serializedUpcomingTrip = JSON.parse(JSON.stringify(upcomingTrip));
+  const serializedRecentGear = JSON.parse(JSON.stringify(recentGear));
+  const serializedRecentCatches = JSON.parse(JSON.stringify(recentCatches));
+
   return (
     <DashboardLayout>
+      {/* DESKTOP — zostaje układ z mapą jako głównym widokiem */}
+      <div className="hidden lg:block">
+        <div className="grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-5 lg:space-y-6">
+            <MapSection lakes={lakes} />
 
-      <div className="grid gap-5 lg:gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-5 lg:space-y-6">
-          <MapSection lakes={lakes} />
+            <RecommendedLakes lakes={lakes} />
 
-          <RecommendedLakes lakes={lakes} />
+            <DashboardQuickOverview
+              upcomingTrip={serializedUpcomingTrip}
+              gearCount={gearCount}
+              recentGear={serializedRecentGear}
+            />
 
-          <DashboardQuickOverview
-            upcomingTrip={JSON.parse(JSON.stringify(upcomingTrip))}
-            gearCount={gearCount}
-            recentGear={JSON.parse(JSON.stringify(recentGear))}
-          />
+            <DashboardStats
+              completedTripsCount={completedTripsCount}
+              completedTripsThisWeekCount={completedTripsThisWeekCount}
+              uniqueSpeciesCount={uniqueSpeciesCount}
+              uniqueSpeciesThisWeekCount={uniqueSpeciesThisWeekCount}
+              savedLakesCount={savedLakesCount}
+              savedLakesThisWeekCount={savedLakesThisWeekCount}
+              catchesCount={catchesCount}
+              catchesThisWeekCount={catchesThisWeekCount}
+            />
+          </div>
 
-          <DashboardStats
-            completedTripsCount={completedTripsCount}
-            completedTripsThisWeekCount={completedTripsThisWeekCount}
-            uniqueSpeciesCount={uniqueSpeciesCount}
-            uniqueSpeciesThisWeekCount={uniqueSpeciesThisWeekCount}
-            savedLakesCount={savedLakesCount}
-            savedLakesThisWeekCount={savedLakesThisWeekCount}
-            catchesCount={catchesCount}
-            catchesThisWeekCount={catchesThisWeekCount}
-          />
+          <aside className="space-y-6">
+            <WeatherCard />
+
+            <NearestLakes lakes={lakes} />
+
+            <RecentCatches catches={serializedRecentCatches} />
+          </aside>
         </div>
+      </div>
 
-        <aside className="space-y-6">
-          <WeatherCard />
+      {/* MOBILE — osobny, prostszy dashboard bez mapy jako pierwszego ekranu */}
+      <div className="space-y-5 lg:hidden">
+        <section className="overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-600 to-blue-500 p-5 text-white shadow-sm">
+          <p className="text-sm font-semibold text-blue-100">
+            Witaj w Rybio
+          </p>
 
-          <NearestLakes lakes={lakes} />
+          <h1 className="mt-2 text-2xl font-black tracking-tight">
+            Cześć, {firstName}
+          </h1>
 
-          <RecentCatches catches={JSON.parse(JSON.stringify(recentCatches))} />
-        </aside>
+          <p className="mt-2 max-w-sm text-sm leading-6 text-blue-50">
+            Sprawdź łowiska, zapisz połów albo zaplanuj kolejną wyprawę nad
+            wodę.
+          </p>
+
+          <div className="mt-5 grid grid-cols-2 gap-3">
+            <MobileHeroStat label="Połowy" value={String(catchesCount)} />
+            <MobileHeroStat label="Ulubione" value={String(savedLakesCount)} />
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-slate-950">
+              Co chcesz dziś zrobić?
+            </h2>
+
+            <p className="mt-1 text-sm leading-6 text-slate-500">
+              Najważniejsze akcje masz teraz pod ręką.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <QuickActionCard
+              href="/lowiska"
+              label="Znajdź łowisko"
+              description="Przeglądaj bazę miejsc"
+              icon="MAP"
+            />
+
+            <QuickActionCard
+              href="/polowy"
+              label="Dodaj połów"
+              description="Zapisz rybę w dzienniku"
+              icon="+"
+            />
+
+            <QuickActionCard
+              href="/wyprawy"
+              label="Zaplanuj wyprawę"
+              description="Przygotuj wyjazd"
+              icon="PLAN"
+            />
+
+            <QuickActionCard
+              href="/lowiska/zglos"
+              label="Zgłoś łowisko"
+              description="Dodaj miejsce do bazy"
+              icon="ADD"
+            />
+          </div>
+        </section>
+
+        <NearestLakes lakes={lakes} />
+
+        <RecentCatches catches={serializedRecentCatches} />
+
+        <RecommendedLakes lakes={lakes} />
+
+        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-slate-950">
+                Mapa łowisk
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Na telefonie mapa działa najlepiej jako osobny widok. Przejdź
+                do listy łowisk i wybierz interesujące miejsce.
+              </p>
+            </div>
+
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-sm font-black text-blue-600">
+              MAP
+            </div>
+          </div>
+
+          <Link
+            href="/lowiska"
+            className="mt-5 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            Otwórz łowiska
+          </Link>
+        </section>
+
+        <WeatherCard />
+
+        <DashboardQuickOverview
+          upcomingTrip={serializedUpcomingTrip}
+          gearCount={gearCount}
+          recentGear={serializedRecentGear}
+        />
+
+        <DashboardStats
+          completedTripsCount={completedTripsCount}
+          completedTripsThisWeekCount={completedTripsThisWeekCount}
+          uniqueSpeciesCount={uniqueSpeciesCount}
+          uniqueSpeciesThisWeekCount={uniqueSpeciesThisWeekCount}
+          savedLakesCount={savedLakesCount}
+          savedLakesThisWeekCount={savedLakesThisWeekCount}
+          catchesCount={catchesCount}
+          catchesThisWeekCount={catchesThisWeekCount}
+        />
       </div>
     </DashboardLayout>
   );
 }
 
+function MobileHeroStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/15 px-4 py-3 backdrop-blur">
+      <p className="text-xs font-bold uppercase tracking-wide text-blue-100">
+        {label}
+      </p>
+
+      <p className="mt-1 text-2xl font-black text-white">{value}</p>
+    </div>
+  );
+}
+
+function QuickActionCard({
+  href,
+  label,
+  description,
+  icon,
+}: {
+  href: string;
+  label: string;
+  description: string;
+  icon: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="group rounded-3xl border border-slate-200 bg-slate-50 p-4 transition hover:border-blue-200 hover:bg-blue-50"
+    >
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xs font-black text-blue-600 shadow-sm transition group-hover:bg-blue-600 group-hover:text-white">
+        {icon}
+      </div>
+
+      <p className="mt-4 text-sm font-black leading-5 text-slate-950">
+        {label}
+      </p>
+
+      <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
+    </Link>
+  );
+}
+
+function getUserDisplayName(user: {
+  email?: string | null;
+  user_metadata?: {
+    name?: unknown;
+    full_name?: unknown;
+    display_name?: unknown;
+  };
+}) {
+  if (typeof user.user_metadata?.name === "string") {
+    return user.user_metadata.name;
+  }
+
+  if (typeof user.user_metadata?.full_name === "string") {
+    return user.user_metadata.full_name;
+  }
+
+  if (typeof user.user_metadata?.display_name === "string") {
+    return user.user_metadata.display_name;
+  }
+
+  return "Wędkarzu";
+}
+
 function getWeekStartDate() {
   const date = new Date();
   const day = date.getDay();
-
   const differenceToMonday = day === 0 ? -6 : 1 - day;
 
   date.setDate(date.getDate() + differenceToMonday);
