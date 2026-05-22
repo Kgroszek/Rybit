@@ -42,6 +42,8 @@ export type LakeListDto = {
   fishSpecies: string[];
   type: "pzw" | "commercial";
   fishingType: "general" | "spinning" | "carp";
+  lat: number;
+  lng: number;
   address: {
     street: string;
     city: string;
@@ -54,8 +56,6 @@ export type LakeListDto = {
 };
 
 export type LakeDto = LakeListDto & {
-  lat: number;
-  lng: number;
   details: {
     area: string;
     averageDepth: string;
@@ -194,6 +194,8 @@ function mapLakeToListDto(lake: {
   fish: string;
   ownerType: string;
   fishingType: string;
+  lat: number;
+  lng: number;
   street: string;
   city: string;
   postalCode: string;
@@ -231,6 +233,8 @@ function mapLakeToListDto(lake: {
     fishSpecies: lake.fishSpecies.map((fish) => fish.name),
     type: lake.ownerType as "pzw" | "commercial",
     fishingType: lake.fishingType as "general" | "spinning" | "carp",
+    lat: lake.lat,
+    lng: lake.lng,
     address: {
       street: lake.street,
       city: lake.city,
@@ -269,6 +273,8 @@ export async function getLakesList() {
       fish: true,
       ownerType: true,
       fishingType: true,
+      lat: true,
+      lng: true,
       street: true,
       city: true,
       postalCode: true,

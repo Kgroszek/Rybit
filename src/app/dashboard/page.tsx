@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-
+import type { ReactNode } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardQuickOverview } from "@/components/dashboard/DashboardQuickOverview";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
@@ -266,31 +266,31 @@ export default async function Home() {
 
           <div className="grid grid-cols-2 gap-3">
             <QuickActionCard
-              href="/lowiska"
+              href="/lowiska?view=map"
               label="Znajdź łowisko"
               description="Przeglądaj bazę miejsc"
-              icon="MAP"
+              icon={<MapIcon />}
             />
 
             <QuickActionCard
               href="/polowy"
               label="Dodaj połów"
               description="Zapisz rybę w dzienniku"
-              icon="+"
+              icon={<FishIcon />}
             />
 
             <QuickActionCard
               href="/wyprawy"
               label="Zaplanuj wyprawę"
               description="Przygotuj wyjazd"
-              icon="PLAN"
+              icon={<TripIcon />}
             />
 
             <QuickActionCard
               href="/lowiska/zglos"
               label="Zgłoś łowisko"
               description="Dodaj miejsce do bazy"
-              icon="ADD"
+              icon={<PlusIcon />}
             />
           </div>
         </section>
@@ -371,14 +371,14 @@ function QuickActionCard({
   href: string;
   label: string;
   description: string;
-  icon: string;
+  icon: ReactNode;
 }) {
   return (
     <Link
       href={href}
       className="group rounded-3xl border border-slate-200 bg-slate-50 p-4 transition hover:border-blue-200 hover:bg-blue-50"
     >
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-xs font-black text-blue-600 shadow-sm transition group-hover:bg-blue-600 group-hover:text-white">
+      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-blue-600 shadow-sm transition group-hover:bg-blue-600 group-hover:text-white">
         {icon}
       </div>
 
@@ -388,6 +388,83 @@ function QuickActionCard({
 
       <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
     </Link>
+  );
+}
+
+function MapIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z" />
+      <path d="M9 3v15" />
+      <path d="M15 6v15" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v8" />
+      <path d="M8 12h8" />
+    </svg>
+  );
+}
+
+function TripIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+     <path d="M8 7V6a4 4 0 0 1 8 0v1" />
+      <rect x="5" y="7" width="14" height="14" rx="3" />
+      <path d="M8 13h8" />
+      <path d="M9 17h6" />
+    </svg>
+  );
+}
+
+function FishIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M16.5 12c0 3-3.5 5.5-7.5 5.5S2 12 2 12s3-5.5 7-5.5 7.5 2.5 7.5 5.5Z" />
+      <path d="M16.5 12 22 8v8l-5.5-4Z" />
+      <circle cx="7.5" cy="11" r="0.7" fill="currentColor" stroke="none" />
+    </svg>
   );
 }
 

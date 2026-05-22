@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import type { LakeListDto } from "@/lib/lakes";
+
+import { MapSection } from "@/components/dashboard/MapSection";
+import type { LakeDto, LakeListDto } from "@/lib/lakes";
 
 type OwnerTypeFilter = "all" | "pzw" | "commercial";
 type FishingTypeFilter = "all" | "general" | "spinning" | "carp";
 type SortType = "rating" | "name" | "distance";
-type ViewMode = "grid" | "list";
+type ViewMode = "grid" | "list" | "map";
 
 type AmenityKey =
   | "cottages"
@@ -28,6 +30,7 @@ type AmenityKey =
 
 type LakesPageProps = {
   lakes: LakeListDto[];
+  initialView?: "grid" | "map";
 };
 
 const amenityFilters: {
@@ -65,7 +68,7 @@ function getFishingTypeLabel(type: string) {
   return "Inne";
 }
 
-export function LakesPage({ lakes }: LakesPageProps) {
+export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
   const [search, setSearch] = useState("");
   const [ownerType, setOwnerType] = useState<OwnerTypeFilter>("all");
   const [fishingType, setFishingType] = useState<FishingTypeFilter>("all");
@@ -74,7 +77,8 @@ export function LakesPage({ lakes }: LakesPageProps) {
   const [fish, setFish] = useState("all");
   const [selectedAmenities, setSelectedAmenities] = useState<AmenityKey[]>([]);
   const [areAdvancedFiltersOpen, setAreAdvancedFiltersOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [areMobileFiltersOpen, setAreMobileFiltersOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(initialView);
 
   const voivodeships = useMemo(() => {
     return Array.from(
@@ -142,8 +146,7 @@ export function LakesPage({ lakes }: LakesPageProps) {
           fishingType === "all" || lake.fishingType === fishingType;
 
         const matchesVoivodeship =
-          voivodeship === "all" ||
-          lake.address.voivodeship === voivodeship;
+          voivodeship === "all" || lake.address.voivodeship === voivodeship;
 
         const matchesFish =
           fish === "all" ||
@@ -205,11 +208,12 @@ export function LakesPage({ lakes }: LakesPageProps) {
     setFish("all");
     setSelectedAmenities([]);
     setSortType("rating");
+    setAreAdvancedFiltersOpen(false);
   }
 
   return (
     <div>
-      <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+      <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-950">
             Łowiska
@@ -229,188 +233,31 @@ export function LakesPage({ lakes }: LakesPageProps) {
         </Link>
       </div>
 
-      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 xl:grid-cols-[1.3fr_260px]">
-          <label>
-            <span className="mb-2 block text-sm font-semibold text-slate-700">
-              Szukaj łowiska
-            </span>
+      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="flex flex-col gap-4 md:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-500">
+                Wyniki:{" "}
+                <strong className="font-bold text-slate-950">
+                  {filteredLakes.length}
+                </strong>{" "}
+                / {lakes.length}
+              </p>
 
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Wpisz nazwę, miasto, województwo, opis albo gatunek ryby..."
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500"
-            />
-          </label>
-
-          <label>
-            <span className="mb-2 block text-sm font-semibold text-slate-700">
-              Sortowanie
-            </span>
-
-            <select
-              value={sortType}
-              onChange={(event) => setSortType(event.target.value as SortType)}
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
-            >
-              <option value="rating">Najwyższa ocena</option>
-              <option value="name">Nazwa A-Z</option>
-              <option value="distance">Najbliżej</option>
-            </select>
-          </label>
-        </div>
-
-        <div className="mt-5 grid gap-5 xl:grid-cols-2">
-          <div>
-            <p className="mb-3 text-sm font-semibold text-slate-700">
-              Rodzaj łowiska
-            </p>
-
-            <div className="flex flex-wrap gap-2">
-              <FilterButton
-                label="Wszystkie"
-                isActive={ownerType === "all"}
-                onClick={() => setOwnerType("all")}
-              />
-
-              <FilterButton
-                label="PZW"
-                isActive={ownerType === "pzw"}
-                onClick={() => setOwnerType("pzw")}
-              />
-
-              <FilterButton
-                label="Komercyjne"
-                isActive={ownerType === "commercial"}
-                onClick={() => setOwnerType("commercial")}
-              />
+              {activeFiltersCount > 0 && (
+                <p className="mt-1 text-xs font-bold text-blue-600">
+                  Aktywne filtry: {activeFiltersCount}
+                </p>
+              )}
             </div>
-          </div>
-
-          <div>
-            <p className="mb-3 text-sm font-semibold text-slate-700">
-              Typ łowienia
-            </p>
-
-            <div className="flex flex-wrap gap-2">
-              <FilterButton
-                label="Wszystkie"
-                isActive={fishingType === "all"}
-                onClick={() => setFishingType("all")}
-              />
-
-              <FilterButton
-                label="Ogólne"
-                isActive={fishingType === "general"}
-                onClick={() => setFishingType("general")}
-              />
-
-              <FilterButton
-                label="Spinningowe"
-                isActive={fishingType === "spinning"}
-                onClick={() => setFishingType("spinning")}
-              />
-
-              <FilterButton
-                label="Karpiowe"
-                isActive={fishingType === "carp"}
-                onClick={() => setFishingType("carp")}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <label>
-            <span className="mb-2 block text-sm font-semibold text-slate-700">
-              Województwo
-            </span>
-
-            <select
-              value={voivodeship}
-              onChange={(event) => setVoivodeship(event.target.value)}
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
-            >
-              <option value="all">Wszystkie województwa</option>
-
-              {voivodeships.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span className="mb-2 block text-sm font-semibold text-slate-700">
-              Gatunek ryby
-            </span>
-
-            <select
-              value={fish}
-              onChange={(event) => setFish(event.target.value)}
-              className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
-            >
-              <option value="all">Wszystkie ryby</option>
-
-              {fishOptions.map((item) => (
-                <option key={item} value={item}>
-                  {item}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-
-        <div className="mt-5">
-          <button
-            type="button"
-            onClick={() =>
-              setAreAdvancedFiltersOpen((current) => !current)
-            }
-            className="flex w-full items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
-          >
-            <span>Udogodnienia i filtry zaawansowane</span>
-            <span>{areAdvancedFiltersOpen ? "Zwiń" : "Rozwiń"}</span>
-          </button>
-
-          {areAdvancedFiltersOpen && (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {amenityFilters.map((amenity) => (
-                <CheckboxFilter
-                  key={amenity.key}
-                  label={amenity.label}
-                  checked={selectedAmenities.includes(amenity.key)}
-                  onChange={() => toggleAmenity(amenity.key)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-5 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
-            <span>
-              Wyniki:{" "}
-              <strong className="font-bold text-slate-950">
-                {filteredLakes.length}
-              </strong>{" "}
-              / {lakes.length}
-            </span>
-
-            {activeFiltersCount > 0 && (
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                Aktywne filtry: {activeFiltersCount}
-              </span>
-            )}
 
             <button
               type="button"
-              onClick={clearFilters}
-              className="text-sm font-bold text-blue-600 transition hover:text-blue-700"
+              onClick={() => setAreMobileFiltersOpen((current) => !current)}
+              className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
             >
-              Resetuj filtry
+              {areMobileFiltersOpen ? "Ukryj filtry" : "Filtry"}
             </button>
           </div>
 
@@ -429,22 +276,259 @@ export function LakesPage({ lakes }: LakesPageProps) {
 
             <button
               type="button"
-              onClick={() => setViewMode("list")}
+              onClick={() => setViewMode("map")}
               className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-                viewMode === "list"
+                viewMode === "map"
                   ? "bg-blue-600 text-white"
                   : "text-slate-600 hover:bg-slate-50"
               }`}
             >
-              Lista
+              Mapa
             </button>
+          </div>
+        </div>
+
+        <div
+          className={`mt-4 md:mt-0 ${
+            areMobileFiltersOpen ? "block" : "hidden md:block"
+          }`}
+        >
+          <div className="grid gap-4 xl:grid-cols-[1.3fr_260px]">
+            <label>
+              <span className="mb-2 block text-sm font-semibold text-slate-700">
+                Szukaj łowiska
+              </span>
+
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Wpisz nazwę, miasto, województwo, opis albo gatunek ryby..."
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500"
+              />
+            </label>
+
+            <label>
+              <span className="mb-2 block text-sm font-semibold text-slate-700">
+                Sortowanie
+              </span>
+
+              <select
+                value={sortType}
+                onChange={(event) =>
+                  setSortType(event.target.value as SortType)
+                }
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
+              >
+                <option value="rating">Najwyższa ocena</option>
+                <option value="name">Nazwa A-Z</option>
+                <option value="distance">Najbliżej</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="mt-5 grid gap-5 xl:grid-cols-2">
+            <div>
+              <p className="mb-3 text-sm font-semibold text-slate-700">
+                Rodzaj łowiska
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                <FilterButton
+                  label="Wszystkie"
+                  isActive={ownerType === "all"}
+                  onClick={() => setOwnerType("all")}
+                />
+
+                <FilterButton
+                  label="PZW"
+                  isActive={ownerType === "pzw"}
+                  onClick={() => setOwnerType("pzw")}
+                />
+
+                <FilterButton
+                  label="Komercyjne"
+                  isActive={ownerType === "commercial"}
+                  onClick={() => setOwnerType("commercial")}
+                />
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-3 text-sm font-semibold text-slate-700">
+                Typ łowienia
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                <FilterButton
+                  label="Wszystkie"
+                  isActive={fishingType === "all"}
+                  onClick={() => setFishingType("all")}
+                />
+
+                <FilterButton
+                  label="Ogólne"
+                  isActive={fishingType === "general"}
+                  onClick={() => setFishingType("general")}
+                />
+
+                <FilterButton
+                  label="Spinningowe"
+                  isActive={fishingType === "spinning"}
+                  onClick={() => setFishingType("spinning")}
+                />
+
+                <FilterButton
+                  label="Karpiowe"
+                  isActive={fishingType === "carp"}
+                  onClick={() => setFishingType("carp")}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <label>
+              <span className="mb-2 block text-sm font-semibold text-slate-700">
+                Województwo
+              </span>
+
+              <select
+                value={voivodeship}
+                onChange={(event) => setVoivodeship(event.target.value)}
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
+              >
+                <option value="all">Wszystkie województwa</option>
+
+                {voivodeships.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span className="mb-2 block text-sm font-semibold text-slate-700">
+                Gatunek ryby
+              </span>
+
+              <select
+                value={fish}
+                onChange={(event) => setFish(event.target.value)}
+                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
+              >
+                <option value="all">Wszystkie ryby</option>
+
+                {fishOptions.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={() => setAreAdvancedFiltersOpen((current) => !current)}
+              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-left text-sm font-bold text-slate-700 transition hover:bg-slate-100"
+            >
+              <span>Udogodnienia i filtry zaawansowane</span>
+              <span>{areAdvancedFiltersOpen ? "Zwiń" : "Rozwiń"}</span>
+            </button>
+
+            {areAdvancedFiltersOpen && (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {amenityFilters.map((amenity) => (
+                  <CheckboxFilter
+                    key={amenity.key}
+                    label={amenity.label}
+                    checked={selectedAmenities.includes(amenity.key)}
+                    onChange={() => toggleAmenity(amenity.key)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5 flex flex-col gap-4 border-t border-slate-100 pt-5 md:flex-row md:items-center md:justify-between">
+            <div className="hidden flex-wrap items-center gap-2 text-sm text-slate-500 md:flex">
+              <span>
+                Wyniki:{" "}
+                <strong className="font-bold text-slate-950">
+                  {filteredLakes.length}
+                </strong>{" "}
+                / {lakes.length}
+              </span>
+
+              {activeFiltersCount > 0 && (
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                  Aktywne filtry: {activeFiltersCount}
+                </span>
+              )}
+
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-sm font-bold text-blue-600 transition hover:text-blue-700"
+              >
+                Resetuj filtry
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-left text-sm font-bold text-blue-600 transition hover:text-blue-700 md:hidden"
+            >
+              Resetuj filtry
+            </button>
+
+            <div className="hidden w-fit rounded-2xl border border-slate-200 bg-white p-1 md:inline-flex">
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+                  viewMode === "grid" || viewMode === "map"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                Kafelki
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+                  viewMode === "list"
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                Lista
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
       <div>
         {filteredLakes.length > 0 ? (
-          viewMode === "grid" ? (
+          viewMode === "map" ? (
+            <>
+              <div className="md:hidden">
+                <MapSection lakes={filteredLakes as unknown as LakeDto[]} />
+              </div>
+
+              <div className="hidden grid items-stretch gap-5 md:grid md:grid-cols-2 2xl:grid-cols-3">
+                {filteredLakes.map((lake) => (
+                  <LakeGridCard key={lake.id} lake={lake} />
+                ))}
+              </div>
+            </>
+          ) : viewMode === "grid" ? (
             <div className="grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-3">
               {filteredLakes.map((lake) => (
                 <LakeGridCard key={lake.id} lake={lake} />
