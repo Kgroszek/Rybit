@@ -61,6 +61,10 @@ type Step = {
   description: string;
 };
 
+type ApiResponse = {
+  message?: string;
+};
+
 const steps: Step[] = [
   {
     key: "basic",
@@ -143,6 +147,11 @@ const initialFormState: FormState = {
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const MAX_IMAGE_DIMENSION = 1600;
+const COMPRESSED_IMAGE_QUALITY = 0.82;
+
+const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const HEIC_EXTENSIONS = [".heic", ".heif"];
 
 const VOIVODESHIPS = [
   "dolnośląskie",
@@ -213,6 +222,149 @@ const REQUIRED_FIELDS: {
   { key: "lng", label: "Długość geograficzna", step: "location" },
 ];
 
+function isHeicFile(file: File) {
+  const fileName = file.name.toLowerCase();
+
+  return (
+    HEIC_EXTENSIONS.some((extension) => fileName.endsWith(extension)) ||
+    file.type === "image/heic" ||
+    file.type === "image/heif"
+  );
+}
+
+function isAllowedImageFile(file: File) {
+  return ALLOWED_IMAGE_TYPES.includes(file.type);
+}
+
+function createImageFromFile(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    const imageUrl = URL.createObjectURL(file);
+
+    image.onload = () => {
+      URL.revokeObjectURL(imageUrl);
+      resolve(image);
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(imageUrl);
+      reject(new Error("Nie udało się odczytać zdjęcia."));
+    };
+
+    image.src = imageUrl;
+  });
+}
+
+function getResizedDimensions(width: number, height: number) {
+  if (width <= MAX_IMAGE_DIMENSION && height <= MAX_IMAGE_DIMENSION) {
+    return {
+      width,
+      height,
+    };
+  }
+
+  const ratio = Math.min(
+    MAX_IMAGE_DIMENSION / width,
+    MAX_IMAGE_DIMENSION / height
+  );
+
+  return {
+    width: Math.round(width * ratio),
+    height: Math.round(height * ratio),
+  };
+}
+
+async function compressImageFile(file: File) {
+  const image = await createImageFromFile(file);
+
+  const { width, height } = getResizedDimensions(
+    image.naturalWidth,
+    image.naturalHeight
+  );
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+
+  if (!context) {
+    throw new Error("Nie udało się przygotować kompresji zdjęcia.");
+  }
+
+  context.drawImage(image, 0, 0, width, height);
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", COMPRESSED_IMAGE_QUALITY);
+  });
+
+  if (!blob) {
+    throw new Error("Nie udało się skompresować zdjęcia.");
+  }
+
+  if (blob.size >= file.size && file.size <= MAX_IMAGE_SIZE) {
+    return file;
+  }
+
+  const cleanName = file.name.replace(/\.[^/.]+$/, "");
+
+  return new File([blob], `${cleanName}.jpg`, {
+    type: "image/jpeg",
+    lastModified: Date.now(),
+  });
+}
+
+function submitLakeSubmissionFormData(
+  formData: FormData,
+  onProgress: (progress: number) => void
+) {
+  return new Promise<ApiResponse>((resolve, reject) => {
+    const request = new XMLHttpRequest();
+
+    request.open("POST", "/api/lake-submissions");
+
+    request.upload.onprogress = (event) => {
+      if (!event.lengthComputable) {
+        return;
+      }
+
+      const progress = Math.round((event.loaded / event.total) * 100);
+      onProgress(progress);
+    };
+
+    request.onload = () => {
+      let data: ApiResponse = {};
+
+      try {
+        data = JSON.parse(request.responseText || "{}") as ApiResponse;
+      } catch {
+        data = {};
+      }
+
+      if (request.status >= 200 && request.status < 300) {
+        resolve(data);
+        return;
+      }
+
+      reject(new Error(data.message || "Nie udało się wysłać zgłoszenia."));
+    };
+
+    request.onerror = () => {
+      reject(new Error("Wystąpił problem z połączeniem podczas wysyłania."));
+    };
+
+    request.send(formData);
+  });
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function LakeSubmissionForm() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
@@ -222,6 +374,8 @@ export function LakeSubmissionForm() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [images, setImages] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [message, setMessage] = useState("");
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -273,6 +427,7 @@ export function LakeSubmissionForm() {
 
       const nextErrors = { ...current };
       delete nextErrors[field];
+
       return nextErrors;
     });
 
@@ -285,7 +440,7 @@ export function LakeSubmissionForm() {
     return STEP_FIELDS[step].includes(field);
   }
 
-  function validateForm(scope: "all" | StepKey = "all") {
+  function getValidationErrors(scope: "all" | StepKey = "all") {
     const nextErrors: FormErrors = {};
 
     REQUIRED_FIELDS.forEach((field) => {
@@ -341,8 +496,7 @@ export function LakeSubmissionForm() {
       !form.priceListUrl.startsWith("http://") &&
       !form.priceListUrl.startsWith("https://")
     ) {
-      nextErrors.priceListUrl =
-        "Link powinien zaczynać się od http:// lub https://.";
+      nextErrors.priceListUrl = "Link powinien zaczynać się od http:// lub https://.";
     }
 
     if (
@@ -351,8 +505,7 @@ export function LakeSubmissionForm() {
       !form.rulesUrl.startsWith("http://") &&
       !form.rulesUrl.startsWith("https://")
     ) {
-      nextErrors.rulesUrl =
-        "Link powinien zaczynać się od http:// lub https://.";
+      nextErrors.rulesUrl = "Link powinien zaczynać się od http:// lub https://.";
     }
 
     if (
@@ -364,6 +517,12 @@ export function LakeSubmissionForm() {
       nextErrors.contactWebsite =
         "Link powinien zaczynać się od http:// lub https://.";
     }
+
+    return nextErrors;
+  }
+
+  function validateForm(scope: "all" | StepKey = "all") {
+    const nextErrors = getValidationErrors(scope);
 
     setErrors((current) => {
       if (scope === "all") {
@@ -400,7 +559,7 @@ export function LakeSubmissionForm() {
   }
 
   function goToStep(index: number) {
-    if (isLoading) {
+    if (isLoading || isProcessingImages) {
       return;
     }
 
@@ -443,30 +602,74 @@ export function LakeSubmissionForm() {
     scrollToTop();
   }
 
-  function handleImagesChange(files: FileList | null) {
+  async function handleImagesChange(files: FileList | null) {
     if (!files) {
       return;
     }
 
     setMessage("");
+    setIsProcessingImages(true);
 
     const selectedFiles = Array.from(files);
+    const availableSlots = MAX_IMAGES - images.length;
 
-    const validImages = selectedFiles.filter((file) => {
-      return file.type.startsWith("image/") && file.size <= MAX_IMAGE_SIZE;
-    });
-
-    const nextImages = [...images, ...validImages].slice(0, MAX_IMAGES);
-    setImages(nextImages);
-
-    if (selectedFiles.length !== validImages.length) {
-      setMessage(
-        "Niektóre pliki zostały pominięte. Zdjęcia muszą być obrazami i mieć maksymalnie 5 MB."
-      );
+    if (availableSlots <= 0) {
+      setMessage(`Możesz dodać maksymalnie ${MAX_IMAGES} zdjęć.`);
+      setIsProcessingImages(false);
+      return;
     }
 
-    if (images.length + validImages.length > MAX_IMAGES) {
-      setMessage(`Możesz dodać maksymalnie ${MAX_IMAGES} zdjęć.`);
+    const filesToProcess = selectedFiles.slice(0, availableSlots);
+    const skippedMessages: string[] = [];
+    const compressedImages: File[] = [];
+
+    try {
+      for (const file of filesToProcess) {
+        if (isHeicFile(file)) {
+          skippedMessages.push(
+            `${file.name} pominięto — format HEIC/HEIF nie jest obsługiwany. Zmień zdjęcie na JPG, PNG albo WEBP.`
+          );
+          continue;
+        }
+
+        if (!isAllowedImageFile(file)) {
+          skippedMessages.push(
+            `${file.name} pominięto — dozwolone są tylko JPG, PNG albo WEBP.`
+          );
+          continue;
+        }
+
+        try {
+          const compressedImage = await compressImageFile(file);
+
+          if (compressedImage.size > MAX_IMAGE_SIZE) {
+            skippedMessages.push(
+              `${file.name} pominięto — zdjęcie po kompresji nadal ma więcej niż 5 MB.`
+            );
+            continue;
+          }
+
+          compressedImages.push(compressedImage);
+        } catch {
+          skippedMessages.push(
+            `${file.name} pominięto — nie udało się przetworzyć zdjęcia.`
+          );
+        }
+      }
+
+      setImages((current) => [...current, ...compressedImages]);
+
+      if (selectedFiles.length > availableSlots) {
+        skippedMessages.push(
+          `Dodano tylko ${availableSlots} zdjęć, bo limit to ${MAX_IMAGES}.`
+        );
+      }
+
+      if (skippedMessages.length > 0) {
+        setMessage(skippedMessages.join(" "));
+      }
+    } finally {
+      setIsProcessingImages(false);
     }
   }
 
@@ -486,11 +689,13 @@ export function LakeSubmissionForm() {
 
     setMessage("");
 
-    const isValid = validateForm("all");
+    const nextErrors = getValidationErrors("all");
 
-    if (!isValid) {
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors);
+
       const firstInvalidStepIndex = steps.findIndex((step) => {
-        return Object.keys(errors).some((field) =>
+        return Object.keys(nextErrors).some((field) =>
           STEP_FIELDS[step.key].includes(field as keyof FormState)
         );
       });
@@ -505,6 +710,7 @@ export function LakeSubmissionForm() {
     }
 
     setIsLoading(true);
+    setUploadProgress(0);
 
     const submitStartedAt = performance.now();
 
@@ -519,26 +725,10 @@ export function LakeSubmissionForm() {
         formData.append("images", image);
       });
 
-      const response = await fetch("/api/lake-submissions", {
-        method: "POST",
-        body: formData,
-      });
+      await submitLakeSubmissionFormData(formData, setUploadProgress);
 
       const requestTime = Math.round(performance.now() - submitStartedAt);
       console.info(`[LakeSubmissionForm] Czas wysyłki: ${requestTime} ms`);
-
-      let data: { message?: string } = {};
-
-      try {
-        data = await response.json();
-      } catch {
-        data = {};
-      }
-
-      if (!response.ok) {
-        setMessage(data.message || "Nie udało się wysłać zgłoszenia.");
-        return;
-      }
 
       setSuccessModalOpen(true);
       setForm(initialFormState);
@@ -548,11 +738,15 @@ export function LakeSubmissionForm() {
       formRef.current?.reset();
     } catch (error) {
       console.error("[LakeSubmissionForm] Błąd wysyłki:", error);
+
       setMessage(
-        "Wystąpił problem podczas wysyłania formularza. Spróbuj ponownie."
+        error instanceof Error
+          ? error.message
+          : "Wystąpił problem podczas wysyłania formularza. Spróbuj ponownie."
       );
     } finally {
       setIsLoading(false);
+      setUploadProgress(0);
     }
   }
 
@@ -564,43 +758,48 @@ export function LakeSubmissionForm() {
 
   return (
     <>
-      <div ref={topRef} />
+      <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+        <div ref={topRef} />
 
-      <form
-        ref={formRef}
-        onSubmit={handleSubmit}
-        noValidate
-        className="space-y-6"
-      >
-        <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <section className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-sm font-bold text-blue-600">
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">
                 Krok {currentStepIndex + 1} z {steps.length}
               </p>
 
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">
+              <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">
                 {currentStep.title}
-              </h2>
+              </h1>
 
               <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
                 {currentStep.description}
               </p>
             </div>
 
-            <div className="rounded-2xl bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
-              {progressPercentage}% ukończone
+            <div className="min-w-[180px]">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Postęp
+                </p>
+
+                <p className="text-sm font-black text-blue-600">
+                  {progressPercentage}%
+                </p>
+              </div>
+
+              <div className="h-3 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-blue-600 transition-all"
+                  style={{
+                    width: `${progressPercentage}%`,
+                  }}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-blue-600 transition-all duration-300"
-              style={{ width: `${progressPercentage}%` }}
-            />
-          </div>
-
-          <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+          <div className="mt-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
             {steps.map((step, index) => {
               const isActive = index === currentStepIndex;
               const isCompleted = index < currentStepIndex;
@@ -610,7 +809,7 @@ export function LakeSubmissionForm() {
                   key={step.key}
                   type="button"
                   onClick={() => goToStep(index)}
-                  disabled={isLoading}
+                  disabled={isLoading || isProcessingImages}
                   className={`rounded-2xl border px-3 py-3 text-left transition disabled:cursor-not-allowed disabled:opacity-60 ${
                     isActive
                       ? "border-blue-600 bg-blue-600 text-white shadow-sm"
@@ -619,13 +818,17 @@ export function LakeSubmissionForm() {
                         : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
                   }`}
                 >
-                  <span className="block text-xs font-black uppercase tracking-wide">
+                  <span className="block text-xs font-black">
                     {index + 1}. {step.shortTitle}
                   </span>
 
                   <span
-                    className={`mt-1 block text-xs ${
-                      isActive ? "text-blue-100" : ""
+                    className={`mt-1 block text-[11px] font-semibold ${
+                      isActive
+                        ? "text-blue-100"
+                        : isCompleted
+                          ? "text-emerald-600"
+                          : "text-slate-400"
                     }`}
                   >
                     {isCompleted ? "Uzupełniono" : "Kliknij, aby przejść"}
@@ -634,12 +837,14 @@ export function LakeSubmissionForm() {
               );
             })}
           </div>
-        </div>
+        </section>
 
         {message && (
           <div
-            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
-              Object.keys(errors).length > 0
+            className={`rounded-3xl border px-5 py-4 text-sm font-bold leading-6 ${
+              Object.keys(errors).length > 0 ||
+              message.includes("Nie udało") ||
+              message.includes("problem")
                 ? "border-red-200 bg-red-50 text-red-700"
                 : "border-amber-200 bg-amber-50 text-amber-800"
             }`}
@@ -651,7 +856,7 @@ export function LakeSubmissionForm() {
         {currentStep.key === "basic" && (
           <StepCard
             title="Podstawowe informacje"
-            description="Te dane są najważniejsze do utworzenia zgłoszenia łowiska."
+            description="Te dane będą podstawą do utworzenia karty łowiska."
           >
             <div className="grid gap-5 lg:grid-cols-2">
               <Input
@@ -673,7 +878,7 @@ export function LakeSubmissionForm() {
               />
 
               <Select
-                label="Typ łowiska"
+                label="Rodzaj łowiska"
                 value={form.ownerType}
                 onChange={(value) => updateField("ownerType", value)}
                 options={[
@@ -683,7 +888,7 @@ export function LakeSubmissionForm() {
               />
 
               <Select
-                label="Rodzaj łowienia"
+                label="Typ łowienia"
                 value={form.fishingType}
                 onChange={(value) => updateField("fishingType", value)}
                 options={[
@@ -943,16 +1148,19 @@ export function LakeSubmissionForm() {
         {currentStep.key === "photos" && (
           <StepCard
             title="Zdjęcia łowiska"
-            description={`Możesz dodać maksymalnie ${MAX_IMAGES} zdjęć. Jedno zdjęcie może mieć maksymalnie 5 MB.`}
+            description={`Możesz dodać maksymalnie ${MAX_IMAGES} zdjęć. Jedno zdjęcie po kompresji może mieć maksymalnie 5 MB.`}
           >
             <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-5 sm:p-6">
               <label className="block cursor-pointer rounded-2xl bg-white px-5 py-8 text-center transition hover:bg-slate-100">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
                   multiple
-                  disabled={isLoading}
-                  onChange={(event) => handleImagesChange(event.target.files)}
+                  disabled={isLoading || isProcessingImages}
+                  onChange={(event) => {
+                    void handleImagesChange(event.target.files);
+                    event.target.value = "";
+                  }}
                   className="hidden"
                 />
 
@@ -961,10 +1169,23 @@ export function LakeSubmissionForm() {
                 </span>
 
                 <p className="mt-2 text-sm leading-6 text-slate-500">
-                  Przy większej liczbie zdjęć wysyłka może potrwać dłużej.
-                  Najlepiej dodaj kilka najważniejszych zdjęć łowiska.
+                  Zdjęcia zostaną automatycznie zmniejszone przed wysłaniem.
+                  Obsługiwane formaty: JPG, PNG i WEBP.
+                </p>
+
+                <p className="mt-1 text-xs leading-5 text-slate-400">
+                  Format HEIC/HEIF z telefonu nie jest obsługiwany — zapisz
+                  zdjęcie jako JPG albo PNG.
                 </p>
               </label>
+
+              {isProcessingImages && (
+                <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                  <p className="text-sm font-bold text-blue-700">
+                    Przygotowuję i kompresuję zdjęcia...
+                  </p>
+                </div>
+              )}
 
               {images.length > 0 && (
                 <div className="mt-5">
@@ -976,7 +1197,7 @@ export function LakeSubmissionForm() {
                     <button
                       type="button"
                       onClick={() => setImages([])}
-                      disabled={isLoading}
+                      disabled={isLoading || isProcessingImages}
                       className="text-sm font-semibold text-red-500 transition hover:text-red-600 disabled:opacity-50"
                     >
                       Usuń wszystkie
@@ -998,7 +1219,7 @@ export function LakeSubmissionForm() {
                         <button
                           type="button"
                           onClick={() => removeImage(index)}
-                          disabled={isLoading}
+                          disabled={isLoading || isProcessingImages}
                           className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-sm font-bold text-red-500 shadow-sm transition hover:bg-white disabled:opacity-50"
                           aria-label="Usuń zdjęcie"
                         >
@@ -1008,6 +1229,10 @@ export function LakeSubmissionForm() {
                         <div className="p-3">
                           <p className="truncate text-xs font-semibold text-slate-600">
                             {imagePreview.file.name}
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-400">
+                            {formatFileSize(imagePreview.file.size)}
                           </p>
                         </div>
                       </div>
@@ -1071,12 +1296,39 @@ export function LakeSubmissionForm() {
           </StepCard>
         )}
 
+        {isLoading && uploadProgress > 0 && (
+          <div className="rounded-3xl border border-blue-100 bg-blue-50 p-4">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-sm font-bold text-blue-800">
+                Wysyłanie zgłoszenia
+              </p>
+
+              <p className="text-sm font-black text-blue-700">
+                {uploadProgress}%
+              </p>
+            </div>
+
+            <div className="h-3 overflow-hidden rounded-full bg-white">
+              <div
+                className="h-full rounded-full bg-blue-600 transition-all"
+                style={{
+                  width: `${uploadProgress}%`,
+                }}
+              />
+            </div>
+
+            <p className="mt-2 text-xs leading-5 text-blue-700">
+              Nie zamykaj strony podczas wysyłania zdjęć.
+            </p>
+          </div>
+        )}
+
         <div className="sticky bottom-0 z-20 -mx-4 border-t border-slate-200 bg-slate-50/95 px-4 py-4 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-0">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <button
               type="button"
               onClick={() => router.push("/lowiska")}
-              disabled={isLoading}
+              disabled={isLoading || isProcessingImages}
               className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
               Anuluj
@@ -1087,7 +1339,7 @@ export function LakeSubmissionForm() {
                 <button
                   type="button"
                   onClick={goToPreviousStep}
-                  disabled={isLoading}
+                  disabled={isLoading || isProcessingImages}
                   className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Wstecz
@@ -1098,7 +1350,7 @@ export function LakeSubmissionForm() {
                 <button
                   type="button"
                   onClick={goToNextStep}
-                  disabled={isLoading}
+                  disabled={isLoading || isProcessingImages}
                   className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Dalej
@@ -1106,10 +1358,14 @@ export function LakeSubmissionForm() {
               ) : (
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || isProcessingImages}
                   className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isLoading ? "Wysyłanie zgłoszenia..." : "Wyślij zgłoszenie"}
+                  {isProcessingImages
+                    ? "Przygotowywanie zdjęć..."
+                    : isLoading
+                      ? "Wysyłanie zgłoszenia..."
+                      : "Wyślij zgłoszenie"}
                 </button>
               )}
             </div>
@@ -1134,7 +1390,6 @@ function StepCard({
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <SectionHeader title={title} description={description} />
-
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -1190,8 +1445,7 @@ function Input({
   return (
     <div data-field-error={Boolean(error)}>
       <label className="mb-2 block text-sm font-semibold text-slate-700">
-        {label}
-        {required && <RequiredMark />}
+        {label} {required && <RequiredMark />}
       </label>
 
       <input
@@ -1232,8 +1486,7 @@ function Textarea({
   return (
     <div data-field-error={Boolean(error)}>
       <label className="mb-2 block text-sm font-semibold text-slate-700">
-        {label}
-        {required && <RequiredMark />}
+        {label} {required && <RequiredMark />}
       </label>
 
       <textarea
@@ -1277,8 +1530,7 @@ function Select({
   return (
     <div data-field-error={Boolean(error)}>
       <label className="mb-2 block text-sm font-semibold text-slate-700">
-        {label}
-        {required && <RequiredMark />}
+        {label} {required && <RequiredMark />}
       </label>
 
       <select
