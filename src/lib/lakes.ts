@@ -318,6 +318,8 @@ export async function getLakesList() {
     },
   });
 
+  
+
   return lakes.map((lake) => mapLakeToListDto(lake));
 }
 
@@ -412,4 +414,90 @@ export async function getLakeBySlug(slug: string) {
     byWeight: catchesByWeight.map(mapCatchToRankingItem),
     byLength: catchesByLength.map(mapCatchToRankingItem),
   });
+}
+
+export async function getLakesDashboard(): Promise<LakeDto[]> {
+  const lakes = await prisma.lake.findMany({
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      rating: true,
+      fish: true,
+      ownerType: true,
+      fishingType: true,
+      lat: true,
+      lng: true,
+      city: true,
+      voivodeship: true,
+      images: {
+        select: {
+          url: true,
+        },
+        take: 1,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return lakes.map((lake) => ({
+    id: lake.id,
+    name: lake.name,
+    slug: lake.slug,
+    rating: Number(lake.rating).toFixed(1),
+    distance: "0 km",
+    fish: lake.fish,
+    fishSpecies: [],
+    type: lake.ownerType as "pzw" | "commercial",
+    fishingType: lake.fishingType as "general" | "spinning" | "carp",
+    lat: lake.lat,
+    lng: lake.lng,
+    address: {
+      street: "",
+      city: lake.city,
+      postalCode: "",
+      voivodeship: lake.voivodeship,
+    },
+    description: "",
+    amenities: {
+      cottages: false,
+      campfire: false,
+      noKill: false,
+      tent: false,
+      parking: false,
+      pier: false,
+      toilet: false,
+      shop: false,
+      nightFishing: false,
+      boatRental: false,
+      gearRental: false,
+      shelter: false,
+      coveredSpots: false,
+      playground: false,
+      cardPayment: false,
+    },
+    details: {
+      area: "",
+      averageDepth: "",
+      bottomType: "",
+      waterType: "",
+    },
+    priceList: [],
+    priceListUrl: null,
+    rules: [],
+    rulesUrl: null,
+    contact: {
+      name: "",
+      phone: "",
+      email: "",
+      website: "",
+    },
+    images: lake.images.map((image) => image.url),
+    catchRankings: {
+      byWeight: [],
+      byLength: [],
+    },
+  }));
 }

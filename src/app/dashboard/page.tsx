@@ -11,7 +11,7 @@ import { RecommendedLakes } from "@/components/dashboard/RecommendedLakes";
 import { WeatherCard } from "@/components/dashboard/WeatherCard";
 import { DashboardLocationInitializer } from "@/components/dashboard/DashboardLocationInitializer";
 
-import { getLakes } from "@/lib/lakes";
+import { getLakesDashboard } from "@/lib/lakes";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,7 +26,7 @@ export default async function Home() {
     redirect("/login");
   }
 
-  const lakes = await getLakes();
+const lakes = await getLakesDashboard();
 
   const weekStartDate = getWeekStartDate();
   const now = new Date();
