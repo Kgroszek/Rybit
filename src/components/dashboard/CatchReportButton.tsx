@@ -1,15 +1,39 @@
 "use client";
 
 import { useState } from "react";
+import { useToast } from "@/components/ui/ToastProvider";
 
 type CatchReportButtonProps = {
   catchId: string;
 };
 
+type ApiResponse = {
+  message?: string;
+};
+
+async function readApiResponse(response: Response) {
+  try {
+    return (await response.json()) as ApiResponse;
+  } catch {
+    return {};
+  }
+}
+
 export function CatchReportButton({ catchId }: CatchReportButtonProps) {
+  const toast = useToast();
+
   const [isOpen, setIsOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  function closeModal() {
+    if (isLoading) {
+      return;
+    }
+
+    setIsOpen(false);
+    setReason("");
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -17,39 +41,78 @@ export function CatchReportButton({ catchId }: CatchReportButtonProps) {
     const trimmedReason = reason.trim();
 
     if (!trimmedReason) {
-      alert("Wpisz uzasadnienie zgłoszenia.");
+      toast.error({
+        title: "Wpisz uzasadnienie zgłoszenia.",
+        description: "Bez uzasadnienia zgłoszenie nie zostanie wysłane.",
+      });
+
       return;
     }
 
     if (trimmedReason.length < 10) {
-      alert("Uzasadnienie powinno mieć minimum 10 znaków.");
+      toast.error({
+        title: "Uzasadnienie jest zbyt krótkie.",
+        description: "Wpisz minimum 10 znaków i opisz, co jest podejrzane.",
+      });
+
       return;
     }
 
     setIsLoading(true);
 
-    const response = await fetch(`/api/catches/${catchId}/report`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        reason: trimmedReason,
-      }),
+    const toastId = toast.loading({
+      title: "Wysyłanie zgłoszenia...",
+      description: "Przekazujemy zgłoszenie połowu do administratora.",
     });
 
-    const data = await response.json();
+    try {
+      const response = await fetch(`/api/catches/${catchId}/report`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: trimmedReason,
+        }),
+      });
 
-    setIsLoading(false);
+      const data = await readApiResponse(response);
 
-    if (!response.ok) {
-      alert(data.message || "Nie udało się wysłać zgłoszenia.");
-      return;
+      if (!response.ok) {
+        const errorMessage =
+          data.message || "Nie udało się wysłać zgłoszenia.";
+
+        toast.update(toastId, {
+          type: "error",
+          title: "Nie udało się zgłosić połowu.",
+          description: errorMessage,
+          duration: 6000,
+        });
+
+        return;
+      }
+
+      toast.update(toastId, {
+        type: "success",
+        title: "Zgłoszenie zostało wysłane.",
+        description:
+          data.message ||
+          "Dziękujemy. Administrator sprawdzi ten połów w rankingu.",
+        duration: 4500,
+      });
+
+      setReason("");
+      setIsOpen(false);
+    } catch {
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się zgłosić połowu.",
+        description: "Wystąpił problem z połączeniem. Spróbuj ponownie.",
+        duration: 6000,
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    alert(data.message || "Zgłoszenie zostało wysłane.");
-    setReason("");
-    setIsOpen(false);
   }
 
   return (
@@ -65,7 +128,7 @@ export function CatchReportButton({ catchId }: CatchReportButtonProps) {
       {isOpen && (
         <div
           className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/70 p-4"
-          onClick={() => setIsOpen(false)}
+          onClick={closeModal}
         >
           <div
             className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl"
@@ -85,8 +148,9 @@ export function CatchReportButton({ catchId }: CatchReportButtonProps) {
 
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-600 transition hover:bg-slate-200"
+                onClick={closeModal}
+                disabled={isLoading}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
                 aria-label="Zamknij"
               >
                 ×
@@ -103,16 +167,23 @@ export function CatchReportButton({ catchId }: CatchReportButtonProps) {
                   value={reason}
                   onChange={(event) => setReason(event.target.value)}
                   rows={5}
+                  required
+                  disabled={isLoading}
                   placeholder="Np. zdjęcie nie przedstawia tej ryby, wynik wygląda na błędny, połów jest podejrzany..."
-                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
                 />
+
+                <p className="mt-2 text-xs font-semibold text-slate-400">
+                  Minimum 10 znaków. Aktualnie: {reason.trim().length}
+                </p>
               </div>
 
-              <div className="flex justify-end gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  onClick={closeModal}
+                  disabled={isLoading}
+                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Anuluj
                 </button>

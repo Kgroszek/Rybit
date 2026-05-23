@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/ToastProvider";
 
 type FishingGear = {
   id: string;
@@ -39,6 +40,10 @@ type GearFormState = {
   purchaseDate: string;
   note: string;
   isDefault: boolean;
+};
+
+type ApiResponse = {
+  message?: string;
 };
 
 const initialFormState: GearFormState = {
@@ -94,8 +99,17 @@ const statuses = [
   { label: "Nieużywany", value: "inactive" },
 ];
 
+async function readApiResponse(response: Response) {
+  try {
+    return (await response.json()) as ApiResponse;
+  } catch {
+    return {};
+  }
+}
+
 export function GearPage({ initialGear }: GearPageProps) {
   const router = useRouter();
+  const toast = useToast();
 
   const [gearItems, setGearItems] = useState<FishingGear[]>(initialGear);
   const [form, setForm] = useState<GearFormState>(initialFormState);
@@ -199,43 +213,133 @@ export function GearPage({ initialGear }: GearPageProps) {
     return sum;
   }, 0);
 
+  function validateForm() {
+    if (!form.name.trim()) {
+      toast.error({
+        title: "Podaj nazwę sprzętu.",
+        description: "Nazwa jest wymagana, żeby zapisać element ekwipunku.",
+      });
+
+      return false;
+    }
+
+    const quantity = Number(form.quantity);
+
+    if (!Number.isFinite(quantity) || quantity < 1) {
+      toast.error({
+        title: "Podaj poprawną ilość.",
+        description: "Ilość musi być liczbą większą lub równą 1.",
+      });
+
+      return false;
+    }
+
+    if (form.price.trim()) {
+      const price = Number(form.price);
+
+      if (!Number.isFinite(price) || price < 0) {
+        toast.error({
+          title: "Podaj poprawną cenę.",
+          description: "Cena nie może być mniejsza niż 0.",
+        });
+
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
+
+    const isEditing = Boolean(editingGearId);
+
+    const toastId = toast.loading({
+      title: isEditing ? "Zapisywanie zmian..." : "Dodawanie sprzętu...",
+      description: isEditing
+        ? "Aktualizujemy element ekwipunku."
+        : "Dodajemy nowy element do Twojego ekwipunku.",
+    });
 
     const url = editingGearId ? `/api/gear/${editingGearId}` : "/api/gear";
     const method = editingGearId ? "PUT" : "POST";
 
-    const response = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    });
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
 
-    const data = await response.json();
+      const data = (await response.json()) as FishingGear & ApiResponse;
 
-    if (!response.ok) {
-      alert(data.message || "Nie udało się zapisać sprzętu.");
+      if (!response.ok) {
+        const errorMessage = data.message || "Nie udało się zapisać sprzętu.";
+
+        toast.update(toastId, {
+          type: "error",
+          title: isEditing
+            ? "Nie udało się zapisać zmian."
+            : "Nie udało się dodać sprzętu.",
+          description: errorMessage,
+          duration: 6000,
+        });
+
+        setIsLoading(false);
+        return;
+      }
+
+      const savedGear = data as FishingGear;
+
+      if (editingGearId) {
+        setGearItems((current) =>
+          current.map((item) => (item.id === editingGearId ? savedGear : item))
+        );
+      } else {
+        setGearItems((current) => [savedGear, ...current]);
+      }
+
+      setForm(initialFormState);
+      setEditingGearId(null);
+      setIsFormOpen(false);
       setIsLoading(false);
-      return;
-    }
 
-    if (editingGearId) {
-      setGearItems((current) =>
-        current.map((item) => (item.id === editingGearId ? data : item))
-      );
-    } else {
-      setGearItems((current) => [data, ...current]);
-    }
+      toast.update(toastId, {
+        type: "success",
+        title: isEditing ? "Sprzęt został zaktualizowany." : "Sprzęt został dodany.",
+        description: isEditing
+          ? "Zmiany zostały zapisane w Twoim ekwipunku."
+          : "Nowy element pojawił się w Twoim ekwipunku.",
+        duration: 4500,
+      });
 
-    setForm(initialFormState);
-    setEditingGearId(null);
-    setIsFormOpen(false);
-    setIsLoading(false);
-    router.refresh();
+      router.refresh();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Wystąpił problem podczas zapisywania sprzętu.";
+
+      toast.update(toastId, {
+        type: "error",
+        title: isEditing
+          ? "Nie udało się zapisać zmian."
+          : "Nie udało się dodać sprzętu.",
+        description: errorMessage,
+        duration: 6000,
+      });
+
+      setIsLoading(false);
+    }
   }
 
   async function handleDelete(id: string) {
@@ -245,23 +349,51 @@ export function GearPage({ initialGear }: GearPageProps) {
       return;
     }
 
-    const response = await fetch(`/api/gear/${id}`, {
-      method: "DELETE",
+    const toastId = toast.loading({
+      title: "Usuwanie sprzętu...",
+      description: "Usuwamy element z Twojego ekwipunku.",
     });
 
-    if (!response.ok) {
-      const data = await response.json();
-      alert(data.message || "Nie udało się usunąć sprzętu.");
-      return;
+    try {
+      const response = await fetch(`/api/gear/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await readApiResponse(response);
+
+        toast.update(toastId, {
+          type: "error",
+          title: "Nie udało się usunąć sprzętu.",
+          description: data.message || "Spróbuj ponownie za chwilę.",
+          duration: 6000,
+        });
+
+        return;
+      }
+
+      setGearItems((current) => current.filter((item) => item.id !== id));
+
+      if (editingGearId === id) {
+        handleCancelForm();
+      }
+
+      toast.update(toastId, {
+        type: "success",
+        title: "Sprzęt został usunięty.",
+        description: "Element zniknął z Twojego ekwipunku.",
+        duration: 4500,
+      });
+
+      router.refresh();
+    } catch {
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się usunąć sprzętu.",
+        description: "Wystąpił problem z połączeniem. Spróbuj ponownie.",
+        duration: 6000,
+      });
     }
-
-    setGearItems((current) => current.filter((item) => item.id !== id));
-
-    if (editingGearId === id) {
-      handleCancelForm();
-    }
-
-    router.refresh();
   }
 
   return (
@@ -297,13 +429,16 @@ export function GearPage({ initialGear }: GearPageProps) {
       </div>
 
       <section className="mb-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Cały sprzęt" value={String(totalQuantity)} />
-        <StatCard label="Gotowe na wyprawę" value={String(defaultItems)} />
-        <StatCard label="Do sprawdzenia" value={String(toCheckItems)} />
+        <StatCard label="Elementy sprzętu" value={String(totalQuantity)} />
+
         <StatCard
-          label="Wartość sprzętu"
-          value={`${totalValue.toFixed(0)} zł`}
+          label="Szacowana wartość"
+          value={totalValue > 0 ? `${totalValue.toFixed(0)} zł` : "Brak"}
         />
+
+        <StatCard label="Na wyprawę" value={String(defaultItems)} />
+
+        <StatCard label="Do sprawdzenia" value={String(toCheckItems)} />
       </section>
 
       {isFormOpen && (
@@ -353,7 +488,7 @@ export function GearPage({ initialGear }: GearPageProps) {
               />
 
               <Select
-                label="Metoda łowienia"
+                label="Metoda"
                 value={form.fishingMethod}
                 onChange={(value) => updateField("fishingMethod", value)}
                 options={fishingMethods}
@@ -374,7 +509,7 @@ export function GearPage({ initialGear }: GearPageProps) {
               />
 
               <Input
-                label="Cena / wartość za sztukę"
+                label="Cena za sztukę"
                 value={form.price}
                 onChange={(value) => updateField("price", value)}
                 placeholder="np. 249"
@@ -422,7 +557,8 @@ export function GearPage({ initialGear }: GearPageProps) {
               <button
                 type="button"
                 onClick={handleCancelForm}
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                disabled={isLoading}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Anuluj
               </button>
@@ -455,10 +591,7 @@ export function GearPage({ initialGear }: GearPageProps) {
           <FilterSelect
             value={categoryFilter}
             onChange={setCategoryFilter}
-            options={[
-              { label: "Wszystkie kategorie", value: "all" },
-              ...categories,
-            ]}
+            options={[{ label: "Wszystkie kategorie", value: "all" }, ...categories]}
           />
 
           <FilterSelect
@@ -583,6 +716,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-semibold text-slate-500">{label}</p>
+
       <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
         {value}
       </p>
@@ -618,6 +752,7 @@ function Input({
         required={required}
         type={type}
         min={type === "number" ? 1 : undefined}
+        step={type === "number" ? "0.01" : undefined}
         className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
       />
     </div>

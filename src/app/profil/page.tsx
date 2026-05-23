@@ -150,7 +150,7 @@ export default async function ProfilePage() {
         ? user.user_metadata.full_name
         : typeof user.user_metadata?.display_name === "string"
           ? user.user_metadata.display_name
-          : "Wędkarz Rybit";
+          : "Wędkarz Rybio";
 
   return (
     <DashboardLayout>
@@ -177,7 +177,7 @@ export default async function ProfilePage() {
       <section className="mb-6 grid gap-5 xl:grid-cols-[360px_1fr]">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600 to-emerald-400 text-2xl font-bold text-white">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-600 to-emerald-400 text-2xl font-bold text-white">
               {getInitials(displayName)}
             </div>
 
@@ -199,12 +199,16 @@ export default async function ProfilePage() {
             />
           </div>
 
-          {/* <Link
-            href={`/wedkarze/${user.id}`}
-            className="mt-5 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            Zobacz publiczny profil
-          </Link> */}
+          <div className="mt-5 grid gap-3">
+           
+
+            <Link
+              href="/ustawienia"
+              className="flex w-full items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            >
+              Edytuj dane konta
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-5">
@@ -288,12 +292,12 @@ export default async function ProfilePage() {
                   href={`/lowiska/${favourite.lake.slug}`}
                   className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50"
                 >
-                  <div>
-                    <p className="font-bold text-slate-950">
+                  <div className="min-w-0">
+                    <p className="truncate font-bold text-slate-950">
                       {favourite.lake.name}
                     </p>
 
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 line-clamp-2 text-sm text-slate-500">
                       {favourite.lake.fish}
                     </p>
                   </div>
@@ -329,8 +333,8 @@ export default async function ProfilePage() {
                   href={`/lowiska/${rating.lake.slug}`}
                   className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 p-4 transition hover:bg-slate-50"
                 >
-                  <div>
-                    <p className="font-bold text-slate-950">
+                  <div className="min-w-0">
+                    <p className="truncate font-bold text-slate-950">
                       {rating.lake.name}
                     </p>
 
@@ -685,6 +689,7 @@ function StatusBadge({ status }: { status: string }) {
 function getOwnerTypeLabel(type: string | null) {
   if (type === "commercial") return "Komercyjne";
   if (type === "pzw") return "PZW";
+
   return "Inne";
 }
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useToast } from "@/components/ui/ToastProvider";
 
 type TabKey = "contact" | "website" | "cooperation";
 type SubmitStatus = "idle" | "loading" | "success" | "error";
@@ -289,6 +290,7 @@ function ContactForm({
   buttonText: string;
   showCompany?: boolean;
 }) {
+  const toast = useToast();
   const [status, setStatus] = useState<SubmitStatus>("idle");
   const [message, setMessage] = useState("");
 
@@ -299,6 +301,14 @@ function ContactForm({
 
     setStatus("loading");
     setMessage("");
+
+    const toastId = toast.loading({
+      title:
+        formType === "cooperation"
+          ? "Wysyłanie propozycji..."
+          : "Wysyłanie wiadomości...",
+      description: "Proszę czekać, trwa wysyłanie formularza.",
+    });
 
     const formData = new FormData(formElement);
 
@@ -323,17 +333,45 @@ function ContactForm({
       const data = await readApiResponse(response);
 
       if (!response.ok) {
+        const errorMessage =
+          data.message || "Nie udało się wysłać wiadomości.";
+
         setStatus("error");
-        setMessage(data.message || "Nie udało się wysłać wiadomości.");
+        setMessage(errorMessage);
+
+        toast.update(toastId, {
+          type: "error",
+          title: "Nie udało się wysłać formularza.",
+          description: errorMessage,
+          duration: 6000,
+        });
+
         return;
       }
 
       formElement.reset();
       setStatus("success");
       setMessage("Dziękujemy. Wiadomość została wysłana.");
+
+      toast.update(toastId, {
+        type: "success",
+        title: "Wiadomość została wysłana.",
+        description: "Dziękujemy za kontakt. Odpowiemy mailowo.",
+        duration: 4500,
+      });
     } catch {
+      const errorMessage =
+        "Wystąpił problem z wysyłką. Spróbuj ponownie za chwilę.";
+
       setStatus("error");
-      setMessage("Wystąpił problem z wysyłką. Spróbuj ponownie za chwilę.");
+      setMessage(errorMessage);
+
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się wysłać formularza.",
+        description: errorMessage,
+        duration: 6000,
+      });
     }
   }
 
@@ -390,6 +428,7 @@ function ContactForm({
 }
 
 function FisheryWebsiteForm() {
+  const toast = useToast();
   const [status, setStatus] = useState<SubmitStatus>("idle");
   const [message, setMessage] = useState("");
 
@@ -400,6 +439,11 @@ function FisheryWebsiteForm() {
 
     setStatus("loading");
     setMessage("");
+
+    const toastId = toast.loading({
+      title: "Wysyłanie zapytania...",
+      description: "Proszę czekać, trwa wysyłanie formularza.",
+    });
 
     const formData = new FormData(formElement);
 
@@ -428,17 +472,44 @@ function FisheryWebsiteForm() {
       const data = await readApiResponse(response);
 
       if (!response.ok) {
+        const errorMessage = data.message || "Nie udało się wysłać zapytania.";
+
         setStatus("error");
-        setMessage(data.message || "Nie udało się wysłać zapytania.");
+        setMessage(errorMessage);
+
+        toast.update(toastId, {
+          type: "error",
+          title: "Nie udało się wysłać zapytania.",
+          description: errorMessage,
+          duration: 6000,
+        });
+
         return;
       }
 
       formElement.reset();
       setStatus("success");
       setMessage("Dziękujemy. Zapytanie zostało wysłane.");
+
+      toast.update(toastId, {
+        type: "success",
+        title: "Zapytanie zostało wysłane.",
+        description: "Dziękujemy. Odpowiemy mailowo.",
+        duration: 4500,
+      });
     } catch {
+      const errorMessage =
+        "Wystąpił problem z wysyłką. Spróbuj ponownie za chwilę.";
+
       setStatus("error");
-      setMessage("Wystąpił problem z wysyłką. Spróbuj ponownie za chwilę.");
+      setMessage(errorMessage);
+
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się wysłać zapytania.",
+        description: errorMessage,
+        duration: 6000,
+      });
     }
   }
 

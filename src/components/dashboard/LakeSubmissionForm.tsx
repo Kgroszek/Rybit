@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/ToastProvider";
 
 type FormState = {
   name: string;
@@ -367,6 +368,7 @@ function formatFileSize(bytes: number) {
 
 export function LakeSubmissionForm() {
   const router = useRouter();
+  const toast = useToast();
   const formRef = useRef<HTMLFormElement | null>(null);
   const topRef = useRef<HTMLDivElement | null>(null);
 
@@ -705,12 +707,23 @@ export function LakeSubmissionForm() {
       }
 
       setMessage("Uzupełnij wymagane pola oznaczone na czerwono.");
+
+      toast.error({
+        title: "Uzupełnij wymagane pola.",
+        description: "Sprawdź pola oznaczone na czerwono i spróbuj ponownie.",
+      });
+
       scrollToFirstError();
       return;
     }
 
     setIsLoading(true);
     setUploadProgress(0);
+
+    const toastId = toast.loading({
+      title: "Wysyłanie zgłoszenia...",
+      description: "Przygotowujemy dane łowiska i zdjęcia.",
+    });
 
     const submitStartedAt = performance.now();
 
@@ -730,6 +743,13 @@ export function LakeSubmissionForm() {
       const requestTime = Math.round(performance.now() - submitStartedAt);
       console.info(`[LakeSubmissionForm] Czas wysyłki: ${requestTime} ms`);
 
+      toast.update(toastId, {
+        type: "success",
+        title: "Zgłoszenie zostało wysłane.",
+        description: "Trafiło do weryfikacji administratora.",
+        duration: 4500,
+      });
+
       setSuccessModalOpen(true);
       setForm(initialFormState);
       setImages([]);
@@ -739,11 +759,19 @@ export function LakeSubmissionForm() {
     } catch (error) {
       console.error("[LakeSubmissionForm] Błąd wysyłki:", error);
 
-      setMessage(
+      const errorMessage =
         error instanceof Error
           ? error.message
-          : "Wystąpił problem podczas wysyłania formularza. Spróbuj ponownie."
-      );
+          : "Wystąpił problem podczas wysyłania formularza. Spróbuj ponownie.";
+
+      setMessage(errorMessage);
+
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się wysłać zgłoszenia.",
+        description: errorMessage,
+        duration: 6000,
+      });
     } finally {
       setIsLoading(false);
       setUploadProgress(0);

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { LakeDto } from "@/lib/lakes";
 import { LakeCorrectionReportButton } from "@/components/dashboard/LakeCorrectionReportButton";
 import { CatchReportButton } from "@/components/dashboard/CatchReportButton";
+import { useToast } from "@/components/ui/ToastProvider";
 
 type LakeDetailsPageProps = {
   lake: LakeDto;
@@ -106,10 +107,25 @@ function getNavigationUrl(lat: number, lng: number) {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 }
 
+async function readJsonResponse(response: Response) {
+  try {
+    return (await response.json()) as {
+      message?: string;
+      isFavourite?: boolean;
+      userRating?: number;
+      averageRating?: number | string;
+    };
+  } catch {
+    return {};
+  }
+}
+
 export function LakeDetailsPage({
   lake,
   isAdmin = false,
 }: LakeDetailsPageProps) {
+  const toast = useToast();
+
   const [displayRating, setDisplayRating] = useState(lake.rating);
   const [userRating, setUserRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -184,18 +200,23 @@ export function LakeDetailsPage({
     async function loadUserData() {
       setIsLoadingUserData(true);
 
-      const response = await fetch(`/api/lakes/${lake.slug}/user-data`);
+      try {
+        const response = await fetch(`/api/lakes/${lake.slug}/user-data`);
 
-      if (!response.ok) {
+        if (!response.ok) {
+          setIsLoadingUserData(false);
+          return;
+        }
+
+        const data = await response.json();
+
+        setIsFavourite(Boolean(data.isFavourite));
+        setUserRating(Number(data.userRating || 0));
+      } catch {
+        console.warn("[LakeDetailsPage] Nie udało się pobrać danych użytkownika.");
+      } finally {
         setIsLoadingUserData(false);
-        return;
       }
-
-      const data = await response.json();
-
-      setIsFavourite(Boolean(data.isFavourite));
-      setUserRating(Number(data.userRating || 0));
-      setIsLoadingUserData(false);
     }
 
     loadUserData();
@@ -228,48 +249,125 @@ export function LakeDetailsPage({
   }, [previewImageIndex, visibleImages.length]);
 
   async function handleRatingChange(rating: number) {
-    setIsRatingLoading(true);
-
-    const response = await fetch(`/api/lakes/${lake.slug}/rating`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        value: rating,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert(data.message || "Nie udało się zapisać oceny.");
-      setIsRatingLoading(false);
+    if (isRatingLoading || isLoadingUserData) {
       return;
     }
 
-    setUserRating(Number(data.userRating));
-    setDisplayRating(String(data.averageRating));
-    setIsRatingLoading(false);
+    setIsRatingLoading(true);
+
+    const toastId = toast.loading({
+      title: "Zapisywanie oceny...",
+      description: `Zapisujemy Twoją ocenę ${rating}/5 dla tego łowiska.`,
+    });
+
+    try {
+      const response = await fetch(`/api/lakes/${lake.slug}/rating`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          value: rating,
+        }),
+      });
+
+      const data = await readJsonResponse(response);
+
+      if (!response.ok) {
+        const errorMessage = data.message || "Nie udało się zapisać oceny.";
+
+        toast.update(toastId, {
+          type: "error",
+          title: "Nie udało się zapisać oceny.",
+          description: errorMessage,
+          duration: 6000,
+        });
+
+        return;
+      }
+
+      setUserRating(Number(data.userRating || rating));
+      setDisplayRating(String(data.averageRating ?? displayRating));
+
+      toast.update(toastId, {
+        type: "success",
+        title: "Ocena została zapisana.",
+        description: `Twoja ocena: ${rating}/5.`,
+        duration: 4500,
+      });
+    } catch {
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się zapisać oceny.",
+        description: "Wystąpił problem z połączeniem. Spróbuj ponownie.",
+        duration: 6000,
+      });
+    } finally {
+      setIsRatingLoading(false);
+    }
   }
 
   async function handleFavouriteToggle() {
-    setIsFavouriteLoading(true);
-
-    const response = await fetch(`/api/lakes/${lake.slug}/favourite`, {
-      method: "POST",
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert(data.message || "Nie udało się zmienić ulubionych.");
-      setIsFavouriteLoading(false);
+    if (isFavouriteLoading || isLoadingUserData) {
       return;
     }
 
-    setIsFavourite(Boolean(data.isFavourite));
-    setIsFavouriteLoading(false);
+    const wasFavourite = isFavourite;
+
+    setIsFavouriteLoading(true);
+
+    const toastId = toast.loading({
+      title: wasFavourite
+        ? "Usuwanie z ulubionych..."
+        : "Dodawanie do ulubionych...",
+      description: "Aktualizujemy Twoją listę łowisk.",
+    });
+
+    try {
+      const response = await fetch(`/api/lakes/${lake.slug}/favourite`, {
+        method: "POST",
+      });
+
+      const data = await readJsonResponse(response);
+
+      if (!response.ok) {
+        const errorMessage =
+          data.message || "Nie udało się zmienić ulubionych.";
+
+        toast.update(toastId, {
+          type: "error",
+          title: "Nie udało się zmienić ulubionych.",
+          description: errorMessage,
+          duration: 6000,
+        });
+
+        return;
+      }
+
+      const nextIsFavourite = Boolean(data.isFavourite);
+
+      setIsFavourite(nextIsFavourite);
+
+      toast.update(toastId, {
+        type: "success",
+        title: nextIsFavourite
+          ? "Dodano do ulubionych."
+          : "Usunięto z ulubionych.",
+        description: nextIsFavourite
+          ? "Łowisko pojawi się na Twojej liście ulubionych."
+          : "Łowisko zostało usunięte z Twojej listy ulubionych.",
+        duration: 4500,
+      });
+    } catch {
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się zmienić ulubionych.",
+        description: "Wystąpił problem z połączeniem. Spróbuj ponownie.",
+        duration: 6000,
+      });
+    } finally {
+      setIsFavouriteLoading(false);
+    }
   }
 
   return (
@@ -1016,7 +1114,7 @@ function RankingCard({
         <div className="space-y-3">
           {items.map((item, index) => (
             <RankingItem
-              key={`${type}-${item.id}`}
+              key={`${item.id}-${type}`}
               item={item}
               place={index + 1}
               type={type}
@@ -1025,7 +1123,7 @@ function RankingCard({
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl bg-white p-5 text-sm font-semibold text-slate-500">
+        <div className="rounded-2xl bg-white p-5 text-center text-sm font-semibold text-slate-500">
           {emptyText}
         </div>
       )}
@@ -1046,16 +1144,16 @@ function RankingItem({
 }) {
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="grid gap-0 sm:grid-cols-[110px_1fr]">
+      <div className="grid gap-0 sm:grid-cols-[120px_1fr]">
         <button
           type="button"
           onClick={onImageClick}
-          className="relative h-32 overflow-hidden bg-slate-100 text-left sm:h-full"
+          className="relative h-32 bg-slate-100 text-left sm:h-full"
         >
           <img
             src={item.imageUrl}
             alt={`Połów: ${item.fishName}`}
-            className="h-full w-full object-cover transition duration-300 hover:scale-105"
+            className="h-full w-full object-cover"
           />
 
           <div

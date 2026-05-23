@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/ToastProvider";
 
 type FishingCatch = {
   id: string;
@@ -144,6 +145,7 @@ export function CatchesPage({
   initialTripId = null,
 }: CatchesPageProps) {
   const router = useRouter();
+  const toast = useToast();
 
   const initialTripExists = trips.some((trip) => trip.id === initialTripId);
 
@@ -271,7 +273,9 @@ export function CatchesPage({
       body: formData,
     });
 
-    const data = await response.json();
+    const data = (await response.json()) as FishingCatch & {
+      message?: string;
+    };
 
     if (!response.ok) {
       throw new Error(data.message || "Nie udało się dodać zdjęcia.");
@@ -282,7 +286,11 @@ export function CatchesPage({
 
   function validateRankingRules(finalFishName: string) {
     if (!finalFishName) {
-      alert("Wybierz gatunek ryby albo wpisz własny.");
+      toast.error({
+        title: "Wybierz gatunek ryby.",
+        description: "Wybierz gatunek z listy albo wpisz własny.",
+      });
+
       return false;
     }
 
@@ -298,23 +306,32 @@ export function CatchesPage({
     const hasImage = Boolean(selectedImage) || hasExistingImage;
 
     if (!form.lakeId) {
-      alert(
-        "Aby połów trafił do rankingu łowiska, musisz wybrać łowisko z bazy."
-      );
+      toast.error({
+        title: "Wybierz łowisko z bazy.",
+        description:
+          "Aby połów trafił do rankingu łowiska, musisz przypisać go do łowiska.",
+      });
+
       return false;
     }
 
     if (!hasImage) {
-      alert(
-        "Aby połów trafił do rankingu łowiska, musisz dodać zdjęcie ryby."
-      );
+      toast.error({
+        title: "Dodaj zdjęcie ryby.",
+        description:
+          "Aby połów trafił do rankingu łowiska, zdjęcie jest wymagane.",
+      });
+
       return false;
     }
 
     if (!form.weight && !form.length) {
-      alert(
-        "Aby połów trafił do rankingu łowiska, wpisz wagę lub długość ryby."
-      );
+      toast.error({
+        title: "Podaj wagę lub długość.",
+        description:
+          "Aby połów trafił do rankingu łowiska, wpisz wagę lub długość ryby.",
+      });
+
       return false;
     }
 
@@ -332,6 +349,13 @@ export function CatchesPage({
     }
 
     setIsLoading(true);
+
+    const toastId = toast.loading({
+      title: editingCatchId ? "Zapisywanie zmian..." : "Dodawanie połowu...",
+      description: selectedImage
+        ? "Przygotowujemy dane i zdjęcie połowu."
+        : "Przygotowujemy dane połowu.",
+    });
 
     if (!editingCatchId) {
       try {
@@ -358,10 +382,20 @@ export function CatchesPage({
           body: formData,
         });
 
-        const data = await response.json();
+        const data = (await response.json()) as FishingCatch & {
+          message?: string;
+        };
 
         if (!response.ok) {
-          alert(data.message || "Nie udało się zapisać połowu.");
+          const errorMessage = data.message || "Nie udało się zapisać połowu.";
+
+          toast.update(toastId, {
+            type: "error",
+            title: "Nie udało się dodać połowu.",
+            description: errorMessage,
+            duration: 6000,
+          });
+
           setIsLoading(false);
           return;
         }
@@ -374,62 +408,118 @@ export function CatchesPage({
         setEditingCatchId(null);
         setIsFormOpen(false);
         setIsLoading(false);
+
+        toast.update(toastId, {
+          type: "success",
+          title: "Połów został dodany.",
+          description: form.isPublic
+            ? "Połów trafił do weryfikacji rankingu łowiska."
+            : "Połów został zapisany w Twoim dzienniku.",
+          duration: 4500,
+        });
+
         router.refresh();
         return;
       } catch (error) {
-        alert(
+        const errorMessage =
           error instanceof Error
             ? error.message
-            : "Nie udało się zapisać połowu."
-        );
+            : "Nie udało się zapisać połowu.";
+
+        toast.update(toastId, {
+          type: "error",
+          title: "Nie udało się dodać połowu.",
+          description: errorMessage,
+          duration: 6000,
+        });
+
         setIsLoading(false);
         return;
       }
     }
 
-    const response = await fetch(`/api/catches/${editingCatchId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ...form,
-        fishName: finalFishName,
-      }),
-    });
+    try {
+      const response = await fetch(`/api/catches/${editingCatchId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...form,
+          fishName: finalFishName,
+        }),
+      });
 
-    const data = await response.json();
+      const data = (await response.json()) as FishingCatch & {
+        message?: string;
+      };
 
-    if (!response.ok) {
-      alert(data.message || "Nie udało się zapisać połowu.");
-      setIsLoading(false);
-      return;
-    }
+      if (!response.ok) {
+        const errorMessage = data.message || "Nie udało się zapisać połowu.";
 
-    let savedCatch = data as FishingCatch;
+        toast.update(toastId, {
+          type: "error",
+          title: "Nie udało się zapisać zmian.",
+          description: errorMessage,
+          duration: 6000,
+        });
 
-    if (selectedImage) {
-      try {
-        savedCatch = await uploadCatchImage(savedCatch.id, selectedImage);
-      } catch (error) {
-        alert(
-          error instanceof Error
-            ? error.message
-            : "Połów został zapisany, ale nie udało się dodać zdjęcia."
-        );
+        setIsLoading(false);
+        return;
       }
+
+      let savedCatch = data as FishingCatch;
+
+      if (selectedImage) {
+        try {
+          savedCatch = await uploadCatchImage(savedCatch.id, selectedImage);
+        } catch (error) {
+          toast.error({
+            title: "Zdjęcie nie zostało zapisane.",
+            description:
+              error instanceof Error
+                ? error.message
+                : "Połów został zapisany, ale nie udało się dodać zdjęcia.",
+            duration: 6000,
+          });
+        }
+      }
+
+      setCatches((current) =>
+        current.map((item) => (item.id === editingCatchId ? savedCatch : item))
+      );
+
+      setForm(initialFormWithTrip);
+      setSelectedImage(null);
+      setEditingCatchId(null);
+      setIsFormOpen(false);
+      setIsLoading(false);
+
+      toast.update(toastId, {
+        type: "success",
+        title: "Połów został zaktualizowany.",
+        description: form.isPublic
+          ? "Zmiany zostały zapisane. Połów może wymagać ponownej weryfikacji."
+          : "Zmiany zostały zapisane w Twoim dzienniku.",
+        duration: 4500,
+      });
+
+      router.refresh();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Nie udało się zapisać połowu.";
+
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się zapisać zmian.",
+        description: errorMessage,
+        duration: 6000,
+      });
+
+      setIsLoading(false);
     }
-
-    setCatches((current) =>
-      current.map((item) => (item.id === editingCatchId ? savedCatch : item))
-    );
-
-    setForm(initialFormWithTrip);
-    setSelectedImage(null);
-    setEditingCatchId(null);
-    setIsFormOpen(false);
-    setIsLoading(false);
-    router.refresh();
   }
 
   async function handleDeleteCatch(id: string) {
@@ -439,23 +529,53 @@ export function CatchesPage({
       return;
     }
 
-    const response = await fetch(`/api/catches/${id}`, {
-      method: "DELETE",
+    const toastId = toast.loading({
+      title: "Usuwanie połowu...",
+      description: "Trwa usuwanie wpisu z dziennika.",
     });
 
-    if (!response.ok) {
-      const data = await response.json();
-      alert(data.message || "Nie udało się usunąć połowu.");
-      return;
+    try {
+      const response = await fetch(`/api/catches/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as {
+          message?: string;
+        };
+
+        toast.update(toastId, {
+          type: "error",
+          title: "Nie udało się usunąć połowu.",
+          description: data.message || "Spróbuj ponownie za chwilę.",
+          duration: 6000,
+        });
+
+        return;
+      }
+
+      setCatches((current) => current.filter((item) => item.id !== id));
+
+      if (editingCatchId === id) {
+        handleCancelForm();
+      }
+
+      toast.update(toastId, {
+        type: "success",
+        title: "Połów został usunięty.",
+        description: "Wpis zniknął z Twojego dziennika połowów.",
+        duration: 4500,
+      });
+
+      router.refresh();
+    } catch {
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się usunąć połowu.",
+        description: "Wystąpił problem z połączeniem. Spróbuj ponownie.",
+        duration: 6000,
+      });
     }
-
-    setCatches((current) => current.filter((item) => item.id !== id));
-
-    if (editingCatchId === id) {
-      handleCancelForm();
-    }
-
-    router.refresh();
   }
 
   return (
@@ -1150,7 +1270,7 @@ async function compressImage(file: File): Promise<File> {
   const context = canvas.getContext("2d");
 
   if (!context) {
-    throw new Error("Nie udało się przygotować zdjęcia.");
+    throw new Error("Nie udało się przygotować kompresji zdjęcia.");
   }
 
   context.drawImage(imageBitmap, 0, 0, width, height);

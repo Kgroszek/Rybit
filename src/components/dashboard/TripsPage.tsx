@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/components/ui/ToastProvider";
 
 type FishingTrip = {
   id: string;
@@ -43,6 +44,10 @@ type TripFormState = {
   createChecklist: boolean;
 };
 
+type ApiResponse = {
+  message?: string;
+};
+
 const initialFormState: TripFormState = {
   title: "",
   lakeId: "",
@@ -70,6 +75,16 @@ const statuses = [
   { label: "Anulowana", value: "cancelled" },
 ];
 
+async function readApiResponse(response: Response) {
+  try {
+    return (await response.json()) as FishingTrip & ApiResponse;
+  } catch {
+    return {
+      message: "Serwer nie zwrócił poprawnej odpowiedzi.",
+    } as FishingTrip & ApiResponse;
+  }
+}
+
 export function TripsPage({
   initialTrips,
   lakes,
@@ -77,6 +92,7 @@ export function TripsPage({
   initialLakeName = null,
 }: TripsPageProps) {
   const router = useRouter();
+  const toast = useToast();
 
   const initialLakeExists = lakes.some((lake) => lake.id === initialLakeId);
 
@@ -96,6 +112,10 @@ export function TripsPage({
   );
   const [editingTripId, setEditingTripId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   function updateField<K extends keyof TripFormState>(
     field: K,
@@ -130,18 +150,19 @@ export function TripsPage({
 
   function handleCancelForm() {
     setEditingTripId(null);
-    setForm(initialFormState);
+    setForm(initialFormWithLake);
     setIsFormOpen(false);
   }
 
   function handleOpenCreateForm() {
     setEditingTripId(null);
-    setForm(initialFormState);
+    setForm(initialFormWithLake);
     setIsFormOpen(true);
   }
 
   const plannedTrips = trips.filter((trip) => trip.status === "planned");
   const finishedTrips = trips.filter((trip) => trip.status === "finished");
+  const cancelledTrips = trips.filter((trip) => trip.status === "cancelled");
 
   const nearestTrip = useMemo(() => {
     const now = new Date();
@@ -158,43 +179,156 @@ export function TripsPage({
     );
   }, [trips]);
 
+  const filteredTrips = useMemo(() => {
+    const searchValue = search.trim().toLowerCase();
+
+    return trips
+      .filter((trip) => {
+        const matchesSearch =
+          !searchValue ||
+          trip.title.toLowerCase().includes(searchValue) ||
+          trip.lakeName?.toLowerCase().includes(searchValue) ||
+          trip.note?.toLowerCase().includes(searchValue);
+
+        const matchesStatus =
+          statusFilter === "all" || trip.status === statusFilter;
+
+        const matchesType = typeFilter === "all" || trip.tripType === typeFilter;
+
+        return matchesSearch && matchesStatus && matchesType;
+      })
+      .sort(
+        (firstTrip, secondTrip) =>
+          new Date(secondTrip.startsAt).getTime() -
+          new Date(firstTrip.startsAt).getTime()
+      );
+  }, [trips, search, statusFilter, typeFilter]);
+
+  function validateForm() {
+    if (!form.title.trim()) {
+      toast.error({
+        title: "Podaj tytuł wyprawy.",
+        description: "Tytuł jest wymagany, żeby zapisać wyprawę.",
+      });
+
+      return false;
+    }
+
+    if (!form.startsAt) {
+      toast.error({
+        title: "Wybierz datę wyprawy.",
+        description: "Data i godzina rozpoczęcia są wymagane.",
+      });
+
+      return false;
+    }
+
+    const parsedDate = new Date(form.startsAt);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      toast.error({
+        title: "Niepoprawna data wyprawy.",
+        description: "Sprawdź datę i godzinę rozpoczęcia.",
+      });
+
+      return false;
+    }
+
+    return true;
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (!validateForm()) {
+      return;
+    }
+
     setIsLoading(true);
+
+    const isEditing = Boolean(editingTripId);
+
+    const toastId = toast.loading({
+      title: isEditing ? "Zapisywanie zmian..." : "Planowanie wyprawy...",
+      description: isEditing
+        ? "Aktualizujemy dane wyprawy."
+        : "Dodajemy nową wyprawę do Twojego kalendarza.",
+    });
 
     const url = editingTripId ? `/api/trips/${editingTripId}` : "/api/trips";
     const method = editingTripId ? "PUT" : "POST";
 
-    const response = await fetch(url, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    });
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(form),
+      });
 
-    const data = await response.json();
+      const data = await readApiResponse(response);
 
-    if (!response.ok) {
-      alert(data.message || "Nie udało się zapisać wyprawy.");
+      if (!response.ok) {
+        const errorMessage = data.message || "Nie udało się zapisać wyprawy.";
+
+        toast.update(toastId, {
+          type: "error",
+          title: isEditing
+            ? "Nie udało się zapisać zmian."
+            : "Nie udało się zaplanować wyprawy.",
+          description: errorMessage,
+          duration: 6000,
+        });
+
+        setIsLoading(false);
+        return;
+      }
+
+      const savedTrip = data as FishingTrip;
+
+      if (editingTripId) {
+        setTrips((current) =>
+          current.map((trip) => (trip.id === editingTripId ? savedTrip : trip))
+        );
+      } else {
+        setTrips((current) => [savedTrip, ...current]);
+      }
+
+      setForm(initialFormWithLake);
+      setEditingTripId(null);
+      setIsFormOpen(false);
       setIsLoading(false);
-      return;
-    }
 
-    if (editingTripId) {
-      setTrips((current) =>
-        current.map((trip) => (trip.id === editingTripId ? data : trip))
-      );
-    } else {
-      setTrips((current) => [data, ...current]);
-    }
+      toast.update(toastId, {
+        type: "success",
+        title: isEditing
+          ? "Wyprawa została zaktualizowana."
+          : "Wyprawa została zaplanowana.",
+        description: form.createChecklist
+          ? "Dane zapisano. Checklista wyprawy jest gotowa do uzupełnienia."
+          : "Dane wyprawy zostały zapisane.",
+        duration: 4500,
+      });
 
-    setForm(initialFormState);
-    setEditingTripId(null);
-    setIsFormOpen(false);
-    setIsLoading(false);
-    router.refresh();
+      router.refresh();
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Wystąpił problem podczas zapisywania wyprawy.";
+
+      toast.update(toastId, {
+        type: "error",
+        title: isEditing
+          ? "Nie udało się zapisać zmian."
+          : "Nie udało się zaplanować wyprawy.",
+        description: errorMessage,
+        duration: 6000,
+      });
+
+      setIsLoading(false);
+    }
   }
 
   async function handleDeleteTrip(id: string) {
@@ -204,23 +338,51 @@ export function TripsPage({
       return;
     }
 
-    const response = await fetch(`/api/trips/${id}`, {
-      method: "DELETE",
+    const toastId = toast.loading({
+      title: "Usuwanie wyprawy...",
+      description: "Usuwamy wyprawę z Twojego kalendarza.",
     });
 
-    if (!response.ok) {
-      const data = await response.json();
-      alert(data.message || "Nie udało się usunąć wyprawy.");
-      return;
+    try {
+      const response = await fetch(`/api/trips/${id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await readApiResponse(response);
+
+        toast.update(toastId, {
+          type: "error",
+          title: "Nie udało się usunąć wyprawy.",
+          description: data.message || "Spróbuj ponownie za chwilę.",
+          duration: 6000,
+        });
+
+        return;
+      }
+
+      setTrips((current) => current.filter((trip) => trip.id !== id));
+
+      if (editingTripId === id) {
+        handleCancelForm();
+      }
+
+      toast.update(toastId, {
+        type: "success",
+        title: "Wyprawa została usunięta.",
+        description: "Wyprawa zniknęła z Twojego kalendarza.",
+        duration: 4500,
+      });
+
+      router.refresh();
+    } catch {
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się usunąć wyprawy.",
+        description: "Wystąpił problem z połączeniem. Spróbuj ponownie.",
+        duration: 6000,
+      });
     }
-
-    setTrips((current) => current.filter((trip) => trip.id !== id));
-
-    if (editingTripId === id) {
-      handleCancelForm();
-    }
-
-    router.refresh();
   }
 
   return (
@@ -232,8 +394,8 @@ export function TripsPage({
           </h1>
 
           <p className="mt-2 max-w-3xl text-slate-500">
-            Planuj wyjazdy, przypisuj łowiska, twórz checklisty i zapisuj
-            informacje potrzebne przed wyprawą.
+            Planuj wyjazdy nad wodę, przypisuj łowiska, twórz checklisty i
+            zapisuj notatki z wypraw.
           </p>
         </div>
 
@@ -253,21 +415,51 @@ export function TripsPage({
         </button>
       </div>
 
-      {initialLakeExists && isFormOpen && !editingTripId && (
-        <div className="mb-6 rounded-3xl border border-emerald-100 bg-emerald-50 p-5 text-sm font-semibold text-emerald-700">
-          Planujesz wyprawę na łowisko: {initialLakeName}
-        </div>
-      )}
-
       <section className="mb-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Wszystkie wyprawy" value={String(trips.length)} />
         <StatCard label="Planowane" value={String(plannedTrips.length)} />
         <StatCard label="Zakończone" value={String(finishedTrips.length)} />
-        <StatCard
-          label="Najbliższa"
-          value={nearestTrip ? formatShortDate(nearestTrip.startsAt) : "Brak"}
-        />
+        <StatCard label="Anulowane" value={String(cancelledTrips.length)} />
       </section>
+
+      {nearestTrip && (
+        <section className="mb-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">
+                Najbliższa wyprawa
+              </p>
+
+              <h2 className="mt-2 text-2xl font-bold text-slate-950">
+                {nearestTrip.title}
+              </h2>
+
+              <p className="mt-2 text-sm font-semibold text-slate-600">
+                {formatDateTime(nearestTrip.startsAt)}
+                {nearestTrip.lakeName ? ` • ${nearestTrip.lakeName}` : ""}
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              {nearestTrip.checklistId && (
+                <Link
+                  href="/checklisty"
+                  className="rounded-2xl bg-white px-5 py-3 text-center text-sm font-bold text-blue-700 transition hover:bg-blue-100"
+                >
+                  Otwórz checklisty
+                </Link>
+              )}
+
+              <Link
+                href={`/polowy?tripId=${nearestTrip.id}`}
+                className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-blue-700"
+              >
+                Dodaj połów
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {isFormOpen && (
         <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -275,13 +467,27 @@ export function TripsPage({
             {editingTripId ? "Edytuj wyprawę" : "Zaplanuj wyprawę"}
           </h2>
 
+          {initialLakeExists && !editingTripId && (
+            <p className="mt-2 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+              Planujesz wyprawę na wybrane łowisko.
+            </p>
+          )}
+
           <form onSubmit={handleSubmit} className="mt-5 space-y-5">
             <div className="grid gap-5 lg:grid-cols-2">
               <Input
-                label="Nazwa wyprawy"
+                label="Tytuł wyprawy"
                 value={form.title}
                 onChange={(value) => updateField("title", value)}
-                placeholder="np. Method feeder — Staw Głęboczek"
+                placeholder="np. Poranny feeder na komercji"
+                required
+              />
+
+              <Input
+                label="Data i godzina rozpoczęcia"
+                value={form.startsAt}
+                onChange={(value) => updateField("startsAt", value)}
+                type="datetime-local"
                 required
               />
 
@@ -292,18 +498,10 @@ export function TripsPage({
                 options={[
                   { label: "Bez przypisanego łowiska", value: "" },
                   ...lakes.map((lake) => ({
-                    label: `${lake.name} — ${lake.city}`,
+                    label: `${lake.name} — ${lake.city}, woj. ${lake.voivodeship}`,
                     value: lake.id,
                   })),
                 ]}
-              />
-
-              <Input
-                label="Data i godzina"
-                value={form.startsAt}
-                onChange={(value) => updateField("startsAt", value)}
-                type="datetime-local"
-                required
               />
 
               <Select
@@ -319,6 +517,21 @@ export function TripsPage({
                 onChange={(value) => updateField("status", value)}
                 options={statuses}
               />
+
+              <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-slate-50 p-4 lg:mt-7">
+                <input
+                  type="checkbox"
+                  checked={form.createChecklist}
+                  onChange={(event) =>
+                    updateField("createChecklist", event.target.checked)
+                  }
+                  className="h-4 w-4 rounded border-slate-300 accent-blue-600"
+                />
+
+                <span className="text-sm font-semibold text-slate-700">
+                  Utwórz checklistę wyprawy
+                </span>
+              </label>
             </div>
 
             <div>
@@ -330,40 +543,17 @@ export function TripsPage({
                 value={form.note}
                 onChange={(event) => updateField("note", event.target.value)}
                 rows={4}
-                placeholder="np. Wyjazd o 4:30, zabrać dodatkowe koszyczki i pellet 2 mm."
+                placeholder="np. Zabierz pellet 2 mm, podbierak, matę i ciepłe ubranie."
                 className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
               />
             </div>
-
-            {!editingTripId && (
-              <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-slate-50 p-4">
-                <input
-                  type="checkbox"
-                  checked={form.createChecklist}
-                  onChange={(event) =>
-                    updateField("createChecklist", event.target.checked)
-                  }
-                  className="h-4 w-4 rounded border-slate-300 text-blue-600"
-                />
-
-                <span className="text-sm font-semibold text-slate-700">
-                  Utwórz od razu checklistę do tej wyprawy
-                </span>
-              </label>
-            )}
-
-            {editingTripId && (
-              <div className="rounded-2xl bg-slate-50 p-4 text-sm font-medium text-slate-600">
-                Przy edycji wyprawy nie tworzymy nowej checklisty. Jeśli
-                checklista była już utworzona, zostaje przypisana do tej wyprawy.
-              </div>
-            )}
 
             <div className="flex justify-end gap-3">
               <button
                 type="button"
                 onClick={handleCancelForm}
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                disabled={isLoading}
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Anuluj
               </button>
@@ -384,90 +574,111 @@ export function TripsPage({
         </section>
       )}
 
-      {trips.length > 0 ? (
-        <section className="grid gap-5">
-          {trips.map((trip) => (
+      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid gap-4 xl:grid-cols-[1fr_220px_220px]">
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Szukaj po tytule, łowisku lub notatce..."
+            className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500"
+          />
+
+          <FilterSelect
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[{ label: "Wszystkie statusy", value: "all" }, ...statuses]}
+          />
+
+          <FilterSelect
+            value={typeFilter}
+            onChange={setTypeFilter}
+            options={[{ label: "Wszystkie typy", value: "all" }, ...tripTypes]}
+          />
+        </div>
+      </section>
+
+      {filteredTrips.length > 0 ? (
+        <section className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+          {filteredTrips.map((trip) => (
             <article
               key={trip.id}
               className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
             >
-              <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+              <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
-                  <div className="mb-3 flex flex-wrap gap-2">
-                    <StatusBadge status={trip.status} />
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+                    {getTripTypeLabel(trip.tripType)}
+                  </p>
 
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
-                      {getTripTypeLabel(trip.tripType)}
-                    </span>
-
-                    {trip.checklistId && (
-                      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-                        Checklista utworzona
-                      </span>
-                    )}
-                  </div>
-
-                  <h2 className="text-xl font-bold text-slate-950">
+                  <h2 className="mt-2 text-xl font-bold text-slate-950">
                     {trip.title}
                   </h2>
 
-                  <div className="mt-3 grid gap-3 text-sm text-slate-600 md:grid-cols-3">
-                    <InfoTile
-                      label="Data"
-                      value={formatDateTime(trip.startsAt)}
-                    />
-
-                    <InfoTile
-                      label="Łowisko"
-                      value={trip.lakeName || "Nie przypisano"}
-                    />
-
-                    <InfoTile
-                      label="Status"
-                      value={getStatusLabel(trip.status)}
-                    />
-                  </div>
-
-                  {trip.note && (
-                    <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
-                      {trip.note}
-                    </p>
-                  )}
+                  <p className="mt-1 text-sm text-slate-500">
+                    {formatDateTime(trip.startsAt)}
+                  </p>
                 </div>
 
-                <div className="flex shrink-0 flex-col gap-3 sm:flex-row xl:flex-col">
+                <StatusBadge status={trip.status} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <InfoTile
+                  label="Łowisko"
+                  value={trip.lakeName || "Nie przypisano"}
+                />
+
+                <InfoTile label="Status" value={getStatusLabel(trip.status)} />
+
+                <InfoTile
+                  label="Checklista"
+                  value={trip.checklistId ? "Tak" : "Nie"}
+                />
+
+                <InfoTile
+                  label="Połowy"
+                  value="Dodaj w dzienniku"
+                />
+              </div>
+
+              {trip.note && (
+                <p className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm leading-6 text-slate-600">
+                  {trip.note}
+                </p>
+              )}
+
+              <div className="mt-5 flex flex-wrap justify-end gap-3">
+                {trip.checklistId && (
                   <Link
-                    href={`/wyprawy/${trip.id}`}
-                    className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+                    href="/checklisty"
+                    className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
                   >
-                    Szczegóły
+                    Checklista
                   </Link>
+                )}
 
-                  <button
-                    type="button"
-                    onClick={() => handleStartEdit(trip)}
-                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                  >
-                    Edytuj
-                  </button>
+                <Link
+                  href={`/polowy?tripId=${trip.id}`}
+                  className="rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+                >
+                  Dodaj połów
+                </Link>
 
-                  {trip.checklistId && (
-                    <Link
-                      href={`/checklisty?active=${trip.checklistId}`}
-                      className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                    >
-                      Checklista
-                    </Link>
-                  )}
+                <button
+                  type="button"
+                  onClick={() => handleStartEdit(trip)}
+                  className="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                >
+                  Edytuj
+                </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteTrip(trip.id)}
-                    className="rounded-2xl bg-red-50 px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100"
-                  >
-                    Usuń
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTrip(trip.id)}
+                  className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                >
+                  Usuń
+                </button>
               </div>
             </article>
           ))}
@@ -475,12 +686,20 @@ export function TripsPage({
       ) : (
         <section className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
           <p className="text-xl font-bold text-slate-950">
-            Brak zaplanowanych wypraw
+            Brak wypraw do wyświetlenia
           </p>
 
           <p className="mt-2 text-slate-500">
-            Dodaj pierwszą wyprawę i przypisz do niej łowisko oraz checklistę.
+            Zaplanuj pierwszą wyprawę albo zmień filtry.
           </p>
+
+          <button
+            type="button"
+            onClick={handleOpenCreateForm}
+            className="mt-5 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+          >
+            Zaplanuj wyprawę
+          </button>
         </section>
       )}
     </div>
@@ -491,21 +710,10 @@ function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <p className="text-sm font-semibold text-slate-500">{label}</p>
+
       <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
         {value}
       </p>
-    </div>
-  );
-}
-
-function InfoTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-        {label}
-      </p>
-
-      <p className="mt-2 font-semibold text-slate-700">{value}</p>
     </div>
   );
 }
@@ -529,6 +737,7 @@ function Input({
     <div>
       <label className="mb-2 block text-sm font-semibold text-slate-700">
         {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
       </label>
 
       <input
@@ -575,7 +784,51 @@ function Select({
   );
 }
 
+function FilterSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: { label: string; value: string }[];
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
+    >
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function InfoTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-3">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+        {label}
+      </p>
+
+      <p className="mt-1 font-semibold text-slate-700">{value}</p>
+    </div>
+  );
+}
+
 function StatusBadge({ status }: { status: string }) {
+  if (status === "planned") {
+    return (
+      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+        Planowana
+      </span>
+    );
+  }
+
   if (status === "finished") {
     return (
       <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
@@ -593,8 +846,8 @@ function StatusBadge({ status }: { status: string }) {
   }
 
   return (
-    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
-      Planowana
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+      {status}
     </span>
   );
 }
@@ -614,13 +867,6 @@ function formatDateTime(date: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
-  }).format(new Date(date));
-}
-
-function formatShortDate(date: string) {
-  return new Intl.DateTimeFormat("pl-PL", {
-    day: "2-digit",
-    month: "2-digit",
   }).format(new Date(date));
 }
 
