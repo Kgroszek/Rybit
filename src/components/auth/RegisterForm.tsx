@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/ToastProvider";
+
+type MessageType = "info" | "success" | "error";
 
 export function RegisterForm() {
-  const router = useRouter();
   const supabase = createClient();
+  const toast = useToast();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -21,6 +23,8 @@ export function RegisterForm() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<MessageType>("info");
+  const [registeredEmail, setRegisteredEmail] = useState("");
 
   const canSubmit =
     name.trim().length > 0 &&
@@ -31,29 +35,86 @@ export function RegisterForm() {
     ageConfirmation &&
     !isLoading;
 
+  function showMessage(type: MessageType, text: string) {
+    setMessageType(type);
+    setMessage(text);
+  }
+
   async function handleRegister(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setMessage("");
+    setMessageType("info");
 
-    if (!acceptTerms || !acceptPrivacy || !ageConfirmation) {
-      setMessage("Musisz zaakceptować wymagane zgody, aby założyć konto.");
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+
+    if (!trimmedName) {
+      const errorMessage = "Podaj imię lub nazwę profilu.";
+
+      showMessage("error", errorMessage);
+
+      toast.error({
+        title: "Brakuje nazwy profilu.",
+        description: errorMessage,
+      });
+
+      return;
+    }
+
+    if (!trimmedEmail) {
+      const errorMessage = "Podaj adres e-mail.";
+
+      showMessage("error", errorMessage);
+
+      toast.error({
+        title: "Brakuje adresu e-mail.",
+        description: errorMessage,
+      });
+
       return;
     }
 
     if (password.length < 8) {
-      setMessage("Hasło musi mieć minimum 8 znaków.");
+      const errorMessage = "Hasło musi mieć minimum 8 znaków.";
+
+      showMessage("error", errorMessage);
+
+      toast.error({
+        title: "Hasło jest za krótkie.",
+        description: errorMessage,
+      });
+
+      return;
+    }
+
+    if (!acceptTerms || !acceptPrivacy || !ageConfirmation) {
+      const errorMessage =
+        "Musisz zaakceptować wymagane zgody, aby założyć konto.";
+
+      showMessage("error", errorMessage);
+
+      toast.error({
+        title: "Wymagane zgody.",
+        description: errorMessage,
+      });
+
       return;
     }
 
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email: email.trim(),
+    const toastId = toast.loading({
+      title: "Tworzenie konta...",
+      description: "Zakładamy konto i wysyłamy link aktywacyjny na e-mail.",
+    });
+
+    const { data, error } = await supabase.auth.signUp({
+      email: trimmedEmail,
       password,
       options: {
         data: {
-          name: name.trim(),
+          name: trimmedName,
           acceptedTerms: true,
           acceptedPrivacyPolicy: true,
           ageConfirmed: true,
@@ -62,16 +123,106 @@ export function RegisterForm() {
       },
     });
 
+    setIsLoading(false);
+
     if (error) {
-      setMessage(error.message);
-      setIsLoading(false);
+      const errorMessage =
+        error.message === "User already registered"
+          ? "Konto z tym adresem e-mail już istnieje. Spróbuj się zalogować albo zresetować hasło."
+          : error.message;
+
+      showMessage("error", errorMessage);
+
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się utworzyć konta.",
+        description: errorMessage,
+        duration: 6000,
+      });
+
       return;
     }
 
-    setMessage("Konto zostało utworzone. Możesz się teraz zalogować.");
-    setIsLoading(false);
+    setRegisteredEmail(trimmedEmail);
+    setPassword("");
+    setAcceptTerms(false);
+    setAcceptPrivacy(false);
+    setAgeConfirmation(false);
 
-    router.push("/login");
+    const successMessage =
+      "Konto zostało utworzone. Sprawdź skrzynkę e-mail i kliknij link aktywacyjny, aby potwierdzić konto.";
+
+    showMessage("success", successMessage);
+
+    toast.update(toastId, {
+      type: "success",
+      title: "Sprawdź skrzynkę e-mail.",
+      description:
+        "Wysłaliśmy link aktywacyjny. Kliknij go, aby potwierdzić konto.",
+      duration: 7000,
+    });
+
+    if (data.session) {
+      await supabase.auth.signOut();
+    }
+  }
+
+  if (registeredEmail) {
+    return (
+      <div className="space-y-5">
+        <div className="rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
+          <div className="flex gap-4">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-lg font-black text-white">
+              ✓
+            </div>
+
+            <div>
+              <h3 className="text-base font-black text-emerald-900">
+                Konto zostało utworzone
+              </h3>
+
+              <p className="mt-2 text-sm leading-6 text-emerald-800">
+                Wysłaliśmy link aktywacyjny na adres:
+              </p>
+
+              <p className="mt-1 break-all text-sm font-black text-emerald-900">
+                {registeredEmail}
+              </p>
+
+              <p className="mt-3 text-sm leading-6 text-emerald-800">
+                Wejdź na swoją skrzynkę pocztową i kliknij link aktywacyjny,
+                aby potwierdzić konto. Dopiero po potwierdzeniu adresu e-mail
+                możesz się zalogować.
+              </p>
+
+              <p className="mt-3 rounded-2xl bg-white/70 p-3 text-xs font-semibold leading-5 text-emerald-800">
+                Jeśli wiadomość nie pojawi się po kilku minutach, sprawdź folder
+                SPAM, Oferty, Powiadomienia albo Inne.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <Link
+          href="/login"
+          className="flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+        >
+          Przejdź do logowania
+        </Link>
+
+        <button
+          type="button"
+          onClick={() => {
+            setRegisteredEmail("");
+            setMessage("");
+            setMessageType("info");
+          }}
+          className="w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+        >
+          Zarejestruj inny adres e-mail
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -137,6 +288,7 @@ export function RegisterForm() {
         </p>
       </div>
 
+
       <div className="space-y-3 rounded-3xl border border-slate-200 bg-slate-50 p-4">
         <CheckboxField
           checked={acceptTerms}
@@ -181,7 +333,15 @@ export function RegisterForm() {
       </div>
 
       {message && (
-        <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-600">
+        <div
+          className={`rounded-2xl p-4 text-sm font-semibold leading-6 ${
+            messageType === "success"
+              ? "border border-emerald-100 bg-emerald-50 text-emerald-700"
+              : messageType === "error"
+                ? "border border-red-100 bg-red-50 text-red-700"
+                : "border border-slate-200 bg-slate-50 text-slate-600"
+          }`}
+        >
           {message}
         </div>
       )}
@@ -191,7 +351,7 @@ export function RegisterForm() {
         disabled={!canSubmit}
         className="w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {isLoading ? "Tworzenie konta..." : "Załóż darmowe konto"}
+        {isLoading ? "Tworzenie konta..." : "Załóż konto"}
       </button>
     </form>
   );
@@ -204,24 +364,21 @@ function CheckboxField({
   required = false,
 }: {
   checked: boolean;
-  onChange: (checked: boolean) => void;
+  onChange: (value: boolean) => void;
   children: React.ReactNode;
   required?: boolean;
 }) {
   return (
-    <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-slate-600">
+    <label className="flex cursor-pointer items-start gap-3 text-xs font-medium leading-5 text-slate-600">
       <input
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
         required={required}
-        className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+        className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 accent-blue-600"
       />
 
-      <span>
-        {children}{" "}
-        {required && <span className="font-bold text-red-500">*</span>}
-      </span>
+      <span>{children}</span>
     </label>
   );
 }
