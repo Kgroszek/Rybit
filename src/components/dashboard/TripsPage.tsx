@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
 
 type FishingTrip = {
@@ -91,7 +90,6 @@ export function TripsPage({
   initialLakeId = null,
   initialLakeName = null,
 }: TripsPageProps) {
-  const router = useRouter();
   const toast = useToast();
 
   const initialLakeExists = lakes.some((lake) => lake.id === initialLakeId);
@@ -325,8 +323,6 @@ export function TripsPage({
           : "Dane wyprawy zostały zapisane.",
         duration: 4500,
       });
-
-      router.refresh();
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -388,8 +384,6 @@ export function TripsPage({
         description: "Wyprawa zniknęła z Twojego kalendarza.",
         duration: 4500,
       });
-
-      router.refresh();
     } catch {
       toast.update(toastId, {
         type: "error",

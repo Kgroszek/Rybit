@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
 
 type FishingGear = {
@@ -108,7 +107,6 @@ async function readApiResponse(response: Response) {
 }
 
 export function GearPage({ initialGear }: GearPageProps) {
-  const router = useRouter();
   const toast = useToast();
 
   const [gearItems, setGearItems] = useState<FishingGear[]>(initialGear);
@@ -348,8 +346,6 @@ export function GearPage({ initialGear }: GearPageProps) {
           : "Nowy element pojawił się w Twoim ekwipunku.",
         duration: 4500,
       });
-
-      router.refresh();
     } catch (error) {
       const errorMessage =
         error instanceof Error
@@ -411,8 +407,6 @@ export function GearPage({ initialGear }: GearPageProps) {
         description: "Element zniknął z Twojego ekwipunku.",
         duration: 4500,
       });
-
-      router.refresh();
     } catch {
       toast.update(toastId, {
         type: "error",
@@ -526,72 +520,72 @@ export function GearPage({ initialGear }: GearPageProps) {
       )}
 
       <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-  <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_220px_220px] xl:items-center">
-    <input
-      value={search}
-      onChange={(event) => setSearch(event.target.value)}
-      placeholder="Szukaj sprzętu..."
-      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500"
-    />
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_220px_220px] xl:items-center">
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Szukaj sprzętu..."
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500"
+          />
 
-    <div className="flex gap-3 xl:hidden">
-      <button
-        type="button"
-        onClick={() => setAreMobileFiltersOpen((current) => !current)}
-        className="flex h-12 flex-1 items-center justify-center rounded-2xl bg-slate-100 px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
-      >
-        {areMobileFiltersOpen ? "Ukryj filtry" : "Filtry"}
+          <div className="flex gap-3 xl:hidden">
+            <button
+              type="button"
+              onClick={() => setAreMobileFiltersOpen((current) => !current)}
+              className="flex h-12 flex-1 items-center justify-center rounded-2xl bg-slate-100 px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+            >
+              {areMobileFiltersOpen ? "Ukryj filtry" : "Filtry"}
 
-        {activeFiltersCount > 0 && (
-          <span className="ml-2 rounded-full bg-blue-600 px-2 py-0.5 text-xs text-white">
-            {activeFiltersCount}
-          </span>
-        )}
-      </button>
+              {activeFiltersCount > 0 && (
+                <span className="ml-2 rounded-full bg-blue-600 px-2 py-0.5 text-xs text-white">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
 
-      <button
-        type="button"
-        onClick={clearFilters}
-        className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-blue-600 transition hover:bg-slate-50"
-      >
-        Wyczyść
-      </button>
-    </div>
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-blue-600 transition hover:bg-slate-50"
+            >
+              Wyczyść
+            </button>
+          </div>
 
-    <div
-      className={`grid gap-3 xl:col-span-3 xl:grid xl:grid-cols-3 ${
-        areMobileFiltersOpen ? "grid" : "hidden xl:grid"
-      }`}
-    >
-      <FilterSelect
-        value={categoryFilter}
-        onChange={setCategoryFilter}
-        options={[
-          { label: "Wszystkie kategorie", value: "all" },
-          ...categories,
-        ]}
-      />
+          <div
+            className={`grid gap-3 xl:col-span-3 xl:grid xl:grid-cols-3 ${
+              areMobileFiltersOpen ? "grid" : "hidden xl:grid"
+            }`}
+          >
+            <FilterSelect
+              value={categoryFilter}
+              onChange={setCategoryFilter}
+              options={[
+                { label: "Wszystkie kategorie", value: "all" },
+                ...categories,
+              ]}
+            />
 
-      <FilterSelect
-        value={methodFilter}
-        onChange={setMethodFilter}
-        options={[
-          { label: "Wszystkie metody", value: "all" },
-          ...fishingMethods,
-        ]}
-      />
+            <FilterSelect
+              value={methodFilter}
+              onChange={setMethodFilter}
+              options={[
+                { label: "Wszystkie metody", value: "all" },
+                ...fishingMethods,
+              ]}
+            />
 
-      <FilterSelect
-        value={conditionFilter}
-        onChange={setConditionFilter}
-        options={[
-          { label: "Wszystkie stany", value: "all" },
-          ...conditions,
-        ]}
-      />
-    </div>
-  </div>
-</section>
+            <FilterSelect
+              value={conditionFilter}
+              onChange={setConditionFilter}
+              options={[
+                { label: "Wszystkie stany", value: "all" },
+                ...conditions,
+              ]}
+            />
+          </div>
+        </div>
+      </section>
 
       {filteredGear.length > 0 ? (
         <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
@@ -1018,7 +1012,7 @@ function FilterSelect({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
+      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
 
 type FishingCatch = {
@@ -144,7 +143,6 @@ export function CatchesPage({
   trips,
   initialTripId = null,
 }: CatchesPageProps) {
-  const router = useRouter();
   const toast = useToast();
 
   const initialTripExists = trips.some((trip) => trip.id === initialTripId);
@@ -447,7 +445,6 @@ export function CatchesPage({
           duration: 4500,
         });
 
-        router.refresh();
         return;
       } catch (error) {
         const errorMessage =
@@ -533,7 +530,6 @@ export function CatchesPage({
         duration: 4500,
       });
 
-      router.refresh();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Nie udało się zapisać połowu.";
@@ -594,7 +590,6 @@ export function CatchesPage({
         duration: 4500,
       });
 
-      router.refresh();
     } catch {
       toast.update(toastId, {
         type: "error",
