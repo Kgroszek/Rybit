@@ -191,9 +191,9 @@ export default function HomePage() {
           <div className="relative">
             <div className="overflow-hidden ">
               <img
-                src="/photos/Rybio-1.png"
+                src="/photos/Rybio-1.webp"
                 alt="Wędkarz nad łowiskiem"
-                className="h-auto w-full object-cover"
+                className="w-full object-cover"
               />
 
               
@@ -240,9 +240,9 @@ export default function HomePage() {
 
       <section className="bg-white py-16">
         <div className="mx-auto grid max-w-[1500px] gap-30 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
-          <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 shadow-sm">
+          <div className="overflow-hidden">
             <img
-              src="/images/home/lake-map.jpg"
+              src="/photos/Rybio-2.webp"
               alt="Mapa łowisk i jezior w Polsce"
               className="h-full min-h-[360px] w-full object-cover"
             />
@@ -339,11 +339,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5 shadow-xl">
+          <div className="overflow-hidden ">
             <img
-              src="/images/home/catch-log.jpg"
+              src="/photos/Rybio-3.webp"
               alt="Zapisany połów ryby w dzienniku wędkarskim"
-              className="h-full min-h-[420px] w-full object-cover opacity-90"
+              className="h-[600px] object-cover opacity-90"
             />
           </div>
         </div>
@@ -351,9 +351,9 @@ export default function HomePage() {
 
       <section className="mx-auto max-w-[1500px] px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid gap-30 lg:grid-cols-[460px_1fr]">
-          <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-hidden">
             <img
-              src="/images/home/community.jpg"
+              src="/photos/Rybio-4.webp"
               alt="Społeczność wędkarzy nad wodą"
               className="h-full min-h-[420px] w-full object-cover"
             />
@@ -433,7 +433,7 @@ export default function HomePage() {
 
           <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 shadow-sm">
             <img
-              src="/images/home/owner-lake.jpg"
+              src="/photos/Rybio-5.webp"
               alt="Łowisko komercyjne z pomostem i wodą"
               className="h-full min-h-[380px] w-full object-cover"
             />
