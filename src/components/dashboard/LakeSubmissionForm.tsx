@@ -381,6 +381,7 @@ export function LakeSubmissionForm() {
   const [message, setMessage] = useState("");
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [canSubmitContactStep, setCanSubmitContactStep] = useState(false);
 
   const currentStep = steps[currentStepIndex];
   const isFirstStep = currentStepIndex === 0;
@@ -560,49 +561,81 @@ export function LakeSubmissionForm() {
     }, 50);
   }
 
-  function goToStep(index: number) {
-    if (isLoading || isProcessingImages) {
-      return;
-    }
+  function unlockContactSubmitIfNeeded(nextStepIndex: number) {
+  const nextStep = steps[nextStepIndex];
 
-    if (index <= currentStepIndex) {
-      setCurrentStepIndex(index);
-      scrollToTop();
-      return;
-    }
-
-    const isCurrentStepValid = validateForm(currentStep.key);
-
-    if (!isCurrentStepValid) {
-      setMessage("Uzupełnij wymagane pola w tym kroku.");
-      scrollToFirstError();
-      return;
-    }
-
-    setCurrentStepIndex(index);
-    setMessage("");
-    scrollToTop();
+  if (nextStep.key !== "contact") {
+    setCanSubmitContactStep(false);
+    return;
   }
+
+  setCanSubmitContactStep(false);
+
+  window.setTimeout(() => {
+    setCanSubmitContactStep(true);
+  }, 700);
+}
+
+function goToStep(index: number) {
+  if (isLoading || isProcessingImages) {
+    return;
+  }
+
+  if (index <= currentStepIndex) {
+    setCurrentStepIndex(index);
+    setCanSubmitContactStep(false);
+    scrollToTop();
+
+    if (steps[index].key === "contact") {
+      unlockContactSubmitIfNeeded(index);
+    }
+
+    return;
+  }
+
+  const isCurrentStepValid = validateForm(currentStep.key);
+
+  if (!isCurrentStepValid) {
+    setMessage("Uzupełnij wymagane pola w tym kroku.");
+    scrollToFirstError();
+    return;
+  }
+
+  setCurrentStepIndex(index);
+  setMessage("");
+  scrollToTop();
+  unlockContactSubmitIfNeeded(index);
+}
 
   function goToNextStep() {
-    const isCurrentStepValid = validateForm(currentStep.key);
-
-    if (!isCurrentStepValid) {
-      setMessage("Uzupełnij wymagane pola oznaczone na czerwono.");
-      scrollToFirstError();
-      return;
-    }
-
-    setCurrentStepIndex((current) => Math.min(current + 1, steps.length - 1));
-    setMessage("");
-    scrollToTop();
+  if (isLoading || isProcessingImages) {
+    return;
   }
+
+  const isCurrentStepValid = validateForm(currentStep.key);
+
+  if (!isCurrentStepValid) {
+    setMessage("Uzupełnij wymagane pola oznaczone na czerwono.");
+    scrollToFirstError();
+    return;
+  }
+
+  const nextStepIndex = Math.min(currentStepIndex + 1, steps.length - 1);
+
+  setCurrentStepIndex(nextStepIndex);
+  setMessage("");
+  scrollToTop();
+  unlockContactSubmitIfNeeded(nextStepIndex);
+}
 
   function goToPreviousStep() {
-    setCurrentStepIndex((current) => Math.max(current - 1, 0));
-    setMessage("");
-    scrollToTop();
-  }
+  const previousStepIndex = Math.max(currentStepIndex - 1, 0);
+
+  setCurrentStepIndex(previousStepIndex);
+  setCanSubmitContactStep(false);
+  setMessage("");
+  scrollToTop();
+}
 
   async function handleImagesChange(files: FileList | null) {
     if (!files) {
@@ -681,15 +714,29 @@ export function LakeSubmissionForm() {
     );
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    if (!isLastStep) {
-      goToNextStep();
-      return;
-    }
+  if (!isLastStep) {
+    goToNextStep();
+    return;
+  }
 
-    setMessage("");
+  if (!canSubmitContactStep) {
+    setMessage(
+      "Jesteś na ostatnim kroku. Sprawdź dane kontaktowe i kliknij przycisk wysłania ponownie."
+    );
+
+    toast.error({
+      title: "Sprawdź dane kontaktowe.",
+      description:
+        "Zgłoszenie można wysłać dopiero po świadomym przejściu do ostatniego kroku.",
+    });
+
+    return;
+  }
+
+  setMessage("");
 
     const nextErrors = getValidationErrors("all");
 
@@ -755,6 +802,7 @@ export function LakeSubmissionForm() {
       setImages([]);
       setErrors({});
       setCurrentStepIndex(0);
+      setCanSubmitContactStep(false);
       formRef.current?.reset();
     } catch (error) {
       console.error("[LakeSubmissionForm] Błąd wysyłki:", error);
@@ -1386,14 +1434,16 @@ export function LakeSubmissionForm() {
               ) : (
                 <button
                   type="submit"
-                  disabled={isLoading || isProcessingImages}
+                  disabled={isLoading || isProcessingImages || !canSubmitContactStep}
                   className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {isProcessingImages
                     ? "Przygotowywanie zdjęć..."
                     : isLoading
                       ? "Wysyłanie zgłoszenia..."
-                      : "Wyślij zgłoszenie"}
+                      : !canSubmitContactStep
+                        ? "Sprawdź dane kontaktowe"
+                        : "Wyślij zgłoszenie"}
                 </button>
               )}
             </div>
