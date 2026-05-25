@@ -152,9 +152,7 @@ export function ChecklistsPage({
   const [itemForm, setItemForm] = useState<ItemFormState>(initialItemForm);
   const [selectedGearId, setSelectedGearId] = useState("");
 
-  const [isChecklistFormOpen, setIsChecklistFormOpen] = useState(
-    initialChecklists.length === 0
-  );
+  const [isChecklistFormOpen, setIsChecklistFormOpen] = useState(false);
   const [isItemFormOpen, setIsItemFormOpen] = useState(false);
   const [areMobileActionsOpen, setAreMobileActionsOpen] = useState(false);
 
