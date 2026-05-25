@@ -4,6 +4,7 @@ import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import { CookieConsent } from "@/components/CookieConsent";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +46,9 @@ export default function RootLayout({
           <ToastProvider>
             {children}
           </ToastProvider>
+          {process.env.NEXT_PUBLIC_GA_ID ? (
+            <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+          ) : null}
         <CookieConsent />
       </body>
     </html>
