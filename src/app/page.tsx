@@ -189,11 +189,11 @@ export default function HomePage() {
           </div>
 
           <div className="relative">
-            <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl">
+            <div className="overflow-hidden ">
               <img
-                src="/images/home/hero-fishing.jpg"
+                src="/photos/Rybio-1.png"
                 alt="Wędkarz nad łowiskiem"
-                className="h-[420px] w-full object-cover"
+                className="h-auto w-full object-cover"
               />
 
               

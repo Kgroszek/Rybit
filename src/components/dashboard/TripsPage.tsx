@@ -107,15 +107,19 @@ export function TripsPage({
 
   const [trips, setTrips] = useState<FishingTrip[]>(initialTrips);
   const [form, setForm] = useState<TripFormState>(initialFormWithLake);
-  const [isFormOpen, setIsFormOpen] = useState(
-    initialTrips.length === 0 || initialLakeExists
-  );
+  const [isFormOpen, setIsFormOpen] = useState(initialLakeExists);
   const [editingTripId, setEditingTripId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [areMobileFiltersOpen, setAreMobileFiltersOpen] = useState(false);
+
+  const activeFiltersCount =
+    Number(Boolean(search.trim())) +
+    Number(statusFilter !== "all") +
+    Number(typeFilter !== "all");
 
   function updateField<K extends keyof TripFormState>(
     field: K,
@@ -149,6 +153,10 @@ export function TripsPage({
   }
 
   function handleCancelForm() {
+    if (isLoading) {
+      return;
+    }
+
     setEditingTripId(null);
     setForm(initialFormWithLake);
     setIsFormOpen(false);
@@ -158,6 +166,13 @@ export function TripsPage({
     setEditingTripId(null);
     setForm(initialFormWithLake);
     setIsFormOpen(true);
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setStatusFilter("all");
+    setTypeFilter("all");
+    setAreMobileFiltersOpen(false);
   }
 
   const plannedTrips = trips.filter((trip) => trip.status === "planned");
@@ -386,14 +401,14 @@ export function TripsPage({
   }
 
   return (
-    <div>
-      <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+    <div className="w-full max-w-full overflow-x-hidden pb-28 md:pb-0">
+      <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
             Moje wyprawy
           </h1>
 
-          <p className="mt-2 max-w-3xl text-slate-500">
+          <p className="mt-2 max-w-3xl text-base leading-7 text-slate-500 sm:text-sm sm:leading-6">
             Planuj wyjazdy nad wodę, przypisuj łowiska, twórz checklisty i
             zapisuj notatki z wypraw.
           </p>
@@ -409,13 +424,13 @@ export function TripsPage({
 
             handleOpenCreateForm();
           }}
-          className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
+          className="rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:text-sm"
         >
           {isFormOpen ? "Zamknij formularz" : "+ Zaplanuj wyprawę"}
         </button>
       </div>
 
-      <section className="mb-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section className="mb-6 flex w-full max-w-full gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:gap-5 md:overflow-visible md:pb-0 xl:grid-cols-4">
         <StatCard label="Wszystkie wyprawy" value={String(trips.length)} />
         <StatCard label="Planowane" value={String(plannedTrips.length)} />
         <StatCard label="Zakończone" value={String(finishedTrips.length)} />
@@ -425,22 +440,22 @@ export function TripsPage({
       {nearestTrip && (
         <section className="mb-6 rounded-3xl border border-blue-100 bg-blue-50 p-5 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">
                 Najbliższa wyprawa
               </p>
 
-              <h2 className="mt-2 text-2xl font-bold text-slate-950">
+              <h2 className="mt-2 break-words text-2xl font-bold text-slate-950">
                 {nearestTrip.title}
               </h2>
 
-              <p className="mt-2 text-sm font-semibold text-slate-600">
+              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
                 {formatDateTime(nearestTrip.startsAt)}
                 {nearestTrip.lakeName ? ` • ${nearestTrip.lakeName}` : ""}
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="grid gap-3 sm:grid-cols-2 lg:flex">
               {nearestTrip.checklistId && (
                 <Link
                   href="/checklisty"
@@ -462,159 +477,142 @@ export function TripsPage({
       )}
 
       {isFormOpen && (
-        <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-slate-950">
-            {editingTripId ? "Edytuj wyprawę" : "Zaplanuj wyprawę"}
-          </h2>
+        <>
+          <section className="mb-6 hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:block">
+            <TripForm
+              form={form}
+              editingTripId={editingTripId}
+              lakes={lakes}
+              isLoading={isLoading}
+              initialLakeExists={initialLakeExists}
+              onSubmit={handleSubmit}
+              onCancel={handleCancelForm}
+              onFieldChange={updateField}
+            />
+          </section>
 
-          {initialLakeExists && !editingTripId && (
-            <p className="mt-2 rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
-              Planujesz wyprawę na wybrane łowisko.
-            </p>
-          )}
+          <div
+            className="fixed inset-0 z-[1200] flex items-end bg-slate-950/60 p-0 md:hidden"
+            onClick={handleCancelForm}
+          >
+            <div
+              className="max-h-[88vh] w-full overflow-hidden rounded-t-[2rem] bg-white shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
+                    Wyprawy
+                  </p>
 
-          <form onSubmit={handleSubmit} className="mt-5 space-y-5">
-            <div className="grid gap-5 lg:grid-cols-2">
-              <Input
-                label="Tytuł wyprawy"
-                value={form.title}
-                onChange={(value) => updateField("title", value)}
-                placeholder="np. Poranny feeder na komercji"
-                required
-              />
+                  <h2 className="mt-1 text-xl font-black text-slate-950">
+                    {editingTripId ? "Edytuj wyprawę" : "Zaplanuj wyprawę"}
+                  </h2>
+                </div>
 
-              <Input
-                label="Data i godzina rozpoczęcia"
-                value={form.startsAt}
-                onChange={(value) => updateField("startsAt", value)}
-                type="datetime-local"
-                required
-              />
+                <button
+                  type="button"
+                  onClick={handleCancelForm}
+                  disabled={isLoading}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-black text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label="Zamknij formularz"
+                >
+                  ×
+                </button>
+              </div>
 
-              <Select
-                label="Łowisko"
-                value={form.lakeId}
-                onChange={(value) => updateField("lakeId", value)}
-                options={[
-                  { label: "Bez przypisanego łowiska", value: "" },
-                  ...lakes.map((lake) => ({
-                    label: `${lake.name} — ${lake.city}, woj. ${lake.voivodeship}`,
-                    value: lake.id,
-                  })),
-                ]}
-              />
-
-              <Select
-                label="Typ wyprawy"
-                value={form.tripType}
-                onChange={(value) => updateField("tripType", value)}
-                options={tripTypes}
-              />
-
-              <Select
-                label="Status"
-                value={form.status}
-                onChange={(value) => updateField("status", value)}
-                options={statuses}
-              />
-
-              <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-slate-50 p-4 lg:mt-7">
-                <input
-                  type="checkbox"
-                  checked={form.createChecklist}
-                  onChange={(event) =>
-                    updateField("createChecklist", event.target.checked)
-                  }
-                  className="h-4 w-4 rounded border-slate-300 accent-blue-600"
+              <div className="max-h-[calc(88vh-73px)] overflow-y-auto px-5 py-5">
+                <TripForm
+                  form={form}
+                  editingTripId={editingTripId}
+                  lakes={lakes}
+                  isLoading={isLoading}
+                  initialLakeExists={initialLakeExists}
+                  onSubmit={handleSubmit}
+                  onCancel={handleCancelForm}
+                  onFieldChange={updateField}
+                  isMobile
                 />
-
-                <span className="text-sm font-semibold text-slate-700">
-                  Utwórz checklistę wyprawy
-                </span>
-              </label>
+              </div>
             </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-semibold text-slate-700">
-                Notatka
-              </label>
-
-              <textarea
-                value={form.note}
-                onChange={(event) => updateField("note", event.target.value)}
-                rows={4}
-                placeholder="np. Zabierz pellet 2 mm, podbierak, matę i ciepłe ubranie."
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-              />
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={handleCancelForm}
-                disabled={isLoading}
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Anuluj
-              </button>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {isLoading
-                  ? "Zapisywanie..."
-                  : editingTripId
-                    ? "Zapisz zmiany"
-                    : "Zaplanuj wyprawę"}
-              </button>
-            </div>
-          </form>
-        </section>
+          </div>
+        </>
       )}
 
-      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="grid gap-4 xl:grid-cols-[1fr_220px_220px]">
+      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_220px_220px] xl:items-center">
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Szukaj po tytule, łowisku lub notatce..."
-            className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500"
+            className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500"
           />
 
-          <FilterSelect
-            value={statusFilter}
-            onChange={setStatusFilter}
-            options={[{ label: "Wszystkie statusy", value: "all" }, ...statuses]}
-          />
+          <div className="flex gap-3 xl:hidden">
+            <button
+              type="button"
+              onClick={() => setAreMobileFiltersOpen((current) => !current)}
+              className="flex h-12 flex-1 items-center justify-center rounded-2xl bg-slate-100 px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
+            >
+              {areMobileFiltersOpen ? "Ukryj filtry" : "Filtry"}
 
-          <FilterSelect
-            value={typeFilter}
-            onChange={setTypeFilter}
-            options={[{ label: "Wszystkie typy", value: "all" }, ...tripTypes]}
-          />
+              {activeFiltersCount > 0 && (
+                <span className="ml-2 rounded-full bg-blue-600 px-2 py-0.5 text-xs text-white">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold text-blue-600 transition hover:bg-slate-50"
+            >
+              Wyczyść
+            </button>
+          </div>
+
+          <div
+            className={`grid gap-3 xl:contents ${
+              areMobileFiltersOpen ? "grid" : "hidden xl:grid"
+            }`}
+          >
+            <FilterSelect
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { label: "Wszystkie statusy", value: "all" },
+                ...statuses,
+              ]}
+            />
+
+            <FilterSelect
+              value={typeFilter}
+              onChange={setTypeFilter}
+              options={[{ label: "Wszystkie typy", value: "all" }, ...tripTypes]}
+            />
+          </div>
         </div>
       </section>
 
       {filteredTrips.length > 0 ? (
-        <section className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+        <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
           {filteredTrips.map((trip) => (
             <article
               key={trip.id}
               className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
             >
               <div className="mb-4 flex items-start justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
                     {getTripTypeLabel(trip.tripType)}
                   </p>
 
-                  <h2 className="mt-2 text-xl font-bold text-slate-950">
+                  <h2 className="mt-2 break-words text-xl font-bold text-slate-950">
                     {trip.title}
                   </h2>
 
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
                     {formatDateTime(trip.startsAt)}
                   </p>
                 </div>
@@ -635,10 +633,7 @@ export function TripsPage({
                   value={trip.checklistId ? "Tak" : "Nie"}
                 />
 
-                <InfoTile
-                  label="Połowy"
-                  value="Dodaj w dzienniku"
-                />
+                <InfoTile label="Połowy" value="Dodaj w dzienniku" />
               </div>
 
               {trip.note && (
@@ -647,11 +642,11 @@ export function TripsPage({
                 </p>
               )}
 
-              <div className="mt-5 flex flex-wrap justify-end gap-3">
+              <div className="mt-5 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:justify-end">
                 {trip.checklistId && (
                   <Link
                     href="/checklisty"
-                    className="rounded-xl bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                    className="rounded-xl bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 sm:py-2.5"
                   >
                     Checklista
                   </Link>
@@ -659,7 +654,7 @@ export function TripsPage({
 
                 <Link
                   href={`/polowy?tripId=${trip.id}`}
-                  className="rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+                  className="rounded-xl bg-blue-50 px-4 py-3 text-center text-sm font-semibold text-blue-700 transition hover:bg-blue-100 sm:py-2.5"
                 >
                   Dodaj połów
                 </Link>
@@ -667,7 +662,7 @@ export function TripsPage({
                 <button
                   type="button"
                   onClick={() => handleStartEdit(trip)}
-                  className="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+                  className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 sm:py-2.5"
                 >
                   Edytuj
                 </button>
@@ -675,7 +670,7 @@ export function TripsPage({
                 <button
                   type="button"
                   onClick={() => handleDeleteTrip(trip.id)}
-                  className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                  className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 sm:py-2.5"
                 >
                   Usuń
                 </button>
@@ -684,34 +679,240 @@ export function TripsPage({
           ))}
         </section>
       ) : (
-        <section className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <p className="text-xl font-bold text-slate-950">
+        <section className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-2xl">
+            🗓️
+          </div>
+
+          <p className="mt-5 text-xl font-bold text-slate-950">
             Brak wypraw do wyświetlenia
           </p>
 
-          <p className="mt-2 text-slate-500">
-            Zaplanuj pierwszą wyprawę albo zmień filtry.
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">
+            Zaplanuj pierwszą wyprawę, przypisz łowisko i przygotuj checklistę
+            rzeczy do zabrania.
           </p>
 
           <button
             type="button"
             onClick={handleOpenCreateForm}
-            className="mt-5 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+            className="mt-6 w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto"
           >
-            Zaplanuj wyprawę
+            + Zaplanuj pierwszą wyprawę
           </button>
+
+          {activeFiltersCount > 0 && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="mt-3 w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:ml-3 sm:w-auto"
+            >
+              Wyczyść filtry
+            </button>
+          )}
         </section>
       )}
+
+      <button
+        type="button"
+        onClick={handleOpenCreateForm}
+        className="fixed bottom-24 right-4 z-[900] flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-3xl font-light leading-none text-white shadow-xl transition hover:bg-blue-700 md:hidden"
+        aria-label="Zaplanuj wyprawę"
+      >
+        +
+      </button>
     </div>
+  );
+}
+
+function TripForm({
+  form,
+  editingTripId,
+  lakes,
+  isLoading,
+  initialLakeExists,
+  onSubmit,
+  onCancel,
+  onFieldChange,
+  isMobile = false,
+}: {
+  form: TripFormState;
+  editingTripId: string | null;
+  lakes: LakeOption[];
+  isLoading: boolean;
+  initialLakeExists: boolean;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onCancel: () => void;
+  onFieldChange: <K extends keyof TripFormState>(
+    field: K,
+    value: TripFormState[K]
+  ) => void;
+  isMobile?: boolean;
+}) {
+  return (
+    <form onSubmit={onSubmit} className="space-y-6">
+      {!isMobile && (
+        <div>
+          <h2 className="text-xl font-bold text-slate-950">
+            {editingTripId ? "Edytuj wyprawę" : "Zaplanuj wyprawę"}
+          </h2>
+
+          <p className="mt-1 text-sm leading-6 text-slate-500">
+            Uzupełnij datę, typ wyprawy, łowisko i notatkę. Możesz od razu
+            utworzyć checklistę.
+          </p>
+        </div>
+      )}
+
+      {initialLakeExists && !editingTripId && (
+        <p className="rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+          Planujesz wyprawę na wybrane łowisko.
+        </p>
+      )}
+
+      <FormGroup title="Podstawowe" description="Nazwa oraz termin wyprawy.">
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Input
+            label="Tytuł wyprawy"
+            value={form.title}
+            onChange={(value) => onFieldChange("title", value)}
+            placeholder="np. Poranny feeder na komercji"
+            required
+          />
+
+          <Input
+            label="Data i godzina rozpoczęcia"
+            value={form.startsAt}
+            onChange={(value) => onFieldChange("startsAt", value)}
+            type="datetime-local"
+            required
+          />
+        </div>
+      </FormGroup>
+
+      <FormGroup title="Miejsce i typ" description="Przypisz łowisko oraz metodę.">
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Select
+            label="Łowisko"
+            value={form.lakeId}
+            onChange={(value) => onFieldChange("lakeId", value)}
+            options={[
+              { label: "Bez przypisanego łowiska", value: "" },
+              ...lakes.map((lake) => ({
+                label: `${lake.name} — ${lake.city}, woj. ${lake.voivodeship}`,
+                value: lake.id,
+              })),
+            ]}
+          />
+
+          <Select
+            label="Typ wyprawy"
+            value={form.tripType}
+            onChange={(value) => onFieldChange("tripType", value)}
+            options={tripTypes}
+          />
+
+          <Select
+            label="Status"
+            value={form.status}
+            onChange={(value) => onFieldChange("status", value)}
+            options={statuses}
+          />
+        </div>
+      </FormGroup>
+
+      <FormGroup
+        title="Checklista"
+        description="Utwórz listę rzeczy do przygotowania przed wyjazdem."
+      >
+        <label className="flex cursor-pointer items-center gap-3 rounded-2xl bg-slate-50 p-4">
+          <input
+            type="checkbox"
+            checked={form.createChecklist}
+            onChange={(event) =>
+              onFieldChange("createChecklist", event.target.checked)
+            }
+            className="h-4 w-4 rounded border-slate-300 accent-blue-600"
+          />
+
+          <span className="text-sm font-semibold text-slate-700">
+            Utwórz checklistę wyprawy
+          </span>
+        </label>
+      </FormGroup>
+
+      <FormGroup title="Notatka" description="Dodaj własne informacje o wyprawie.">
+        <textarea
+          value={form.note}
+          onChange={(event) => onFieldChange("note", event.target.value)}
+          rows={4}
+          placeholder="np. Zabierz pellet 2 mm, podbierak, matę i ciepłe ubranie."
+          className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+        />
+      </FormGroup>
+
+      <div
+        className={`flex gap-3 ${
+          isMobile
+            ? "sticky bottom-0 -mx-5 border-t border-slate-100 bg-white px-5 py-4"
+            : "justify-end"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isLoading}
+          className="flex-1 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
+        >
+          Anuluj
+        </button>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="flex-1 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
+        >
+          {isLoading
+            ? "Zapisywanie..."
+            : editingTripId
+              ? "Zapisz zmiany"
+              : "Zaplanuj wyprawę"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function FormGroup({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="mb-4">
+        <h3 className="text-base font-black text-slate-950">{title}</h3>
+
+        <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+      </div>
+
+      {children}
+    </section>
   );
 }
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-semibold text-slate-500">{label}</p>
+    <div className="min-w-[170px] max-w-full rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:min-w-0 md:p-5">
+      <p className="break-words text-sm font-semibold text-slate-500">
+        {label}
+      </p>
 
-      <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950">
+      <p className="mt-3 break-words text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
         {value}
       </p>
     </div>
@@ -797,7 +998,7 @@ function FilterSelect({
     <select
       value={value}
       onChange={(event) => onChange(event.target.value)}
-      className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
+      className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500"
     >
       {options.map((option) => (
         <option key={option.value} value={option.value}>
@@ -815,7 +1016,7 @@ function InfoTile({ label, value }: { label: string; value: string }) {
         {label}
       </p>
 
-      <p className="mt-1 font-semibold text-slate-700">{value}</p>
+      <p className="mt-1 break-words font-semibold text-slate-700">{value}</p>
     </div>
   );
 }
@@ -823,7 +1024,7 @@ function InfoTile({ label, value }: { label: string; value: string }) {
 function StatusBadge({ status }: { status: string }) {
   if (status === "planned") {
     return (
-      <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+      <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
         Planowana
       </span>
     );
@@ -831,7 +1032,7 @@ function StatusBadge({ status }: { status: string }) {
 
   if (status === "finished") {
     return (
-      <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+      <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
         Zakończona
       </span>
     );
@@ -839,14 +1040,14 @@ function StatusBadge({ status }: { status: string }) {
 
   if (status === "cancelled") {
     return (
-      <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
+      <span className="shrink-0 rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
         Anulowana
       </span>
     );
   }
 
   return (
-    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+    <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
       {status}
     </span>
   );
