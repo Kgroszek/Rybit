@@ -7,6 +7,8 @@ const CATCH_IMAGES_BUCKET = "catch-images";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const FUTURE_DATE_TOLERANCE_MS = 2 * 60 * 1000;
 
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
 type SupabaseUserForDisplayName = {
   email?: string | null;
   user_metadata?: {
@@ -86,6 +88,12 @@ function getUserDisplayName(user: SupabaseUserForDisplayName) {
   }
 
   return "Użytkownik";
+}
+
+function checkAchievementsInBackground(userId: string) {
+  void checkAndUnlockAchievements(userId).catch((error) => {
+    console.error("[catches] Nie udało się sprawdzić osiągnięć:", error);
+  });
 }
 
 export async function GET() {
@@ -260,32 +268,25 @@ async function handleJsonCatchCreate(
     data: {
       userId,
       userName,
-
       fishName,
       weight,
       length,
-
       method,
       bait: body.bait || null,
       caughtAt,
-
       lakeId: finalLakeId,
       lakeName,
-
       tripId,
       tripTitle,
-
       imageUrl,
       imagePath,
-
       note: body.note || null,
-
       isPublic,
       rankingStatus: isPublic ? "approved" : "pending",
     },
   });
 
-  await checkAndUnlockAchievements(userId);
+  checkAchievementsInBackground(userId);
 
   return NextResponse.json(fishingCatch, { status: 201 });
 }
@@ -294,7 +295,7 @@ async function handleMultipartCatchCreate(
   request: Request,
   userId: string,
   userName: string,
-  supabase: Awaited<ReturnType<typeof createClient>>
+  supabase: SupabaseServerClient
 ) {
   const formData = await request.formData();
 
@@ -349,8 +350,7 @@ async function handleMultipartCatchCreate(
   if (image && image.size > 0 && !isValidImage(image)) {
     return NextResponse.json(
       {
-        message:
-          "Zdjęcie musi być plikiem graficznym i mieć maksymalnie 5 MB.",
+        message: "Zdjęcie musi być plikiem graficznym i mieć maksymalnie 5 MB.",
       },
       { status: 400 }
     );
@@ -419,6 +419,7 @@ async function handleMultipartCatchCreate(
   try {
     if (image && image.size > 0) {
       const cleanFileName = sanitizeFileName(image.name);
+
       imagePath = `${userId}/${Date.now()}-${cleanFileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -444,32 +445,25 @@ async function handleMultipartCatchCreate(
       data: {
         userId,
         userName,
-
         fishName,
         weight,
         length,
-
         method,
         bait: getFormValue(formData, "bait") || null,
         caughtAt,
-
         lakeId: finalLakeId,
         lakeName,
-
         tripId,
         tripTitle,
-
         imageUrl,
         imagePath,
-
         note: getFormValue(formData, "note") || null,
-
         isPublic,
         rankingStatus: isPublic ? "approved" : "pending",
       },
     });
 
-    await checkAndUnlockAchievements(userId);
+    checkAchievementsInBackground(userId);
 
     return NextResponse.json(fishingCatch, { status: 201 });
   } catch (error) {
