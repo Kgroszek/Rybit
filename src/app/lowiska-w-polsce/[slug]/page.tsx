@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getLakeBySlug } from "@/lib/lakes";
+import { getLakeBySlug, getRecommendedNearbyLakes } from "@/lib/lakes";
 import { PublicLakeDetailsPage } from "@/components/public/PublicLakeDetailsPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
@@ -90,7 +90,9 @@ export async function generateMetadata({
 
   const description = truncateText(
     lake.description ||
-      `Sprawdź ${lake.name}${city ? ` w miejscowości ${city}` : ""}: lokalizację, gatunki ryb, typ łowiska, udogodnienia, cennik, zasady i informacje przydatne przed wyprawą.`
+      `Sprawdź ${lake.name}${
+        city ? ` w miejscowości ${city}` : ""
+      }: lokalizację, gatunki ryb, typ łowiska, udogodnienia, cennik, zasady i informacje przydatne przed wyprawą.`
   );
 
   const canonicalUrl = `/lowiska-w-polsce/${lake.slug}`;
@@ -146,7 +148,11 @@ export async function generateMetadata({
 
 export default async function PublicLakePage({ params }: PageProps) {
   const { slug } = await params;
-  const lake = await getLakeBySlug(slug);
+
+  const [lake, recommendedLakes] = await Promise.all([
+    getLakeBySlug(slug),
+    getRecommendedNearbyLakes(slug, 3),
+  ]);
 
   if (!lake) {
     notFound();
@@ -156,7 +162,10 @@ export default async function PublicLakePage({ params }: PageProps) {
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <PublicHeader />
 
-      <PublicLakeDetailsPage lake={lake} />
+      <PublicLakeDetailsPage
+        lake={lake}
+        recommendedLakes={recommendedLakes}
+      />
 
       <PublicFooter />
     </main>

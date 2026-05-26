@@ -2,10 +2,16 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import type { LakeDto } from "@/lib/lakes";
+
+type RecommendedLake = LakeDto & {
+  nearbyDistanceInKm?: number;
+};
 
 type PublicLakeDetailsPageProps = {
   lake: LakeDto;
+  recommendedLakes?: RecommendedLake[];
 };
 
 const amenitiesLabels = [
@@ -26,16 +32,27 @@ const amenitiesLabels = [
   { key: "cardPayment", label: "Płatność kartą", icon: "💳" },
 ] as const;
 
-export function PublicLakeDetailsPage({ lake }: PublicLakeDetailsPageProps) {
+export function PublicLakeDetailsPage({
+  lake,
+  recommendedLakes = [],
+}: PublicLakeDetailsPageProps) {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [brokenGalleryImages, setBrokenGalleryImages] = useState<string[]>([]);
-
-const visibleGalleryImages = lake.images.filter(
-  (image) => !brokenGalleryImages.includes(image)
-);
   const [authModalType, setAuthModalType] = useState<
     "rating" | "favourite" | "ranking" | null
   >(null);
+
+  const visibleGalleryImages = lake.images.filter(
+    (image) => !brokenGalleryImages.includes(image)
+  );
+
+  const cleanRules = lake.rules
+    .map((rule) => cleanListItemText(rule))
+    .filter(Boolean);
+
+  const cleanPriceList = lake.priceList
+    .map((item) => cleanListItemText(item))
+    .filter(Boolean);
 
   return (
     <>
@@ -94,7 +111,7 @@ const visibleGalleryImages = lake.images.filter(
                     onClick={() => setAuthModalType("rating")}
                     className="w-full rounded-2xl bg-blue-50 px-5 py-3 text-lg font-black text-blue-700 transition hover:bg-blue-100"
                   >
-                    ★ {lake.rating}
+                    ★ {Number(lake.rating || 0).toFixed(1)}
                   </button>
                 </div>
               </div>
@@ -111,7 +128,8 @@ const visibleGalleryImages = lake.images.filter(
                 </h2>
 
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Zdjęcia dodane do profilu łowiska. Kliknij zdjęcie, aby powiększyć.
+                  Zdjęcia dodane do profilu łowiska. Kliknij zdjęcie, aby
+                  powiększyć.
                 </p>
               </div>
 
@@ -138,29 +156,13 @@ const visibleGalleryImages = lake.images.filter(
               </div>
             ) : (
               <div className="mt-5 flex min-h-[220px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-gradient-to-br from-sky-50 via-cyan-50 to-emerald-50 px-6 text-center">
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white shadow-sm">
-                  <svg
-                    className="h-8 w-8 text-blue-600"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <rect x="3" y="5" width="18" height="14" rx="3" />
-                    <path d="m8 14 2.5-2.5L14 15l2-2 3 3" />
-                    <circle cx="8.5" cy="9.5" r="1.5" />
-                  </svg>
-                </div>
-
                 <p className="text-base font-black text-slate-800">
                   Brak zdjęć łowiska
                 </p>
 
                 <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                  Do tego łowiska nie dodano jeszcze zdjęć. Galeria pojawi się po
-                  uzupełnieniu zdjęć.
+                  Do tego łowiska nie dodano jeszcze zdjęć albo przesłane
+                  zdjęcia są chwilowo niedostępne.
                 </p>
               </div>
             )}
@@ -208,25 +210,32 @@ const visibleGalleryImages = lake.images.filter(
             </Section>
 
             <Section title="Ryby występujące na łowisku">
-              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {lake.fishSpecies.map((fish) => (
-                  <div
-                    key={fish}
-                    className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                  >
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-2xl shadow-sm">
-                      🐟
-                    </div>
+              {lake.fishSpecies.length > 0 ? (
+                <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {lake.fishSpecies.map((fish) => (
+                    <div
+                      key={fish}
+                      className="flex min-w-0 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                    >
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-2xl shadow-sm">
+                        🐟
+                      </div>
 
-                    <div className="min-w-0">
-                      <p className="break-words font-black text-slate-950">
-                        {fish}
-                      </p>
-                      <p className="text-sm text-slate-500">Występuje</p>
+                      <div className="min-w-0">
+                        <p className="break-words font-black text-slate-950">
+                          {fish}
+                        </p>
+
+                        <p className="text-sm text-slate-500">Występuje</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+                  {lake.fish || "Brak informacji o gatunkach ryb."}
+                </div>
+              )}
             </Section>
 
             <Section title="Udogodnienia">
@@ -271,47 +280,31 @@ const visibleGalleryImages = lake.images.filter(
             </Section>
 
             <Section title="Cennik">
-              <div className="space-y-3">
-                {lake.priceList.length > 0 ? (
-                  lake.priceList.map((item) => (
-                    <div
-                      key={item}
-                      className="break-words rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700"
-                    >
-                      {item}
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
-                    Brak dodanego cennika.
-                  </div>
-                )}
-              </div>
+              {cleanPriceList.length > 0 ? (
+                <div className="rounded-2xl bg-slate-50 px-5 py-5">
+                  <p className="whitespace-pre-line break-words text-sm font-medium leading-7 text-slate-700">
+                    {cleanPriceList.join("\n")}
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+                  Brak dodanego cennika.
+                </div>
+              )}
             </Section>
 
             <Section title="Zasady na łowisku">
-              <div className="space-y-3">
-                {lake.rules.length > 0 ? (
-                  lake.rules.map((rule) => (
-                    <div
-                      key={rule}
-                      className="flex min-w-0 gap-3 rounded-2xl bg-slate-50 p-4"
-                    >
-                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
-                        ✓
-                      </span>
-
-                      <p className="min-w-0 break-words text-sm font-medium leading-6 text-slate-700">
-                        {rule}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
-                    Brak dodanych zasad łowiska.
-                  </div>
-                )}
-              </div>
+              {cleanRules.length > 0 ? (
+                <div className="rounded-2xl bg-slate-50 px-5 py-5">
+                  <p className="whitespace-pre-line break-words text-sm font-medium leading-7 text-slate-700">
+                    {cleanRules.join("\n")}
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+                  Brak dodanych zasad łowiska.
+                </div>
+              )}
             </Section>
           </div>
 
@@ -363,6 +356,44 @@ const visibleGalleryImages = lake.images.filter(
             </Section>
           </aside>
         </div>
+
+        {recommendedLakes.length > 0 && (
+          <section className="mt-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.16em] text-blue-600">
+                  Łowiska w pobliżu
+                </p>
+
+                <h2 className="mt-2 text-2xl font-black text-slate-950">
+                  Inne łowiska w okolicy {lake.address.city}
+                </h2>
+
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                  Zobacz 3 inne miejsca do wędkowania w pobliżu. Porównaj typ
+                  łowiska, gatunki ryb, udogodnienia i lokalizację przed kolejną
+                  wyprawą.
+                </p>
+              </div>
+
+              <Link
+                href="/lowiska-w-polsce"
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                Zobacz wszystkie łowiska
+              </Link>
+            </div>
+
+            <div className="mt-6 grid gap-5 md:grid-cols-3">
+              {recommendedLakes.map((recommendedLake) => (
+                <RecommendedLakeCard
+                  key={recommendedLake.id}
+                  lake={recommendedLake}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
 
       {previewImage && (
@@ -399,12 +430,104 @@ const visibleGalleryImages = lake.images.filter(
   );
 }
 
+function RecommendedLakeCard({ lake }: { lake: RecommendedLake }) {
+  const image = lake.images[0];
+
+  return (
+    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+      <div className="relative h-44 bg-slate-100">
+        {image ? (
+          <img
+            src={image}
+            alt={`${lake.name} – łowisko w ${lake.address.city}`}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-100 via-cyan-50 to-emerald-50 px-6 text-center">
+            <div>
+              <p className="text-sm font-black text-slate-700">Brak zdjęcia</p>
+
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Szczegóły znajdziesz po wejściu w łowisko.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+          <span
+            className={`rounded-full px-3 py-1 text-xs font-black ${
+              lake.type === "commercial"
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-blue-50 text-blue-700"
+            }`}
+          >
+            {getOwnerTypeLabel(lake.type)}
+          </span>
+
+          <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-black text-slate-700 shadow-sm">
+            {getFishingTypeLabel(lake.fishingType)}
+          </span>
+        </div>
+      </div>
+
+      <div className="flex flex-1 flex-col p-5">
+        <h3 className="line-clamp-2 break-words text-xl font-black text-slate-950">
+          {lake.name}
+        </h3>
+
+        <p className="mt-1 line-clamp-1 text-sm font-semibold text-slate-500">
+          {lake.address.city}, woj. {lake.address.voivodeship}
+        </p>
+
+        <p className="mt-4 line-clamp-2 min-h-[48px] text-sm leading-6 text-slate-500">
+          {lake.fishSpecies.length > 0
+            ? lake.fishSpecies.slice(0, 6).join(", ")
+            : lake.fish || "Brak informacji o rybach"}
+        </p>
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          {lake.amenities.noKill && <SmallRecommendedBadge label="No Kill" />}
+          {lake.amenities.parking && <SmallRecommendedBadge label="Parking" />}
+          {lake.amenities.nightFishing && (
+            <SmallRecommendedBadge label="Nocka" />
+          )}
+          {lake.amenities.cottages && <SmallRecommendedBadge label="Domki" />}
+        </div>
+
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-100 pt-5">
+          <p className="text-sm font-bold text-slate-500">
+            {typeof lake.nearbyDistanceInKm === "number"
+              ? `${lake.nearbyDistanceInKm.toFixed(1)} km`
+              : "W pobliżu"}
+          </p>
+
+          <Link
+            href={`/lowiska-w-polsce/${lake.slug}`}
+            className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700"
+          >
+            Szczegóły
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function SmallRecommendedBadge({ label }: { label: string }) {
+  return (
+    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+      {label}
+    </span>
+  );
+}
+
 function Section({
   title,
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
@@ -489,6 +612,12 @@ function getOwnerTypeLabel(type: string) {
   return "Inne łowisko";
 }
 
+function getFishingTypeLabel(type: string) {
+  if (type === "carp") return "Karpiowe";
+  if (type === "spinning") return "Spinningowe";
+  return "Ogólne";
+}
+
 function LakeGalleryImage({
   image,
   lakeName,
@@ -517,9 +646,13 @@ function LakeGalleryImage({
   );
 }
 
-function getFishingTypeLabel(type: string) {
-  if (type === "general") return "Ogólne";
-  if (type === "spinning") return "Spinningowe";
-  if (type === "carp") return "Karpiowe";
-  return "Inne";
+function cleanListItemText(value: string) {
+  return value
+    .trim()
+    .replace(/^[-–—•●▪▫]\s*/g, "")
+    .replace(/^\*\s*/g, "")
+    .replace(/^\d+[.)]\s*/g, "")
+    .replace(/^[a-zA-Z][.)]\s*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }

@@ -501,3 +501,72 @@ export async function getLakesDashboard(): Promise<LakeDto[]> {
     },
   }));
 }
+
+function calculateDistanceInKm(
+  firstLat: number,
+  firstLng: number,
+  secondLat: number,
+  secondLng: number
+) {
+  const earthRadiusKm = 6371;
+
+  const latDifference = ((secondLat - firstLat) * Math.PI) / 180;
+  const lngDifference = ((secondLng - firstLng) * Math.PI) / 180;
+
+  const firstLatRadians = (firstLat * Math.PI) / 180;
+  const secondLatRadians = (secondLat * Math.PI) / 180;
+
+  const a =
+    Math.sin(latDifference / 2) * Math.sin(latDifference / 2) +
+    Math.cos(firstLatRadians) *
+      Math.cos(secondLatRadians) *
+      Math.sin(lngDifference / 2) *
+      Math.sin(lngDifference / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusKm * c;
+}
+
+export async function getRecommendedNearbyLakes(slug: string, limit = 3) {
+  const lakes = await getLakes();
+
+  const currentLake = lakes.find((lake) => lake.slug === slug);
+
+  if (!currentLake) {
+    return [];
+  }
+
+  return lakes
+    .filter((lake) => lake.slug !== currentLake.slug)
+    .map((lake) => {
+      const distanceInKm = calculateDistanceInKm(
+        currentLake.lat,
+        currentLake.lng,
+        lake.lat,
+        lake.lng
+      );
+
+      const isSameCity =
+        lake.address.city.toLowerCase() ===
+        currentLake.address.city.toLowerCase();
+
+      const isSameVoivodeship =
+        lake.address.voivodeship.toLowerCase() ===
+        currentLake.address.voivodeship.toLowerCase();
+
+      return {
+        ...lake,
+        nearbyDistanceInKm: distanceInKm,
+        nearbyScore:
+          (isSameCity ? 1000 : 0) +
+          (isSameVoivodeship ? 500 : 0) -
+          distanceInKm +
+          Number(lake.rating || 0),
+      };
+    })
+    .sort((firstLake, secondLake) => {
+      return secondLake.nearbyScore - firstLake.nearbyScore;
+    })
+    .slice(0, limit);
+}
