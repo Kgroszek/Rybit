@@ -5,6 +5,8 @@ import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Łowiska w Polsce – mapa i baza łowisk dla wędkarzy | Rybio",
   description:
@@ -21,7 +23,7 @@ export default async function PublicLakesListPage() {
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_35%),radial-gradient(circle_at_top_right,#ccfbf1,transparent_30%)]" />
 
-        <div className="relative mx-auto max-w-[1500px]  px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+        <div className="relative mx-auto max-w-[1500px] px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
           <div className="max-w-4xl">
             <p className="mb-5 inline-flex rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-bold text-blue-700 shadow-sm">
               Publiczna baza łowisk dla wędkarzy
