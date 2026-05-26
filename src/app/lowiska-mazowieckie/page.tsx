@@ -5,21 +5,110 @@ import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
+const siteUrl = "https://rybio.pl";
+
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "Łowiska mazowieckie – baza łowisk w województwie mazowieckim | Rybio",
+  metadataBase: new URL(siteUrl),
+  title: "Łowiska mazowieckie – łowiska w województwie mazowieckim | Rybio",
   description:
-    "Sprawdź łowiska mazowieckie. Przeglądaj łowiska w województwie mazowieckim, filtruj miejsca według gatunków ryb, typu łowienia i udogodnień.",
+    "Sprawdź łowiska w województwie mazowieckim. Przeglądaj łowiska mazowieckie, filtruj miejsca według typu łowiska, gatunków ryb, udogodnień i lokalizacji.",
+  keywords: [
+    "łowiska mazowieckie",
+    "łowiska w województwie mazowieckim",
+    "gdzie na ryby mazowieckie",
+    "łowiska komercyjne mazowieckie",
+    "łowiska karpiowe mazowieckie",
+    "łowiska PZW mazowieckie",
+    "wędkarstwo mazowieckie",
+    "łowiska na Mazowszu",
+    "baza łowisk mazowieckie",
+    "łowiska Warszawa",
+    "łowiska Siedlce",
+    "łowiska Garwolin",
+    "Rybio",
+  ],
+  alternates: {
+    canonical: "/lowiska-mazowieckie",
+  },
+  openGraph: {
+    title:
+      "Łowiska mazowieckie – baza łowisk w województwie mazowieckim | Rybio",
+    description:
+      "Znajdź łowiska w województwie mazowieckim. Sprawdzaj gatunki ryb, typ łowiska, udogodnienia, lokalizację i informacje przydatne przed wyprawą.",
+    url: "/lowiska-mazowieckie",
+    siteName: "Rybio",
+    locale: "pl_PL",
+    type: "website",
+    images: [
+      {
+        url: "/og-lakes.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Łowiska mazowieckie – Rybio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Łowiska mazowieckie | Rybio",
+    description:
+      "Przeglądaj łowiska w województwie mazowieckim i znajdź miejsce na kolejną wyprawę nad wodę.",
+    images: ["/og-lakes.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function MazowieckieLakesPage() {
   const lakes = await getLakes();
 
   const mazowieckieLakes = lakes.filter((lake) => {
-    return lake.address.voivodeship.toLowerCase().includes("mazowieckie");
+    const voivodeship = lake.address.voivodeship.toLowerCase();
+
+    return (
+      voivodeship.includes("mazowieckie") ||
+      voivodeship.includes("mazowsze") ||
+      voivodeship.includes("mazowiecka") ||
+      voivodeship.includes("mazowiecki")
+    );
   });
+
+  const initialVoivodeship =
+    mazowieckieLakes[0]?.address.voivodeship || "mazowieckie";
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Łowiska mazowieckie",
+    description:
+      "Publiczna baza łowisk w województwie mazowieckim. Miejsca na ryby, łowiska komercyjne, łowiska PZW, łowiska karpiowe i miejsca na wyprawy wędkarskie.",
+    url: `${siteUrl}/lowiska-mazowieckie`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Rybio",
+      url: siteUrl,
+    },
+    about: [
+      "łowiska mazowieckie",
+      "łowiska w województwie mazowieckim",
+      "wędkarstwo mazowieckie",
+      "gdzie na ryby mazowieckie",
+    ],
+  };
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd),
+        }}
+      />
+
       <PublicHeader />
 
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
@@ -40,8 +129,8 @@ export default async function MazowieckieLakesPage() {
               Szukasz łowiska na Mazowszu? Sprawdź publiczną bazę łowisk w
               województwie mazowieckim, porównuj miejsca według gatunków ryb,
               typu łowienia, udogodnień i lokalizacji. Znajdź łowisko na karpia,
-              szczupaka, lina, suma, leszcza lub amura i lepiej zaplanuj kolejną
-              wyprawę nad wodę.
+              amura, szczupaka, sandacza, suma, lina albo leszcza i lepiej
+              zaplanuj kolejną wyprawę nad wodę.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -61,7 +150,10 @@ export default async function MazowieckieLakesPage() {
             </div>
 
             <div className="mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
-              <HeroStat value={String(mazowieckieLakes.length)} label="łowisk w bazie" />
+              <HeroStat
+                value={String(mazowieckieLakes.length)}
+                label="łowisk w bazie"
+              />
               <HeroStat value="Mazowieckie" label="województwo" />
               <HeroStat value="Filtry" label="ryby i udogodnienia" />
             </div>
@@ -78,18 +170,19 @@ export default async function MazowieckieLakesPage() {
 
             <div className="mt-4 space-y-4 leading-8 text-slate-600">
               <p>
-                Województwo mazowieckie oferuje wiele miejsc dla wędkarzy:
-                łowiska komercyjne, zbiorniki rekreacyjne, łowiska karpiowe,
-                miejsca dobre pod method feeder, spinning oraz spokojne wyprawy
-                rodzinne. Dzięki Rybio możesz szybciej sprawdzić podstawowe
-                informacje o łowisku przed wyjazdem.
+                Województwo mazowieckie oferuje wiele ciekawych miejsc dla
+                wędkarzy: łowiska komercyjne, zbiorniki rekreacyjne, łowiska
+                karpiowe, miejsca dobre pod feeder, method feeder, spinning oraz
+                spokojne wyprawy rodzinne. Dzięki Rybio możesz szybciej
+                sprawdzić podstawowe informacje o łowisku przed wyjazdem.
               </p>
 
               <p>
                 Na tej stronie znajdziesz łowiska mazowieckie dostępne w bazie
-                Rybio. Możesz filtrować je według rodzaju łowiska, typu łowienia,
-                gatunku ryb oraz udogodnień, takich jak parking, pomost, nocka,
-                domki, toaleta, sklep czy możliwość płatności kartą.
+                Rybio. Możesz filtrować je według rodzaju łowiska, typu
+                łowienia, gatunku ryb oraz udogodnień, takich jak parking,
+                pomost, wędkowanie nocne, domki, toaleta, sklep, altana czy
+                możliwość płatności kartą.
               </p>
             </div>
           </div>
@@ -100,8 +193,9 @@ export default async function MazowieckieLakesPage() {
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-blue-800">
-              Załóż konto w Rybio, dodawaj połowy ze zdjęciami, zapisuj ulubione
-              łowiska, oceniaj miejsca i korzystaj z rankingów.
+              Załóż konto w Rybio, dodawaj połowy ze zdjęciami, zapisuj
+              ulubione łowiska, oceniaj miejsca i korzystaj z rankingów
+              największych oraz najdłuższych ryb.
             </p>
 
             <div className="mt-5 grid gap-3">
@@ -123,34 +217,37 @@ export default async function MazowieckieLakesPage() {
         </div>
       </section>
 
-      <PublicLakesPage lakes={mazowieckieLakes} />
+      <PublicLakesPage
+        lakes={mazowieckieLakes}
+        initialVoivodeship={initialVoivodeship}
+      />
 
       <section className="mx-auto max-w-[1500px] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-950">
-            Jak wybrać dobre łowisko na Mazowszu?
+            Jak wybrać dobre łowisko w województwie mazowieckim?
           </h2>
 
           <div className="mt-4 space-y-4 leading-8 text-slate-600">
             <p>
-              Wybierając łowisko w województwie mazowieckim, warto sprawdzić nie
-              tylko lokalizację, ale także dostępne gatunki ryb, regulamin,
-              cennik, możliwość nocnego wędkowania, dostęp do parkingu oraz
-              ogólne warunki nad wodą. Dla wielu wędkarzy ważne są także pomosty,
-              stanowiska, zaplecze sanitarne i możliwość wygodnego dojazdu.
+              Wybierając łowisko w województwie mazowieckim, warto sprawdzić
+              lokalizację, gatunki ryb, regulamin, cennik, możliwość nocnego
+              wędkowania, dostęp do parkingu, pomostów oraz zaplecza dla
+              wędkarzy. Dla wielu osób ważne są również domki, toaleta, sklep z
+              przynętami, zadaszone stanowiska i wygodny dojazd.
             </p>
 
             <p>
               Rybio pomaga zebrać te informacje w jednym miejscu. Dzięki temu
-              możesz szybciej porównać łowiska, sprawdzić ich opis, zdjęcia,
+              możesz szybciej porównać łowiska, sprawdzić opis, zdjęcia,
               udogodnienia i zdecydować, gdzie warto zaplanować kolejną wyprawę
-              wędkarską.
+              wędkarską na Mazowszu.
             </p>
           </div>
         </div>
       </section>
 
-     <PublicFooter />
+      <PublicFooter />
     </main>
   );
 }

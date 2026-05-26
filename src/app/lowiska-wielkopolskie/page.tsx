@@ -5,11 +5,59 @@ import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
+const siteUrl = "https://rybio.pl";
+
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title:
-    "Łowiska wielkopolskie – baza łowisk w województwie wielkopolskim | Rybio",
+  metadataBase: new URL(siteUrl),
+  title: "Łowiska wielkopolskie – łowiska w województwie wielkopolskim | Rybio",
   description:
-    "Sprawdź łowiska wielkopolskie. Przeglądaj łowiska w województwie wielkopolskim, filtruj miejsca według gatunków ryb, typu łowienia i udogodnień.",
+    "Sprawdź łowiska w województwie wielkopolskim. Przeglądaj łowiska wielkopolskie, filtruj miejsca według typu łowiska, gatunków ryb, udogodnień i lokalizacji.",
+  keywords: [
+    "łowiska wielkopolskie",
+    "łowiska w województwie wielkopolskim",
+    "gdzie na ryby wielkopolskie",
+    "łowiska komercyjne wielkopolskie",
+    "łowiska karpiowe wielkopolskie",
+    "łowiska PZW wielkopolskie",
+    "wędkarstwo wielkopolskie",
+    "łowiska w Wielkopolsce",
+    "baza łowisk wielkopolskie",
+    "Rybio",
+  ],
+  alternates: {
+    canonical: "/lowiska-wielkopolskie",
+  },
+  openGraph: {
+    title:
+      "Łowiska wielkopolskie – baza łowisk w województwie wielkopolskim | Rybio",
+    description:
+      "Znajdź łowiska w województwie wielkopolskim. Sprawdzaj gatunki ryb, typ łowiska, udogodnienia, lokalizację i informacje przydatne przed wyprawą.",
+    url: "/lowiska-wielkopolskie",
+    siteName: "Rybio",
+    locale: "pl_PL",
+    type: "website",
+    images: [
+      {
+        url: "/og-lakes.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Łowiska wielkopolskie – Rybio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Łowiska wielkopolskie | Rybio",
+    description:
+      "Przeglądaj łowiska w województwie wielkopolskim i znajdź miejsce na kolejną wyprawę nad wodę.",
+    images: ["/og-lakes.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function WielkopolskieLakesPage() {
@@ -25,8 +73,38 @@ export default async function WielkopolskieLakesPage() {
     );
   });
 
+  const initialVoivodeship =
+    wielkopolskieLakes[0]?.address.voivodeship || "wielkopolskie";
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Łowiska wielkopolskie",
+    description:
+      "Publiczna baza łowisk w województwie wielkopolskim. Miejsca na ryby, łowiska komercyjne, łowiska PZW, łowiska karpiowe i miejsca na wyprawy wędkarskie.",
+    url: `${siteUrl}/lowiska-wielkopolskie`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Rybio",
+      url: siteUrl,
+    },
+    about: [
+      "łowiska wielkopolskie",
+      "łowiska w województwie wielkopolskim",
+      "wędkarstwo wielkopolskie",
+      "gdzie na ryby wielkopolskie",
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd),
+        }}
+      />
+
       <PublicHeader />
 
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
@@ -136,12 +214,15 @@ export default async function WielkopolskieLakesPage() {
         </div>
       </section>
 
-      <PublicLakesPage lakes={wielkopolskieLakes} />
+      <PublicLakesPage
+        lakes={wielkopolskieLakes}
+        initialVoivodeship={initialVoivodeship}
+      />
 
       <section className="mx-auto max-w-[1500px] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-950">
-            Jak wybrać dobre łowisko w Wielkopolsce?
+            Jak wybrać dobre łowisko w województwie wielkopolskim?
           </h2>
 
           <div className="mt-4 space-y-4 leading-8 text-slate-600">

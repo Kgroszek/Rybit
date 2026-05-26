@@ -5,11 +5,62 @@ import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
+const siteUrl = "https://rybio.pl";
+
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title:
-    "Łowiska podkarpackie – baza łowisk w województwie podkarpackim | Rybio",
+  metadataBase: new URL(siteUrl),
+  title: "Łowiska podkarpackie – łowiska w województwie podkarpackim | Rybio",
   description:
-    "Sprawdź łowiska podkarpackie. Przeglądaj łowiska w województwie podkarpackim, filtruj miejsca według gatunków ryb, typu łowienia i udogodnień.",
+    "Sprawdź łowiska w województwie podkarpackim. Przeglądaj łowiska podkarpackie, filtruj miejsca według typu łowiska, gatunków ryb, udogodnień i lokalizacji.",
+  keywords: [
+    "łowiska podkarpackie",
+    "łowiska w województwie podkarpackim",
+    "gdzie na ryby podkarpackie",
+    "łowiska komercyjne podkarpackie",
+    "łowiska karpiowe podkarpackie",
+    "łowiska PZW podkarpackie",
+    "wędkarstwo podkarpackie",
+    "łowiska na Podkarpaciu",
+    "baza łowisk podkarpackie",
+    "łowiska Rzeszów",
+    "łowiska Przemyśl",
+    "łowiska Krosno",
+    "Rybio",
+  ],
+  alternates: {
+    canonical: "/lowiska-podkarpackie",
+  },
+  openGraph: {
+    title:
+      "Łowiska podkarpackie – baza łowisk w województwie podkarpackim | Rybio",
+    description:
+      "Znajdź łowiska w województwie podkarpackim. Sprawdzaj gatunki ryb, typ łowiska, udogodnienia, lokalizację i informacje przydatne przed wyprawą.",
+    url: "/lowiska-podkarpackie",
+    siteName: "Rybio",
+    locale: "pl_PL",
+    type: "website",
+    images: [
+      {
+        url: "/og-lakes.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Łowiska podkarpackie – Rybio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Łowiska podkarpackie | Rybio",
+    description:
+      "Przeglądaj łowiska w województwie podkarpackim i znajdź miejsce na kolejną wyprawę nad wodę.",
+    images: ["/og-lakes.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function PodkarpackieLakesPage() {
@@ -26,8 +77,38 @@ export default async function PodkarpackieLakesPage() {
     );
   });
 
+  const initialVoivodeship =
+    podkarpackieLakes[0]?.address.voivodeship || "podkarpackie";
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Łowiska podkarpackie",
+    description:
+      "Publiczna baza łowisk w województwie podkarpackim. Miejsca na ryby, łowiska komercyjne, łowiska PZW, łowiska karpiowe i miejsca na wyprawy wędkarskie.",
+    url: `${siteUrl}/lowiska-podkarpackie`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Rybio",
+      url: siteUrl,
+    },
+    about: [
+      "łowiska podkarpackie",
+      "łowiska w województwie podkarpackim",
+      "wędkarstwo podkarpackie",
+      "gdzie na ryby podkarpackie",
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd),
+        }}
+      />
+
       <PublicHeader />
 
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
@@ -89,12 +170,11 @@ export default async function PodkarpackieLakesPage() {
 
             <div className="mt-4 space-y-4 leading-8 text-slate-600">
               <p>
-                Województwo podkarpackie to region z wieloma ciekawymi miejscami
-                dla wędkarzy. Możesz znaleźć tu łowiska komercyjne, zbiorniki
-                rekreacyjne, łowiska karpiowe, miejsca dobre pod feeder, method
-                feeder, spinning oraz spokojne wyprawy rodzinne. Dzięki Rybio
-                możesz szybciej sprawdzić podstawowe informacje o łowisku przed
-                wyjazdem.
+                Województwo podkarpackie oferuje wiele ciekawych miejsc dla
+                wędkarzy: łowiska komercyjne, zbiorniki rekreacyjne, łowiska
+                karpiowe, miejsca dobre pod feeder, method feeder, spinning oraz
+                spokojne wyprawy rodzinne. Dzięki Rybio możesz szybciej
+                sprawdzić podstawowe informacje o łowisku przed wyjazdem.
               </p>
 
               <p>
@@ -137,12 +217,15 @@ export default async function PodkarpackieLakesPage() {
         </div>
       </section>
 
-      <PublicLakesPage lakes={podkarpackieLakes} />
+      <PublicLakesPage
+        lakes={podkarpackieLakes}
+        initialVoivodeship={initialVoivodeship}
+      />
 
       <section className="mx-auto max-w-[1500px] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-950">
-            Jak wybrać dobre łowisko na Podkarpaciu?
+            Jak wybrać dobre łowisko w województwie podkarpackim?
           </h2>
 
           <div className="mt-4 space-y-4 leading-8 text-slate-600">
@@ -164,7 +247,7 @@ export default async function PodkarpackieLakesPage() {
         </div>
       </section>
 
-     <PublicFooter />
+      <PublicFooter />
     </main>
   );
 }

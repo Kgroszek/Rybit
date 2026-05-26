@@ -5,10 +5,62 @@ import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
+const siteUrl = "https://rybio.pl";
+
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "Łowiska śląskie – baza łowisk w województwie śląskim | Rybio",
+  metadataBase: new URL(siteUrl),
+  title: "Łowiska śląskie – łowiska w województwie śląskim | Rybio",
   description:
-    "Sprawdź łowiska śląskie. Przeglądaj łowiska w województwie śląskim, filtruj miejsca według gatunków ryb, typu łowienia i udogodnień.",
+    "Sprawdź łowiska w województwie śląskim. Przeglądaj łowiska śląskie, filtruj miejsca według typu łowiska, gatunków ryb, udogodnień i lokalizacji.",
+  keywords: [
+    "łowiska śląskie",
+    "łowiska slaskie",
+    "łowiska w województwie śląskim",
+    "gdzie na ryby śląskie",
+    "łowiska komercyjne śląskie",
+    "łowiska karpiowe śląskie",
+    "łowiska PZW śląskie",
+    "wędkarstwo śląskie",
+    "łowiska na Śląsku",
+    "baza łowisk śląskie",
+    "łowiska Katowice",
+    "łowiska Gliwice",
+    "łowiska Częstochowa",
+    "Rybio",
+  ],
+  alternates: {
+    canonical: "/lowiska-slaskie",
+  },
+  openGraph: {
+    title: "Łowiska śląskie – baza łowisk w województwie śląskim | Rybio",
+    description:
+      "Znajdź łowiska w województwie śląskim. Sprawdzaj gatunki ryb, typ łowiska, udogodnienia, lokalizację i informacje przydatne przed wyprawą.",
+    url: "/lowiska-slaskie",
+    siteName: "Rybio",
+    locale: "pl_PL",
+    type: "website",
+    images: [
+      {
+        url: "/og-lakes.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Łowiska śląskie – Rybio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Łowiska śląskie | Rybio",
+    description:
+      "Przeglądaj łowiska w województwie śląskim i znajdź miejsce na kolejną wyprawę nad wodę.",
+    images: ["/og-lakes.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function SlaskieLakesPage() {
@@ -21,12 +73,46 @@ export default async function SlaskieLakesPage() {
       voivodeship.includes("śląskie") ||
       voivodeship.includes("slaskie") ||
       voivodeship.includes("śląsk") ||
-      voivodeship.includes("slask")
+      voivodeship.includes("slask") ||
+      voivodeship.includes("śląski") ||
+      voivodeship.includes("slaski") ||
+      voivodeship.includes("śląska") ||
+      voivodeship.includes("slaska")
     );
   });
 
+  const initialVoivodeship =
+    slaskieLakes[0]?.address.voivodeship || "śląskie";
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Łowiska śląskie",
+    description:
+      "Publiczna baza łowisk w województwie śląskim. Miejsca na ryby, łowiska komercyjne, łowiska PZW, łowiska karpiowe i miejsca na wyprawy wędkarskie.",
+    url: `${siteUrl}/lowiska-slaskie`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Rybio",
+      url: siteUrl,
+    },
+    about: [
+      "łowiska śląskie",
+      "łowiska w województwie śląskim",
+      "wędkarstwo śląskie",
+      "gdzie na ryby śląskie",
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd),
+        }}
+      />
+
       <PublicHeader />
 
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
@@ -46,7 +132,7 @@ export default async function SlaskieLakesPage() {
               Szukasz łowiska na Śląsku? Sprawdź publiczną bazę łowisk w
               województwie śląskim, porównuj miejsca według gatunków ryb, typu
               łowienia, udogodnień i lokalizacji. Znajdź łowisko na karpia,
-              amura, suma, szczupaka, sandacza, lina albo leszcza i lepiej
+              amura, szczupaka, sandacza, suma, lina albo leszcza i lepiej
               zaplanuj kolejną wyprawę nad wodę.
             </p>
 
@@ -87,12 +173,11 @@ export default async function SlaskieLakesPage() {
 
             <div className="mt-4 space-y-4 leading-8 text-slate-600">
               <p>
-                Województwo śląskie to region, w którym wędkarze mogą znaleźć
-                różne typy miejsc do łowienia: łowiska komercyjne, zbiorniki
-                rekreacyjne, łowiska karpiowe, miejsca pod method feeder,
-                spinning oraz spokojne wyprawy rodzinne. Dzięki Rybio możesz
-                szybciej sprawdzić podstawowe informacje o łowisku przed
-                wyjazdem.
+                Województwo śląskie oferuje wiele ciekawych miejsc dla
+                wędkarzy: łowiska komercyjne, zbiorniki rekreacyjne, łowiska
+                karpiowe, miejsca dobre pod feeder, method feeder, spinning oraz
+                spokojne wyprawy rodzinne. Dzięki Rybio możesz szybciej
+                sprawdzić podstawowe informacje o łowisku przed wyjazdem.
               </p>
 
               <p>
@@ -135,22 +220,24 @@ export default async function SlaskieLakesPage() {
         </div>
       </section>
 
-      <PublicLakesPage lakes={slaskieLakes} />
+      <PublicLakesPage
+        lakes={slaskieLakes}
+        initialVoivodeship={initialVoivodeship}
+      />
 
       <section className="mx-auto max-w-[1500px] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-950">
-            Jak wybrać dobre łowisko na Śląsku?
+            Jak wybrać dobre łowisko w województwie śląskim?
           </h2>
 
           <div className="mt-4 space-y-4 leading-8 text-slate-600">
             <p>
-              Wybierając łowisko w województwie śląskim, warto sprawdzić nie
-              tylko odległość od miejsca zamieszkania, ale także gatunki ryb,
-              regulamin, cennik, możliwość nocnego wędkowania, dostęp do
-              parkingu, pomostów oraz podstawowego zaplecza. Dla wielu wędkarzy
-              ważne są również domki, toaleta, sklep z przynętami, zadaszone
-              stanowiska i wygodny dojazd.
+              Wybierając łowisko w województwie śląskim, warto sprawdzić
+              lokalizację, gatunki ryb, regulamin, cennik, możliwość nocnego
+              wędkowania, dostęp do parkingu, pomostów oraz zaplecza dla
+              wędkarzy. Dla wielu osób ważne są również domki, toaleta, sklep z
+              przynętami, zadaszone stanowiska i wygodny dojazd.
             </p>
 
             <p>

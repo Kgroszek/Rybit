@@ -5,11 +5,59 @@ import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
+const siteUrl = "https://rybio.pl";
+
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title:
-    "Łowiska małopolskie – baza łowisk w województwie małopolskim | Rybio",
+  metadataBase: new URL(siteUrl),
+  title: "Łowiska małopolskie – łowiska w województwie małopolskim | Rybio",
   description:
-    "Sprawdź łowiska małopolskie. Przeglądaj łowiska w województwie małopolskim, filtruj miejsca według gatunków ryb, typu łowienia i udogodnień.",
+    "Sprawdź łowiska w województwie małopolskim. Przeglądaj łowiska małopolskie, filtruj miejsca według typu łowiska, gatunków ryb, udogodnień i lokalizacji.",
+  keywords: [
+    "łowiska małopolskie",
+    "łowiska w województwie małopolskim",
+    "gdzie na ryby małopolskie",
+    "łowiska komercyjne małopolskie",
+    "łowiska karpiowe małopolskie",
+    "łowiska PZW małopolskie",
+    "wędkarstwo małopolskie",
+    "łowiska w Małopolsce",
+    "baza łowisk małopolskie",
+    "Rybio",
+  ],
+  alternates: {
+    canonical: "/lowiska-malopolskie",
+  },
+  openGraph: {
+    title:
+      "Łowiska małopolskie – baza łowisk w województwie małopolskim | Rybio",
+    description:
+      "Znajdź łowiska w województwie małopolskim. Sprawdzaj gatunki ryb, typ łowiska, udogodnienia, lokalizację i informacje przydatne przed wyprawą.",
+    url: "/lowiska-malopolskie",
+    siteName: "Rybio",
+    locale: "pl_PL",
+    type: "website",
+    images: [
+      {
+        url: "/og-lakes.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Łowiska małopolskie – Rybio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Łowiska małopolskie | Rybio",
+    description:
+      "Przeglądaj łowiska w województwie małopolskim i znajdź miejsce na kolejną wyprawę nad wodę.",
+    images: ["/og-lakes.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function MalopolskieLakesPage() {
@@ -22,12 +70,44 @@ export default async function MalopolskieLakesPage() {
       voivodeship.includes("małopolskie") ||
       voivodeship.includes("malopolskie") ||
       voivodeship.includes("małopolska") ||
-      voivodeship.includes("malopolska")
+      voivodeship.includes("malopolska") ||
+      voivodeship.includes("małopolski") ||
+      voivodeship.includes("malopolski")
     );
   });
 
+  const initialVoivodeship =
+    malopolskieLakes[0]?.address.voivodeship || "małopolskie";
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Łowiska małopolskie",
+    description:
+      "Publiczna baza łowisk w województwie małopolskim. Miejsca na ryby, łowiska komercyjne, łowiska PZW, łowiska karpiowe i miejsca na wyprawy wędkarskie.",
+    url: `${siteUrl}/lowiska-malopolskie`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Rybio",
+      url: siteUrl,
+    },
+    about: [
+      "łowiska małopolskie",
+      "łowiska w województwie małopolskim",
+      "wędkarstwo małopolskie",
+      "gdzie na ryby małopolskie",
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd),
+        }}
+      />
+
       <PublicHeader />
 
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
@@ -89,12 +169,11 @@ export default async function MalopolskieLakesPage() {
 
             <div className="mt-4 space-y-4 leading-8 text-slate-600">
               <p>
-                Województwo małopolskie to region, w którym wędkarze mogą
-                znaleźć różnorodne miejsca do łowienia: łowiska komercyjne,
-                zbiorniki rekreacyjne, łowiska karpiowe, miejsca dobre pod
-                feeder, method feeder, spinning oraz spokojne wyprawy rodzinne.
-                Dzięki Rybio możesz szybciej sprawdzić podstawowe informacje o
-                łowisku przed wyjazdem.
+                Województwo małopolskie oferuje wiele ciekawych miejsc dla
+                wędkarzy: łowiska komercyjne, zbiorniki rekreacyjne, łowiska
+                karpiowe, miejsca dobre pod feeder, method feeder, spinning oraz
+                spokojne wyprawy rodzinne. Dzięki Rybio możesz szybciej
+                sprawdzić podstawowe informacje o łowisku przed wyjazdem.
               </p>
 
               <p>
@@ -137,12 +216,15 @@ export default async function MalopolskieLakesPage() {
         </div>
       </section>
 
-      <PublicLakesPage lakes={malopolskieLakes} />
+      <PublicLakesPage
+        lakes={malopolskieLakes}
+        initialVoivodeship={initialVoivodeship}
+      />
 
       <section className="mx-auto max-w-[1500px] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-950">
-            Jak wybrać dobre łowisko w Małopolsce?
+            Jak wybrać dobre łowisko w województwie małopolskim?
           </h2>
 
           <div className="mt-4 space-y-4 leading-8 text-slate-600">

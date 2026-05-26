@@ -5,10 +5,59 @@ import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
+const siteUrl = "https://rybio.pl";
+
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "Łowiska z domkami – baza łowisk z noclegiem i domkami | Rybio",
+  metadataBase: new URL(siteUrl),
+  title: "Łowiska z domkami w Polsce – nocleg i wyprawy wędkarskie | Rybio",
   description:
-    "Sprawdź łowiska z domkami w Polsce. Przeglądaj łowiska z możliwością noclegu, domkami, udogodnieniami, gatunkami ryb i informacjami przed wyprawą.",
+    "Sprawdź łowiska z domkami w Polsce. Znajdź miejsca z noclegiem na weekendową zasiadkę, rodzinny wyjazd lub dłuższą wyprawę wędkarską.",
+  keywords: [
+    "łowiska z domkami",
+    "łowiska z noclegiem",
+    "łowiska z domkami w Polsce",
+    "łowisko z domkiem",
+    "łowisko z noclegiem",
+    "łowiska na weekend",
+    "łowiska na zasiadkę",
+    "łowiska karpiowe z domkami",
+    "łowiska komercyjne z domkami",
+    "baza łowisk z noclegiem",
+    "Rybio",
+  ],
+  alternates: {
+    canonical: "/lowiska-z-domkami",
+  },
+  openGraph: {
+    title: "Łowiska z domkami w Polsce – nocleg i wyprawy | Rybio",
+    description:
+      "Znajdź łowiska z domkami i noclegiem. Sprawdzaj gatunki ryb, udogodnienia, lokalizację, zdjęcia i informacje przydatne przed wyjazdem.",
+    url: "/lowiska-z-domkami",
+    siteName: "Rybio",
+    locale: "pl_PL",
+    type: "website",
+    images: [
+      {
+        url: "/og-lakes.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Łowiska z domkami w Polsce – Rybio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Łowiska z domkami w Polsce | Rybio",
+    description:
+      "Sprawdź bazę łowisk z domkami i znajdź miejsce na weekendową wyprawę wędkarską.",
+    images: ["/og-lakes.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function LakesWithCottagesPage() {
@@ -16,9 +65,36 @@ export default async function LakesWithCottagesPage() {
 
   const lakesWithCottages = lakes.filter((lake) => lake.amenities.cottages);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Łowiska z domkami w Polsce",
+    description:
+      "Publiczna baza łowisk z domkami i noclegiem w Polsce. Miejsca na weekendowe wyprawy, dłuższe zasiadki i rodzinne wyjazdy wędkarskie.",
+    url: `${siteUrl}/lowiska-z-domkami`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Rybio",
+      url: siteUrl,
+    },
+    about: [
+      "łowiska z domkami",
+      "łowiska z noclegiem",
+      "wyprawy wędkarskie",
+      "zasiadka wędkarska",
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
-      <PublicHeader  />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd),
+        }}
+      />
+
+      <PublicHeader />
 
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_35%),radial-gradient(circle_at_top_right,#ccfbf1,transparent_30%)]" />
@@ -78,10 +154,10 @@ export default async function LakesWithCottagesPage() {
             <div className="mt-4 space-y-4 leading-8 text-slate-600">
               <p>
                 Łowiska z domkami to dobry wybór dla osób, które planują dłuższą
-                zasiadkę, weekendowy wyjazd nad wodę albo rodzinny pobyt połączony
-                z wędkowaniem. Dzięki domkom i zapleczu noclegowemu można wygodniej
-                przygotować sprzęt, odpocząć po łowieniu i spędzić więcej czasu
-                nad wybranym zbiornikiem.
+                zasiadkę, weekendowy wyjazd nad wodę albo rodzinny pobyt
+                połączony z wędkowaniem. Dzięki domkom i zapleczu noclegowemu
+                można wygodniej przygotować sprzęt, odpocząć po łowieniu i
+                spędzić więcej czasu nad wybranym zbiornikiem.
               </p>
 
               <p>
@@ -124,7 +200,10 @@ export default async function LakesWithCottagesPage() {
         </div>
       </section>
 
-      <PublicLakesPage lakes={lakesWithCottages} />
+      <PublicLakesPage
+        lakes={lakesWithCottages}
+        initialAmenities={["cottages"]}
+      />
 
       <section className="mx-auto max-w-[1500px] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

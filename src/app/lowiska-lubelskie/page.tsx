@@ -5,10 +5,58 @@ import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
+const siteUrl = "https://rybio.pl";
+
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "Łowiska lubelskie – baza łowisk w województwie lubelskim | Rybio",
+  metadataBase: new URL(siteUrl),
+  title: "Łowiska lubelskie – łowiska w województwie lubelskim | Rybio",
   description:
-    "Sprawdź łowiska lubelskie. Przeglądaj łowiska w województwie lubelskim, filtruj miejsca według gatunków ryb, typu łowienia i udogodnień.",
+    "Sprawdź łowiska w województwie lubelskim. Przeglądaj łowiska lubelskie, filtruj miejsca według typu łowiska, gatunków ryb, udogodnień i lokalizacji.",
+  keywords: [
+    "łowiska lubelskie",
+    "łowiska w województwie lubelskim",
+    "gdzie na ryby lubelskie",
+    "łowiska komercyjne lubelskie",
+    "łowiska karpiowe lubelskie",
+    "łowiska PZW lubelskie",
+    "wędkarstwo lubelskie",
+    "łowiska na Lubelszczyźnie",
+    "baza łowisk lubelskie",
+    "Rybio",
+  ],
+  alternates: {
+    canonical: "/lowiska-lubelskie",
+  },
+  openGraph: {
+    title: "Łowiska lubelskie – baza łowisk w województwie lubelskim | Rybio",
+    description:
+      "Znajdź łowiska w województwie lubelskim. Sprawdzaj gatunki ryb, typ łowiska, udogodnienia, lokalizację i informacje przydatne przed wyprawą.",
+    url: "/lowiska-lubelskie",
+    siteName: "Rybio",
+    locale: "pl_PL",
+    type: "website",
+    images: [
+      {
+        url: "/og-lakes.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Łowiska lubelskie – Rybio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Łowiska lubelskie | Rybio",
+    description:
+      "Przeglądaj łowiska w województwie lubelskim i znajdź miejsce na kolejną wyprawę nad wodę.",
+    images: ["/og-lakes.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function LubelskieLakesPage() {
@@ -24,8 +72,38 @@ export default async function LubelskieLakesPage() {
     );
   });
 
+  const initialVoivodeship =
+    lubelskieLakes[0]?.address.voivodeship || "lubelskie";
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Łowiska lubelskie",
+    description:
+      "Publiczna baza łowisk w województwie lubelskim. Miejsca na ryby, łowiska komercyjne, łowiska PZW, łowiska karpiowe i miejsca na wyprawy wędkarskie.",
+    url: `${siteUrl}/lowiska-lubelskie`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Rybio",
+      url: siteUrl,
+    },
+    about: [
+      "łowiska lubelskie",
+      "łowiska w województwie lubelskim",
+      "wędkarstwo lubelskie",
+      "gdzie na ryby lubelskie",
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd),
+        }}
+      />
+
       <PublicHeader />
 
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
@@ -134,7 +212,10 @@ export default async function LubelskieLakesPage() {
         </div>
       </section>
 
-      <PublicLakesPage lakes={lubelskieLakes} />
+      <PublicLakesPage
+        lakes={lubelskieLakes}
+        initialVoivodeship={initialVoivodeship}
+      />
 
       <section className="mx-auto max-w-[1500px] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

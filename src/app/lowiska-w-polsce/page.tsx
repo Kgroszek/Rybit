@@ -5,12 +5,58 @@ import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
+const siteUrl = "https://rybio.pl";
+
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Łowiska w Polsce – mapa i baza łowisk dla wędkarzy | Rybio",
   description:
-    "Przeglądaj łowiska w Polsce, filtruj miejsca według województwa, gatunków ryb, typu łowienia i udogodnień. Odkrywaj łowiska z Rybio.",
+    "Znajdź łowiska w Polsce. Przeglądaj bazę łowisk, sprawdzaj gatunki ryb, typ łowiska, udogodnienia, lokalizację i informacje przydatne przed wyprawą.",
+  keywords: [
+    "łowiska w Polsce",
+    "baza łowisk",
+    "mapa łowisk",
+    "łowiska wędkarskie",
+    "gdzie na ryby",
+    "łowiska komercyjne",
+    "łowiska PZW",
+    "łowiska no kill",
+    "łowiska karpiowe",
+    "Rybio",
+  ],
+  alternates: {
+    canonical: "/lowiska-w-polsce",
+  },
+  openGraph: {
+    title: "Łowiska w Polsce – mapa i baza łowisk dla wędkarzy | Rybio",
+    description:
+      "Przeglądaj publiczną bazę łowisk w Polsce. Sprawdzaj gatunki ryb, lokalizację, typ łowiska, udogodnienia i szczegóły przed wyjazdem nad wodę.",
+    url: "/lowiska-w-polsce",
+    siteName: "Rybio",
+    locale: "pl_PL",
+    type: "website",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Rybio – baza łowisk w Polsce",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Łowiska w Polsce – mapa i baza łowisk | Rybio",
+    description:
+      "Znajdź łowiska w Polsce, sprawdź gatunki ryb, udogodnienia i informacje przydatne przed wyprawą.",
+    images: ["/og-image.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function PublicLakesListPage() {

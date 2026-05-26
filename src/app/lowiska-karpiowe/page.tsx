@@ -5,35 +5,94 @@ import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
+const siteUrl = "https://rybio.pl";
+
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
-  title: "Łowiska karpiowe – baza łowisk na karpia w Polsce | Rybio",
+  metadataBase: new URL(siteUrl),
+  title: "Łowiska karpiowe w Polsce – mapa, baza i miejsca na karpia | Rybio",
   description:
-    "Sprawdź łowiska karpiowe w Polsce. Przeglądaj łowiska na karpia, filtruj miejsca według gatunków ryb, udogodnień, lokalizacji i typu łowienia.",
+    "Sprawdź łowiska karpiowe w Polsce. Znajdź miejsca na karpia, zasiadkę lub method feeder. Przeglądaj łowiska według lokalizacji, ryb, udogodnień i typu łowienia.",
+  keywords: [
+    "łowiska karpiowe",
+    "łowiska karpiowe w Polsce",
+    "łowisko na karpia",
+    "gdzie na karpia",
+    "karp łowisko",
+    "łowiska na zasiadkę",
+    "łowiska method feeder",
+    "łowiska komercyjne karpiowe",
+    "baza łowisk karpiowych",
+    "Rybio",
+  ],
+  alternates: {
+    canonical: "/lowiska-karpiowe",
+  },
+  openGraph: {
+    title: "Łowiska karpiowe w Polsce – mapa i baza łowisk | Rybio",
+    description:
+      "Znajdź łowiska karpiowe w Polsce. Sprawdzaj gatunki ryb, udogodnienia, lokalizację, zdjęcia i informacje przydatne przed zasiadką na karpia.",
+    url: "/lowiska-karpiowe",
+    siteName: "Rybio",
+    locale: "pl_PL",
+    type: "website",
+    images: [
+      {
+        url: "/og-lakes.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Łowiska karpiowe w Polsce – Rybio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Łowiska karpiowe w Polsce | Rybio",
+    description:
+      "Sprawdź bazę łowisk karpiowych w Polsce i znajdź miejsce na kolejną zasiadkę.",
+    images: ["/og-lakes.jpg"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default async function CarpLakesPage() {
   const lakes = await getLakes();
 
-  const carpLakes = lakes.filter((lake) => {
-    const fishText = [
-      lake.fish,
-      ...lake.fishSpecies,
-      lake.description,
-      lake.fishingType,
-    ]
-      .join(" ")
-      .toLowerCase();
+  const carpLakes = lakes.filter((lake) => lake.fishingType === "carp");
 
-    return (
-      lake.fishingType === "carp" ||
-      fishText.includes("karp") ||
-      fishText.includes("karpiowe") ||
-      fishText.includes("karpiowy")
-    );
-  });
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Łowiska karpiowe w Polsce",
+    description:
+      "Publiczna baza łowisk karpiowych w Polsce. Miejsca na karpia, zasiadkę, method feeder i weekendowe wyprawy wędkarskie.",
+    url: `${siteUrl}/lowiska-karpiowe`,
+    isPartOf: {
+      "@type": "WebSite",
+      name: "Rybio",
+      url: siteUrl,
+    },
+    about: [
+      "łowiska karpiowe",
+      "łowiska na karpia",
+      "wędkarstwo karpiowe",
+      "zasiadka karpiowa",
+    ],
+  };
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd),
+        }}
+      />
+
       <PublicHeader subtitle="Łowiska w Polsce" />
 
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
@@ -140,7 +199,7 @@ export default async function CarpLakesPage() {
         </div>
       </section>
 
-      <PublicLakesPage lakes={carpLakes} />
+      <PublicLakesPage lakes={carpLakes} initialFishingType="carp" />
 
       <section className="mx-auto max-w-[1500px] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
