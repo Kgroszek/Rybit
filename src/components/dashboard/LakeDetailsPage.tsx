@@ -120,6 +120,28 @@ async function readJsonResponse(response: Response) {
   }
 }
 
+function cleanListItemText(value: string) {
+  return value
+    .trim()
+    .replace(/^[-–—•●▪▫]\s*/g, "")
+    .replace(/^\*\s*/g, "")
+    .replace(/^\d+[.)]\s*/g, "")
+    .replace(/^[a-zA-Z][.)]\s*/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isVisibleTextItem(value: string, blockedLabel: string) {
+  const normalizedValue = value.toLowerCase().trim();
+
+  return (
+    normalizedValue.length > 0 &&
+    !normalizedValue.startsWith(blockedLabel) &&
+    !normalizedValue.includes("http://") &&
+    !normalizedValue.includes("https://")
+  );
+}
+
 export function LakeDetailsPage({
   lake,
   isAdmin = false,
@@ -690,60 +712,25 @@ export function LakeDetailsPage({
               )}
             </div>
 
-            <div className="mt-5 space-y-3">
-              {lake.rules.filter((rule) => {
-                const normalizedRule = rule.toLowerCase().trim();
-
-                return (
-                  !normalizedRule.startsWith("link do regulaminu") &&
-                  !normalizedRule.includes("http://") &&
-                  !normalizedRule.includes("https://")
-                );
-              }).length > 0 ? (
-                lake.rules
-                  .filter((rule) => {
-                    const normalizedRule = rule.toLowerCase().trim();
-
-                    return (
-                      !normalizedRule.startsWith("link do regulaminu") &&
-                      !normalizedRule.includes("http://") &&
-                      !normalizedRule.includes("https://")
-                    );
-                  })
-                  .map((rule) => (
-                    <div
-                      key={rule}
-                      className="flex min-w-0 gap-3 rounded-2xl bg-slate-50 p-4"
-                    >
-                      <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
-                        ✓
-                      </span>
-
-                      <p className="min-w-0 break-words text-sm font-medium leading-6 text-slate-700">
-                        {rule}
-                      </p>
-                    </div>
-                  ))
+            <div className="mt-5">
+              {lake.rules
+                .filter((rule) => isVisibleTextItem(rule, "link do regulaminu"))
+                .map((rule) => cleanListItemText(rule))
+                .filter(Boolean).length > 0 ? (
+                <div className="rounded-2xl bg-slate-50 px-5 py-5">
+                  <p className="whitespace-pre-line break-words text-sm font-medium leading-7 text-slate-700">
+                    {lake.rules
+                      .filter((rule) => isVisibleTextItem(rule, "link do regulaminu"))
+                      .map((rule) => cleanListItemText(rule))
+                      .filter(Boolean)
+                      .join("\n")}
+                  </p>
+                </div>
               ) : !lake.rulesUrl ? (
                 <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
                   Brak dodanych zasad łowiska.
                 </div>
               ) : null}
-
-              {lake.rulesUrl && (
-                <div className="min-w-0 rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-700">
-                  <span className="text-slate-500">Link do regulaminu: </span>
-
-                  <a
-                    href={lake.rulesUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-bold text-blue-600 transition hover:text-blue-700 hover:underline"
-                  >
-                    Link
-                  </a>
-                </div>
-              )}
             </div>
           </section>
         </div>
