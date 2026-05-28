@@ -126,8 +126,8 @@ export async function PUT(request: Request, { params }: RouteProps) {
 
       contactName: String(body.contactName || "").trim() || "Brak danych",
       contactPhone: String(body.contactPhone || "").trim() || "Brak danych",
-      contactEmail: String(body.contactEmail || "").trim() || "Brak danych",
-      contactWebsite: String(body.contactWebsite || "").trim() || "Brak danych",
+      contactEmail: String(body.contactEmail || "").trim(),
+      contactWebsite: String(body.contactWebsite || "").trim(),
 
       fishSpecies: {
         deleteMany: {},

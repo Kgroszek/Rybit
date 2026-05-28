@@ -404,97 +404,71 @@ export function LakeDetailsPage({
       </div>
 
       <section className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-        <div className="grid min-h-[360px] lg:grid-cols-[1.4fr_0.6fr]">
-          <div className="relative min-h-[360px] bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200 p-6">
-            <div className="absolute left-6 top-6 flex flex-wrap gap-2">
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-bold ${
-                  lake.type === "commercial"
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-blue-50 text-blue-700"
-                }`}
-              >
-                {getOwnerTypeLabel(lake.type)}
-              </span>
+  <div className="bg-gradient-to-br from-emerald-50 via-blue-50 to-sky-100 p-5 sm:p-6 lg:p-8">
+    <div className="flex flex-wrap gap-2">
+      <span
+        className={`rounded-full px-3 py-1 text-xs font-bold ${
+          lake.type === "commercial"
+            ? "bg-emerald-50 text-emerald-700"
+            : "bg-blue-50 text-blue-700"
+        }`}
+      >
+        {getOwnerTypeLabel(lake.type)}
+      </span>
 
-              <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
-                {getFishingTypeLabel(lake.fishingType)}
-              </span>
-            </div>
+      <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
+        {getFishingTypeLabel(lake.fishingType)}
+      </span>
+    </div>
 
-            <div className="absolute bottom-6 left-6 right-6 rounded-3xl bg-white/85 p-6 shadow-sm backdrop-blur">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-                <div>
-                  <h1 className="text-4xl font-bold tracking-tight text-slate-950">
-                    {lake.name}
-                  </h1>
+    <div className="mt-10 rounded-3xl bg-white/85 p-5 shadow-sm backdrop-blur sm:p-6">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0">
+          <h1 className="break-words text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
+            {lake.name}
+          </h1>
 
-                  <p className="mt-2 text-slate-600">
-                    {lake.address.street}, {lake.address.postalCode}{" "}
-                    {lake.address.city}, woj. {lake.address.voivodeship}
-                  </p>
-                </div>
+          <p className="mt-3 break-words text-sm leading-6 text-slate-600 sm:text-base">
+            {lake.address.street}, {lake.address.postalCode}{" "}
+            {lake.address.city}, woj. {lake.address.voivodeship}
+          </p>
+        </div>
 
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <button
-                    type="button"
-                    onClick={handleFavouriteToggle}
-                    disabled={isFavouriteLoading || isLoadingUserData}
-                    className={`rounded-2xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                      isFavourite
-                        ? "bg-red-50 text-red-600 hover:bg-red-100"
-                        : "bg-white text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {isFavouriteLoading
-                      ? "Zapisywanie..."
-                      : isFavourite
-                        ? "♥ W ulubionych"
-                        : "♡ Dodaj do ulubionych"}
-                  </button>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center xl:shrink-0">
+          <button
+            type="button"
+            onClick={handleFavouriteToggle}
+            disabled={isFavouriteLoading || isLoadingUserData}
+            className={`rounded-2xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              isFavourite
+                ? "bg-red-50 text-red-600 hover:bg-red-100"
+                : "bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            {isFavouriteLoading
+              ? "Zapisywanie..."
+              : isFavourite
+                ? "♥ W ulubionych"
+                : "♡ Dodaj do ulubionych"}
+          </button>
 
-                  {isAdmin && (
-                    <Link
-                      href={`/admin/lowiska/${lake.slug}/edytuj`}
-                      className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-slate-800"
-                    >
-                      Edytuj łowisko
-                    </Link>
-                  )}
+          {isAdmin && (
+            <Link
+              href={`/admin/lowiska/${lake.slug}/edytuj`}
+              className="rounded-2xl bg-slate-950 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-slate-800"
+            >
+              Edytuj łowisko
+            </Link>
+          )}
 
-                  <div className="rounded-2xl bg-blue-50 px-4 py-3 text-lg font-bold text-blue-700">
-                    ★ {displayRating}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4">
-            {visibleImages.length > 0 ? (
-              <div className="grid h-full grid-cols-2 gap-3">
-                {visibleImages.slice(0, 4).map((image, index) => (
-                  <button
-                    key={`${image}-${index}`}
-                    type="button"
-                    onClick={() => openPreview(index)}
-                    className="group overflow-hidden rounded-2xl bg-slate-100 text-left"
-                  >
-                    <img
-                      src={image}
-                      alt={`Zdjęcie łowiska ${lake.name}`}
-                      onError={() => handleImageError(image)}
-                      className="h-full min-h-[150px] w-full object-cover transition duration-300 group-hover:scale-105"
-                    />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <LakeEmptyImagePlaceholder />
-            )}
+          <div className="rounded-2xl bg-blue-50 px-4 py-3 text-lg font-bold text-blue-700">
+            ★ {displayRating}
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+  </div>
+</section>
 
       <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

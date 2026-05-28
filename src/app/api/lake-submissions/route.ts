@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { checkAndUnlockAchievements } from "@/lib/achievements";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-
+import { normalizeFishName } from "@/lib/fish-names";
 const BUCKET_NAME = "lake-images";
 const MAX_IMAGES = 10;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -118,7 +118,7 @@ export async function POST(request: Request) {
   const description = getFormValue(formData, "description");
   const ownerType = getFormValue(formData, "ownerType");
   const fishingType = getFormValue(formData, "fishingType");
-  const fish = getFormValue(formData, "fish");
+  const fish = normalizeFishName(getFormValue(formData, "fish"));
 
   const lat = getFormValue(formData, "lat");
   const lng = getFormValue(formData, "lng");

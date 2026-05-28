@@ -48,9 +48,10 @@ type LakeEditFormState = {
   contactPhone: string;
   contactEmail: string;
   contactWebsite: string;
+
   images: {
-  id: string;
-  url: string;
+    id: string;
+    url: string;
   }[];
 };
 
@@ -61,8 +62,16 @@ type LakeEditFormProps = {
 export function LakeEditForm({ lake }: LakeEditFormProps) {
   const router = useRouter();
 
-  const [form, setForm] = useState<LakeEditFormState>(lake);
+  const [form, setForm] = useState<LakeEditFormState>({
+    ...lake,
+    contactEmail: lake.contactEmail === "Brak danych" ? "" : lake.contactEmail,
+    contactWebsite:
+      lake.contactWebsite === "Brak danych" ? "" : lake.contactWebsite,
+  });
+
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [message, setMessage] = useState("");
 
   function updateField<K extends keyof LakeEditFormState>(
@@ -75,18 +84,95 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
     }));
   }
 
+  async function handleUploadImages() {
+    if (selectedImages.length === 0) {
+      setMessage("Wybierz przynajmniej jedno zdjęcie.");
+      return;
+    }
+
+    setIsUploadingImages(true);
+    setMessage("");
+
+    const formData = new FormData();
+
+    selectedImages.forEach((image) => {
+      formData.append("images", image);
+    });
+
+    try {
+      const response = await fetch(`/api/admin/lake-images/${form.id}`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.message || "Nie udało się dodać zdjęć.");
+        setIsUploadingImages(false);
+        return;
+      }
+
+      setForm((current) => ({
+        ...current,
+        images: [...data.images, ...current.images],
+      }));
+
+      setSelectedImages([]);
+      setMessage("Zdjęcia zostały dodane.");
+    } catch {
+      setMessage("Nie udało się dodać zdjęć.");
+    } finally {
+      setIsUploadingImages(false);
+    }
+  }
+
+  async function handleDeleteImage(imageId: string) {
+    const confirmed = confirm(
+      "Czy na pewno chcesz usunąć to zdjęcie z łowiska?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const response = await fetch(`/api/admin/lake-images/${imageId}`, {
+      method: "DELETE",
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.message || "Nie udało się usunąć zdjęcia.");
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      images: current.images.filter((currentImage) => currentImage.id !== imageId),
+    }));
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setIsLoading(true);
     setMessage("");
 
+    const payload = {
+      ...form,
+      contactEmail:
+        form.contactEmail === "Brak danych" ? "" : form.contactEmail.trim(),
+      contactWebsite:
+        form.contactWebsite === "Brak danych" ? "" : form.contactWebsite.trim(),
+    };
+
     const response = await fetch(`/api/admin/lakes/${form.id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     });
 
     const data = await response.json();
@@ -98,7 +184,6 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
     }
 
     setMessage("Zmiany zostały zapisane.");
-
     setIsLoading(false);
 
     setTimeout(() => {
@@ -415,80 +500,85 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
         </div>
       </section>
 
-      {form.images.length > 0 && (
-  <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h2 className="text-xl font-bold text-slate-950">Zdjęcia łowiska</h2>
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-slate-950">
+              Zdjęcia łowiska
+            </h2>
 
-        <p className="mt-1 text-sm text-slate-500">
-          Usuń zdjęcia, które nie powinny być widoczne na publicznej stronie
-          łowiska.
-        </p>
-      </div>
-
-      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
-        {form.images.length} zdjęć
-      </span>
-    </div>
-
-    <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {form.images.map((image) => (
-        <div
-          key={image.id}
-          className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-100"
-        >
-          <a href={image.url} target="_blank" rel="noreferrer">
-            <img
-              src={image.url}
-              alt={form.name}
-              className="h-36 w-full object-cover transition duration-300 group-hover:scale-105"
-            />
-          </a>
-
-          <div className="p-3">
-            <button
-              type="button"
-              onClick={async () => {
-                const confirmed = confirm(
-                  "Czy na pewno chcesz usunąć to zdjęcie z łowiska?"
-                );
-
-                if (!confirmed) {
-                  return;
-                }
-
-                const response = await fetch(
-                  `/api/admin/lake-images/${image.id}`,
-                  {
-                    method: "DELETE",
-                  }
-                );
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                  alert(data.message || "Nie udało się usunąć zdjęcia.");
-                  return;
-                }
-
-                setForm((current) => ({
-                  ...current,
-                  images: current.images.filter(
-                    (currentImage) => currentImage.id !== image.id
-                  ),
-                }));
-              }}
-              className="w-full rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
-            >
-              Usuń zdjęcie
-            </button>
+            <p className="mt-1 text-sm text-slate-500">
+              Dodaj nowe zdjęcia lub usuń te, które nie powinny być widoczne na
+              publicznej stronie łowiska.
+            </p>
           </div>
+
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
+            {form.images.length} zdjęć
+          </span>
         </div>
-      ))}
-    </div>
-  </section>
-)}
+
+        <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4">
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={(event) => {
+              const files = Array.from(event.target.files || []);
+              setSelectedImages(files);
+            }}
+            className="block w-full text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-blue-700"
+          />
+
+          {selectedImages.length > 0 && (
+            <p className="mt-3 text-sm text-slate-500">
+              Wybrano zdjęć: {selectedImages.length}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={handleUploadImages}
+            disabled={isUploadingImages || selectedImages.length === 0}
+            className="mt-4 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isUploadingImages ? "Dodawanie zdjęć..." : "Dodaj zdjęcia"}
+          </button>
+        </div>
+
+        {form.images.length > 0 ? (
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {form.images.map((image) => (
+              <div
+                key={image.id}
+                className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-100"
+              >
+                <a href={image.url} target="_blank" rel="noreferrer">
+                  <img
+                    src={image.url}
+                    alt={form.name}
+                    className="h-36 w-full object-cover transition duration-300 group-hover:scale-105"
+                  />
+                </a>
+
+                <div className="p-3">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteImage(image.id)}
+                    className="w-full rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                  >
+                    Usuń zdjęcie
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+            To łowisko nie ma jeszcze dodanych zdjęć.
+          </p>
+        )}
+      </section>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
         <button

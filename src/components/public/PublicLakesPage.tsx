@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { LakeDto } from "@/lib/lakes";
+import { getFishKey, normalizeFishList, normalizeFishName } from "@/lib/fish-names";
 
 type PublicLakesPageProps = {
   lakes: LakeDto[];
@@ -75,11 +76,9 @@ export function PublicLakesPage({
     ).sort((a, b) => a.localeCompare(b, "pl"));
   }, [lakes]);
 
-  const fishOptions = useMemo(() => {
-    return Array.from(
-      new Set(lakes.flatMap((lake) => lake.fishSpecies).filter(Boolean))
-    ).sort((a, b) => a.localeCompare(b, "pl"));
-  }, [lakes]);
+const fishOptions = useMemo(() => {
+  return normalizeFishList(lakes.flatMap((lake) => lake.fishSpecies));
+}, [lakes]);
 
   const filteredLakes = useMemo(() => {
     const searchValue = search.toLowerCase().trim();
@@ -108,8 +107,11 @@ export function PublicLakesPage({
       const matchesVoivodeship =
         voivodeship === "all" || lake.address.voivodeship === voivodeship;
 
+      const selectedFishKey = getFishKey(fish);
+
       const matchesFish =
-        fish === "all" || lake.fishSpecies.some((item) => item === fish);
+        fish === "all" ||
+        lake.fishSpecies.some((item) => getFishKey(item) === selectedFishKey);
 
       const matchesAmenities =
         selectedAmenities.length === 0 ||
