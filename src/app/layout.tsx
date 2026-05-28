@@ -3,8 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import { CookieConsent } from "@/components/CookieConsent";
-import { ToastProvider } from "@/components/ui/ToastProvider";
-import { GoogleAnalytics } from "@next/third-parties/google";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,11 +21,11 @@ export const metadata: Metadata = {
     icon: "/favicon.svg",
   },
   robots: {
-    index: false,
-    follow: false,
+    index: true,
+    follow: true,
     googleBot: {
-      index: false,
-      follow: false,
+      index: true,
+      follow: true,
     },
   },
 };
@@ -38,17 +36,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="pl"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-          {process.env.NEXT_PUBLIC_GA_ID ? (
-            <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
-          ) : null}
+    <html lang="pl">
+      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+        {children}
         <CookieConsent />
       </body>
     </html>
