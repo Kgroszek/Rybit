@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { LakeDto } from "@/lib/lakes";
-import { getFishKey, normalizeFishList, normalizeFishName } from "@/lib/fish-names";
+import { getFishKey, normalizeFishList } from "@/lib/fish-names";
 
 type PublicLakesPageProps = {
   lakes: LakeDto[];
@@ -16,6 +16,8 @@ type PublicLakesPageProps = {
 
 type ViewMode = "grid" | "list";
 type SortOption = "rating-desc" | "name-asc" | "name-desc";
+
+const ITEMS_PER_PAGE = 15;
 
 const amenityOptions = [
   { key: "cottages", label: "Domki" },
@@ -66,6 +68,7 @@ export function PublicLakesPage({
   const [sort, setSort] = useState<SortOption>("rating-desc");
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [currentPage, setCurrentPage] = useState(1);
   const [authModalType, setAuthModalType] = useState<
     "rating" | "favourite" | null
   >(null);
@@ -76,9 +79,9 @@ export function PublicLakesPage({
     ).sort((a, b) => a.localeCompare(b, "pl"));
   }, [lakes]);
 
-const fishOptions = useMemo(() => {
-  return normalizeFishList(lakes.flatMap((lake) => lake.fishSpecies));
-}, [lakes]);
+  const fishOptions = useMemo(() => {
+    return normalizeFishList(lakes.flatMap((lake) => lake.fishSpecies));
+  }, [lakes]);
 
   const filteredLakes = useMemo(() => {
     const searchValue = search.toLowerCase().trim();
@@ -151,6 +154,30 @@ const fishOptions = useMemo(() => {
     sort,
   ]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    search,
+    ownerType,
+    fishingType,
+    voivodeship,
+    fish,
+    selectedAmenities,
+    sort,
+  ]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredLakes.length / ITEMS_PER_PAGE)
+  );
+
+  const paginatedLakes = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+
+    return filteredLakes.slice(startIndex, endIndex);
+  }, [filteredLakes, currentPage]);
+
   function toggleAmenity(key: string) {
     setSelectedAmenities((current) =>
       current.includes(key)
@@ -167,6 +194,7 @@ const fishOptions = useMemo(() => {
     setFish(initialFish);
     setSelectedAmenities(initialAmenities);
     setSort("rating-desc");
+    setCurrentPage(1);
   }
 
   const hasActiveFilters =
@@ -350,6 +378,11 @@ const fishOptions = useMemo(() => {
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-bold text-slate-600">
             Wyniki: {filteredLakes.length} / {lakes.length}
+            {filteredLakes.length > ITEMS_PER_PAGE && (
+              <span className="ml-2 text-slate-400">
+                Strona {currentPage} z {totalPages}
+              </span>
+            )}
           </p>
 
           <div className="flex items-center gap-3">
@@ -391,27 +424,37 @@ const fishOptions = useMemo(() => {
         </div>
 
         {filteredLakes.length > 0 ? (
-          viewMode === "grid" ? (
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {filteredLakes.map((lake) => (
-                <LakeCard
-                  key={lake.id}
-                  lake={lake}
-                  onRequireAuth={setAuthModalType}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredLakes.map((lake) => (
-                <LakeListItem
-                  key={lake.id}
-                  lake={lake}
-                  onRequireAuth={setAuthModalType}
-                />
-              ))}
-            </div>
-          )
+          <>
+            {viewMode === "grid" ? (
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {paginatedLakes.map((lake) => (
+                  <LakeCard
+                    key={lake.id}
+                    lake={lake}
+                    onRequireAuth={setAuthModalType}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {paginatedLakes.map((lake) => (
+                  <LakeListItem
+                    key={lake.id}
+                    lake={lake}
+                    onRequireAuth={setAuthModalType}
+                  />
+                ))}
+              </div>
+            )}
+
+            {filteredLakes.length > ITEMS_PER_PAGE && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            )}
+          </>
         ) : (
           <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
             <p className="text-xl font-black text-slate-950">
@@ -441,6 +484,108 @@ const fishOptions = useMemo(() => {
       )}
     </>
   );
+}
+
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  const pages = getPaginationPages(currentPage, totalPages);
+
+  function goToPage(page: number) {
+    onPageChange(page);
+
+    setTimeout(() => {
+      document.getElementById("lista-lowisk")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  }
+
+  return (
+    <div className="mt-8 flex flex-col items-center gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-sm font-bold text-slate-500">
+        Strona {currentPage} z {totalPages}
+      </p>
+
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => goToPage(Math.max(currentPage - 1, 1))}
+          disabled={currentPage === 1}
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Poprzednia
+        </button>
+
+        {pages.map((page, index) =>
+          page === "dots" ? (
+            <span
+              key={`dots-${index}`}
+              className="px-2 text-sm font-black text-slate-400"
+            >
+              ...
+            </span>
+          ) : (
+            <button
+              key={page}
+              type="button"
+              onClick={() => goToPage(page)}
+              className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${
+                currentPage === page
+                  ? "bg-blue-600 text-white"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {page}
+            </button>
+          )
+        )}
+
+        <button
+          type="button"
+          onClick={() => goToPage(Math.min(currentPage + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Następna
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function getPaginationPages(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages: Array<number | "dots"> = [1];
+
+  if (currentPage > 4) {
+    pages.push("dots");
+  }
+
+  const startPage = Math.max(2, currentPage - 1);
+  const endPage = Math.min(totalPages - 1, currentPage + 1);
+
+  for (let page = startPage; page <= endPage; page += 1) {
+    pages.push(page);
+  }
+
+  if (currentPage < totalPages - 3) {
+    pages.push("dots");
+  }
+
+  pages.push(totalPages);
+
+  return pages;
 }
 
 function FilterButton({
@@ -527,7 +672,9 @@ function LakeCard({
         </div>
 
         <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-500">
-          {lake.fishSpecies.length > 0 ? lake.fishSpecies.join(", ") : lake.fish}
+          {lake.fishSpecies.length > 0
+            ? normalizeFishList(lake.fishSpecies).join(", ")
+            : lake.fish}
         </p>
 
         <div className="mt-5 flex flex-wrap gap-2">
@@ -613,7 +760,9 @@ function LakeListItem({
         </p>
 
         <p className="mt-3 text-sm font-bold text-slate-600">
-          {lake.fishSpecies.length > 0 ? lake.fishSpecies.join(", ") : lake.fish}
+          {lake.fishSpecies.length > 0
+            ? normalizeFishList(lake.fishSpecies).join(", ")
+            : lake.fish}
         </p>
       </div>
 

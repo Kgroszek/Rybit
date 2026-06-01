@@ -304,7 +304,7 @@ export function InteractiveMap({ lakes }: InteractiveMapProps) {
                     href={getNavigationUrl(lake.lat, lake.lng)}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-xl bg-blue-600 px-3 py-2 text-center text-sm font-bold text-white transition hover:bg-blue-700"
+                    className="rounded-xl bg-blue-600 px-3 py-2 text-center text-sm font-bold !text-white transition hover:bg-blue-700"
                   >
                     Nawiguj
                   </a>

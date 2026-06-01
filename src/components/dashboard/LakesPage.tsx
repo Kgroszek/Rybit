@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { MapSection } from "@/components/dashboard/MapSection";
@@ -38,6 +38,8 @@ type LakesPageProps = {
   lakes: LakeListDto[];
   initialView?: "grid" | "map";
 };
+
+const ITEMS_PER_PAGE = 15;
 
 const amenityFilters: {
   key: AmenityKey;
@@ -97,6 +99,7 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
   const [areAdvancedFiltersOpen, setAreAdvancedFiltersOpen] = useState(false);
   const [areMobileFiltersOpen, setAreMobileFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const voivodeships = useMemo(() => {
     return Array.from(
@@ -222,6 +225,31 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
     userLocation,
   ]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    search,
+    ownerType,
+    fishingType,
+    voivodeship,
+    fish,
+    selectedAmenities,
+    sortType,
+    viewMode,
+  ]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredLakes.length / ITEMS_PER_PAGE)
+  );
+
+  const paginatedLakes = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+
+    return filteredLakes.slice(startIndex, endIndex);
+  }, [filteredLakes, currentPage]);
+
   function toggleAmenity(amenity: AmenityKey) {
     setSelectedAmenities((current) =>
       current.includes(amenity)
@@ -239,10 +267,11 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
     setSelectedAmenities([]);
     setSortType("rating");
     setAreAdvancedFiltersOpen(false);
+    setCurrentPage(1);
   }
 
   return (
-    <div>
+    <div id="lista-lowisk">
       <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-950">
@@ -274,6 +303,12 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
                 </strong>{" "}
                 / {lakes.length}
               </p>
+
+              {filteredLakes.length > ITEMS_PER_PAGE && viewMode !== "map" && (
+                <p className="mt-1 text-xs font-bold text-slate-400">
+                  Strona {currentPage} z {totalPages}
+                </p>
+              )}
 
               {activeFiltersCount > 0 && (
                 <p className="mt-1 text-xs font-bold text-blue-600">
@@ -492,6 +527,12 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
                 / {lakes.length}
               </span>
 
+              {filteredLakes.length > ITEMS_PER_PAGE && viewMode !== "map" && (
+                <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-500">
+                  Strona {currentPage} z {totalPages}
+                </span>
+              )}
+
               {activeFiltersCount > 0 && (
                 <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
                   Aktywne filtry: {activeFiltersCount}
@@ -562,26 +603,38 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
                 ))}
               </div>
             </>
-          ) : viewMode === "grid" ? (
-            <div className="grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-3">
-              {filteredLakes.map((lake) => (
-                <LakeGridCard
-                  key={lake.id}
-                  lake={lake}
-                  userLocation={userLocation}
-                />
-              ))}
-            </div>
           ) : (
-            <div className="space-y-4">
-              {filteredLakes.map((lake) => (
-                <LakeListItem
-                  key={lake.id}
-                  lake={lake}
-                  userLocation={userLocation}
+            <>
+              {viewMode === "grid" ? (
+                <div className="grid items-stretch gap-5 md:grid-cols-2 2xl:grid-cols-3">
+                  {paginatedLakes.map((lake) => (
+                    <LakeGridCard
+                      key={lake.id}
+                      lake={lake}
+                      userLocation={userLocation}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {paginatedLakes.map((lake) => (
+                    <LakeListItem
+                      key={lake.id}
+                      lake={lake}
+                      userLocation={userLocation}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {filteredLakes.length > ITEMS_PER_PAGE && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
                 />
-              ))}
-            </div>
+              )}
+            </>
           )
         ) : (
           <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
@@ -605,6 +658,108 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
       </div>
     </div>
   );
+}
+
+function Pagination({
+  currentPage,
+  totalPages,
+  onPageChange,
+}: {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  const pages = getPaginationPages(currentPage, totalPages);
+
+  function goToPage(page: number) {
+    onPageChange(page);
+
+    setTimeout(() => {
+      document.getElementById("lista-lowisk")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 0);
+  }
+
+  return (
+    <div className="mt-8 flex flex-col items-center gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="text-sm font-bold text-slate-500">
+        Strona {currentPage} z {totalPages}
+      </p>
+
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <button
+          type="button"
+          onClick={() => goToPage(Math.max(currentPage - 1, 1))}
+          disabled={currentPage === 1}
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Poprzednia
+        </button>
+
+        {pages.map((page, index) =>
+          page === "dots" ? (
+            <span
+              key={`dots-${index}`}
+              className="px-2 text-sm font-black text-slate-400"
+            >
+              ...
+            </span>
+          ) : (
+            <button
+              key={page}
+              type="button"
+              onClick={() => goToPage(page)}
+              className={`rounded-2xl px-4 py-2 text-sm font-bold transition ${
+                currentPage === page
+                  ? "bg-blue-600 text-white"
+                  : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+              }`}
+            >
+              {page}
+            </button>
+          )
+        )}
+
+        <button
+          type="button"
+          onClick={() => goToPage(Math.min(currentPage + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Następna
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function getPaginationPages(currentPage: number, totalPages: number) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages: Array<number | "dots"> = [1];
+
+  if (currentPage > 4) {
+    pages.push("dots");
+  }
+
+  const startPage = Math.max(2, currentPage - 1);
+  const endPage = Math.min(totalPages - 1, currentPage + 1);
+
+  for (let page = startPage; page <= endPage; page += 1) {
+    pages.push(page);
+  }
+
+  if (currentPage < totalPages - 3) {
+    pages.push("dots");
+  }
+
+  pages.push(totalPages);
+
+  return pages;
 }
 
 function LakeGridCard({
