@@ -949,15 +949,78 @@ function LakeEmptyImagePlaceholder() {
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
+  const cleanValue = String(value || "").trim();
+  const isEmpty =
+    !cleanValue ||
+    cleanValue.toLowerCase() === "brak" ||
+    cleanValue.toLowerCase() === "brak danych";
+
+  const normalizedLabel = label.toLowerCase();
+
+  let content: ReactNode = isEmpty ? (
+    "Brak danych"
+  ) : (
+    cleanValue
+  );
+
+  if (!isEmpty && normalizedLabel === "strona") {
+    const websiteUrl = getWebsiteUrl(cleanValue);
+
+    content = (
+      <a
+        href={websiteUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="break-all text-blue-600 underline-offset-4 transition hover:text-blue-700 hover:underline"
+      >
+        {cleanValue}
+      </a>
+    );
+  }
+
+  if (!isEmpty && normalizedLabel === "e-mail") {
+    content = (
+      <a
+        href={`mailto:${cleanValue}`}
+        className="break-all text-blue-600 underline-offset-4 transition hover:text-blue-700 hover:underline"
+      >
+        {cleanValue}
+      </a>
+    );
+  }
+
+  if (!isEmpty && normalizedLabel === "telefon") {
+    const phoneHref = cleanValue.replace(/\s+/g, "");
+
+    content = (
+      <a
+        href={`tel:${phoneHref}`}
+        className="break-all text-blue-600 underline-offset-4 transition hover:text-blue-700 hover:underline"
+      >
+        {cleanValue}
+      </a>
+    );
+  }
+
   return (
     <div className="flex min-w-0 flex-col gap-1 border-b border-slate-100 pb-4 last:border-none last:pb-0 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-      <p className="shrink-0 text-sm text-slate-500">{label}</p>
+      <p className="text-sm text-slate-500">{label}</p>
 
-      <p className="min-w-0 break-words text-left text-sm font-bold text-slate-950 sm:text-right">
-        {value || "Brak informacji"}
+      <p className="break-words text-sm font-bold text-slate-950 sm:max-w-[60%] sm:text-right">
+        {content}
       </p>
     </div>
   );
+}
+
+function getWebsiteUrl(value: string) {
+  const cleanValue = value.trim();
+
+  if (/^https?:\/\//i.test(cleanValue)) {
+    return cleanValue;
+  }
+
+  return `https://${cleanValue}`;
 }
 
 function CatchRankingsSection({
