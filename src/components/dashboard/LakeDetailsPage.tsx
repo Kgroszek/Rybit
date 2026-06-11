@@ -6,6 +6,7 @@ import type { LakeDto } from "@/lib/lakes";
 import { LakeCorrectionReportButton } from "@/components/dashboard/LakeCorrectionReportButton";
 import { CatchReportButton } from "@/components/dashboard/CatchReportButton";
 import { useToast } from "@/components/ui/ToastProvider";
+import type { ReactNode } from "react";
 
 type LakeDetailsPageProps = {
   lake: LakeDto;
