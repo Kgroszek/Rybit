@@ -80,6 +80,16 @@ export default async function EditLakePage({ params }: EditLakePageProps) {
           id: "asc",
         },
       },
+      recordFish: {
+        orderBy: {
+          weightKg: "desc",
+        },
+      },
+      equipmentRequirements: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
       images: {
         orderBy: {
           createdAt: "desc",
@@ -184,6 +194,18 @@ export default async function EditLakePage({ params }: EditLakePageProps) {
             rulesText:
               lake.rulesText || lake.rules.map((item) => item.text).join("\n"),
             rulesUrl: lake.rulesUrl || "",
+
+            openingHours: lake.openingHours || "",
+
+            recordFish: lake.recordFish.map((item) => ({
+              id: item.id,
+              fishName: item.fishName,
+              weightKg: item.weightKg,
+            })),
+
+            equipmentRequirements: lake.equipmentRequirements.map(
+              (item) => item.text
+            ),
 
             images: lake.images.map((image) => ({
               id: image.id,
