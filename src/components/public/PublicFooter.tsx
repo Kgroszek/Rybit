@@ -85,6 +85,21 @@ const legalLinks = [
   },
 ];
 
+const socialLinks = [
+  {
+    label: "Facebook",
+    href: "https://www.facebook.com/profile.php?id=61590096264443",
+  },
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/ryb.io",
+  },
+  {
+    label: "TikTok",
+    href: "https://www.tiktok.com/@rybio.pl",
+  },
+];
+
 export function PublicFooter() {
   return (
     <footer className="border-t border-slate-200 bg-white">
@@ -104,7 +119,6 @@ export function PublicFooter() {
               zapisywać połowy, planować wyprawy i korzystać z wiedzy
               społeczności.
             </p>
-
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/register"
@@ -120,6 +134,33 @@ export function PublicFooter() {
                 Zaloguj się
               </Link>
             </div>
+
+            <div className="mt-6">
+              <h2 className="text-sm font-black uppercase tracking-[0.16em] text-slate-400">
+                Obserwuj Rybio
+              </h2>
+
+              <p className="mt-3 max-w-sm text-sm leading-6 text-slate-500">
+                Śledź nas w social mediach i odkrywaj nowe łowiska, relacje z
+                wypraw oraz aktualności dla wędkarzy.
+              </p>
+
+              <div className="mt-4 flex flex-wrap gap-3">
+                {socialLinks.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            
           </div>
 
           <div>
@@ -176,9 +217,7 @@ export function PublicFooter() {
             </nav>
 
             <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-              <p className="text-sm font-black text-slate-950">
-                Kontakt
-              </p>
+              <p className="text-sm font-black text-slate-950">Kontakt</p>
 
               <a
                 href="mailto:kontakt@rybio.pl"
@@ -200,9 +239,7 @@ export function PublicFooter() {
             © {new Date().getFullYear()} Rybio. Wszystkie prawa zastrzeżone.
           </p>
 
-          <p>
-            Publiczna baza łowisk i aplikacja dla wędkarzy.
-          </p>
+          <p>Publiczna baza łowisk i aplikacja dla wędkarzy.</p>
         </div>
       </div>
     </footer>

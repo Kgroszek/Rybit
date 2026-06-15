@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { normalizeFishName } from "@/lib/fish-names";
 
 type RouteProps = {
   params: Promise<{
     id: string;
   }>;
+};
+
+type RecordFishInput = {
+  fishName?: string;
+  weightKg?: string | number;
 };
 
 function splitLines(value: string) {
@@ -18,8 +24,38 @@ function splitLines(value: string) {
 function splitFishNames(value: string) {
   return value
     .split(",")
-    .map((item) => item.trim())
+    .map((item) => normalizeFishName(item))
     .filter(Boolean);
+}
+
+function parseRecordFish(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      const record = item as RecordFishInput;
+
+      const fishName = normalizeFishName(String(record.fishName || "").trim());
+      const weightKg = Number(record.weightKg);
+
+      return {
+        fishName,
+        weightKg,
+      };
+    })
+    .filter((item) => item.fishName && !Number.isNaN(item.weightKg) && item.weightKg > 0);
+}
+
+function parseEquipmentRequirements(value: unknown) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => String(item || "").trim())
+      .filter(Boolean);
+  }
+
+  return splitLines(String(value || ""));
 }
 
 export async function PUT(request: Request, { params }: RouteProps) {
@@ -77,6 +113,13 @@ export async function PUT(request: Request, { params }: RouteProps) {
   const rulesItems = splitLines(String(body.rulesText || ""));
   const fishItems = splitFishNames(fish);
 
+  const recordFishItems = parseRecordFish(body.recordFish);
+  const equipmentRequirementItems = parseEquipmentRequirements(
+    body.equipmentRequirements
+  );
+
+  const openingHours = String(body.openingHours || "").trim();
+
   const updatedLake = await prisma.lake.update({
     where: {
       id,
@@ -87,7 +130,7 @@ export async function PUT(request: Request, { params }: RouteProps) {
 
       ownerType: String(body.ownerType || "pzw"),
       fishingType: String(body.fishingType || "general"),
-      fish,
+      fish: fishItems.length > 0 ? fishItems.join(", ") : fish,
 
       lat,
       lng,
@@ -106,6 +149,8 @@ export async function PUT(request: Request, { params }: RouteProps) {
       priceListUrl: String(body.priceListUrl || "").trim() || null,
       rulesText: String(body.rulesText || "").trim() || null,
       rulesUrl: String(body.rulesUrl || "").trim() || null,
+
+      openingHours: openingHours || null,
 
       cottages: Boolean(body.cottages),
       campfire: Boolean(body.campfire),
@@ -146,11 +191,7 @@ export async function PUT(request: Request, { params }: RouteProps) {
             ? priceListItems.map((text) => ({
                 text,
               }))
-            : [
-                {
-                  text: "Brak dodanego cennika.",
-                },
-              ],
+            : [],
       },
 
       rules: {
@@ -160,12 +201,45 @@ export async function PUT(request: Request, { params }: RouteProps) {
             ? rulesItems.map((text) => ({
                 text,
               }))
-            : [
-                {
-                  text: "Brak dodanych zasad łowiska.",
-                },
-              ],
+            : [],
       },
+
+      recordFish: {
+        deleteMany: {},
+        create:
+          recordFishItems.length > 0
+            ? recordFishItems.map((item) => ({
+                fishName: item.fishName,
+                weightKg: item.weightKg,
+              }))
+            : [],
+      },
+
+      equipmentRequirements: {
+        deleteMany: {},
+        create:
+          equipmentRequirementItems.length > 0
+            ? equipmentRequirementItems.map((text) => ({
+                text,
+              }))
+            : [],
+      },
+    },
+    include: {
+      fishSpecies: true,
+      priceList: true,
+      rules: true,
+      recordFish: {
+        orderBy: {
+          weightKg: "desc",
+        },
+      },
+      equipmentRequirements: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+      images: true,
     },
   });
 

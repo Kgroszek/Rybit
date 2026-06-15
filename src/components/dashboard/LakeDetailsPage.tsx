@@ -175,6 +175,10 @@ export function LakeDetailsPage({
   const previewImage =
     previewImageIndex !== null ? visibleImages[previewImageIndex] : null;
 
+  const recordFish = lake.recordFish || [];
+  const equipmentRequirements = lake.equipmentRequirements || [];
+  const openingHours = String(lake.openingHours || "").trim();
+
   function openPreview(index: number) {
     setPreviewImageIndex(index);
   }
@@ -546,6 +550,100 @@ export function LakeDetailsPage({
               ))}
             </div>
           </section>
+
+          {recordFish.length > 0 && (
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-950">
+                    Rekordowe ryby na łowisku
+                  </h2>
+
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Największe ryby, które według informacji łowiska pływają w
+                    tym zbiorniku.
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+                  {recordFish.length} wpisów
+                </span>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {recordFish.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-sky-50 p-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-2xl shadow-sm">
+                        🏆
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="break-words text-base font-black text-slate-950">
+                          {item.fishName}
+                        </p>
+
+                        <p className="mt-1 text-sm font-semibold text-slate-500">
+                          Rekordowa waga
+                        </p>
+
+                        <p className="mt-3 text-2xl font-black text-blue-700">
+                          {formatRecordFishWeight(item.weightKg)} kg
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {equipmentRequirements.length > 0 && (
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-950">
+                Wymagania sprzętowe
+              </h2>
+
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Sprzęt, który może być wymagany podczas wędkowania na tym
+                łowisku.
+              </p>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {equipmentRequirements.map((item) => (
+                  <div
+                    key={item}
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
+                      ✓
+                    </div>
+
+                    <p className="break-words text-sm font-bold text-slate-700">
+                      {item}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {openingHours && (
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-950">
+                Godziny otwarcia
+              </h2>
+
+              <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                <p className="whitespace-pre-line break-words text-sm font-semibold leading-7 text-slate-700">
+                  {openingHours}
+                </p>
+              </div>
+            </section>
+          )}
 
           <CatchRankingsSection
             lake={lake}
@@ -1284,6 +1382,13 @@ function RankingItem({
       </div>
     </article>
   );
+}
+
+function formatRecordFishWeight(value: number) {
+  return new Intl.NumberFormat("pl-PL", {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 1,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 function getMethodLabel(value: string) {

@@ -1,7 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
+
+type LakeRecordFishState = {
+  id?: string;
+  fishName: string;
+  weightKg: string | number;
+};
 
 type LakeEditFormState = {
   id: string;
@@ -26,6 +33,10 @@ type LakeEditFormState = {
   priceListUrl: string;
   rulesText: string;
   rulesUrl: string;
+
+  openingHours: string | null;
+  recordFish: LakeRecordFishState[];
+  equipmentRequirements: string[];
 
   cottages: boolean;
   campfire: boolean;
@@ -59,11 +70,55 @@ type LakeEditFormProps = {
   lake: LakeEditFormState;
 };
 
+const popularFishOptions = [
+  "Amur",
+  "Boleń",
+  "Brzana",
+  "Jaź",
+  "Karaś",
+  "Karp",
+  "Kleń",
+  "Leszcz",
+  "Lin",
+  "Okoń",
+  "Płoć",
+  "Sandacz",
+  "Sum",
+  "Szczupak",
+  "Węgorz",
+  "Wzdręga",
+  "Pstrąg potokowy",
+  "Pstrąg tęczowy",
+  "Jesiotr",
+  "Tołpyga",
+];
+
+function splitLines(value: string) {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getFishOptions(fishText: string) {
+  const fishFromLake = fishText
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set([...fishFromLake, ...popularFishOptions])).sort(
+    (a, b) => a.localeCompare(b, "pl")
+  );
+}
+
 export function LakeEditForm({ lake }: LakeEditFormProps) {
   const router = useRouter();
 
   const [form, setForm] = useState<LakeEditFormState>({
     ...lake,
+    openingHours: lake.openingHours || "",
+    recordFish: lake.recordFish || [],
+    equipmentRequirements: lake.equipmentRequirements || [],
     contactEmail: lake.contactEmail === "Brak danych" ? "" : lake.contactEmail,
     contactWebsite:
       lake.contactWebsite === "Brak danych" ? "" : lake.contactWebsite,
@@ -74,6 +129,8 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [message, setMessage] = useState("");
 
+  const fishOptions = useMemo(() => getFishOptions(form.fish), [form.fish]);
+
   function updateField<K extends keyof LakeEditFormState>(
     field: K,
     value: LakeEditFormState[K]
@@ -81,6 +138,44 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
     setForm((current) => ({
       ...current,
       [field]: value,
+    }));
+  }
+
+  function addRecordFish() {
+    setForm((current) => ({
+      ...current,
+      recordFish: [
+        ...current.recordFish,
+        {
+          fishName: fishOptions[0] || "Karp",
+          weightKg: "",
+        },
+      ],
+    }));
+  }
+
+  function updateRecordFish(
+    index: number,
+    field: keyof LakeRecordFishState,
+    value: string
+  ) {
+    setForm((current) => ({
+      ...current,
+      recordFish: current.recordFish.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              [field]: value,
+            }
+          : item
+      ),
+    }));
+  }
+
+  function removeRecordFish(index: number) {
+    setForm((current) => ({
+      ...current,
+      recordFish: current.recordFish.filter((_, itemIndex) => itemIndex !== index),
     }));
   }
 
@@ -153,7 +248,7 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
     }));
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setIsLoading(true);
@@ -161,6 +256,16 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
 
     const payload = {
       ...form,
+      openingHours: String(form.openingHours || "").trim(),
+      recordFish: form.recordFish
+        .map((item) => ({
+          fishName: String(item.fishName || "").trim(),
+          weightKg: String(item.weightKg || "").replace(",", ".").trim(),
+        }))
+        .filter((item) => item.fishName && item.weightKg),
+      equipmentRequirements: form.equipmentRequirements
+        .map((item) => item.trim())
+        .filter(Boolean),
       contactEmail:
         form.contactEmail === "Brak danych" ? "" : form.contactEmail.trim(),
       contactWebsite:
@@ -330,6 +435,110 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
             label="Typ wody"
             value={form.waterType}
             onChange={(value) => updateField("waterType", value)}
+          />
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-slate-950">
+          Dodatkowe informacje
+        </h2>
+
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          Te pola są opcjonalne. Jeśli zostawisz je puste, nie będą wyświetlane
+          na podstronie łowiska.
+        </p>
+
+        <div className="mt-5">
+          <Textarea
+            label="Godziny otwarcia"
+            value={String(form.openingHours || "")}
+            onChange={(value) => updateField("openingHours", value)}
+            rows={4}
+            placeholder="np. Poniedziałek–Niedziela: 6:00–20:00 albo Łowisko czynne całodobowo po wcześniejszej rezerwacji."
+          />
+        </div>
+
+        <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-bold text-slate-950">
+                Rekordowe ryby na łowisku
+              </h3>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Wybierz gatunek ryby i wpisz jej rekordową wagę w kilogramach.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={addRecordFish}
+              className="rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700"
+            >
+              + Dodaj rybę
+            </button>
+          </div>
+
+          {form.recordFish.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              {form.recordFish.map((item, index) => (
+                <div
+                  key={`${item.id || "record"}-${index}`}
+                  className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 lg:grid-cols-[1fr_180px_auto]"
+                >
+                  <Select
+                    label="Ryba"
+                    value={item.fishName}
+                    onChange={(value) =>
+                      updateRecordFish(index, "fishName", value)
+                    }
+                    options={fishOptions.map((fishName) => ({
+                      label: fishName,
+                      value: fishName,
+                    }))}
+                  />
+
+                  <Input
+                    label="Waga w kg"
+                    value={String(item.weightKg || "")}
+                    onChange={(value) =>
+                      updateRecordFish(index, "weightKg", value)
+                    }
+                    placeholder="np. 25"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                  />
+
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => removeRecordFish(index)}
+                      className="h-12 w-full rounded-2xl bg-red-50 px-4 text-sm font-bold text-red-600 transition hover:bg-red-100 lg:w-auto"
+                    >
+                      Usuń
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 rounded-2xl bg-white p-4 text-sm text-slate-500">
+              Nie dodano jeszcze rekordowych ryb.
+            </p>
+          )}
+        </div>
+
+        <div className="mt-6">
+          <Textarea
+            label="Wymagania sprzętowe"
+            value={form.equipmentRequirements.join("\n")}
+            onChange={(value) =>
+              updateField("equipmentRequirements", splitLines(value))
+            }
+            rows={5}
+            placeholder={`Każde wymaganie wpisz w osobnej linii, np.\nMata karpiowa\nKołyska\nPodbierak\nŚrodek do dezynfekcji ran`}
           />
         </div>
       </section>
@@ -608,6 +817,8 @@ function Input({
   placeholder,
   required = false,
   type = "text",
+  step,
+  min,
 }: {
   label: string;
   value: string;
@@ -615,6 +826,8 @@ function Input({
   placeholder?: string;
   required?: boolean;
   type?: string;
+  step?: string;
+  min?: string;
 }) {
   return (
     <div>
@@ -628,6 +841,8 @@ function Input({
         required={required}
         placeholder={placeholder}
         type={type}
+        step={step}
+        min={min}
         className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
       />
     </div>

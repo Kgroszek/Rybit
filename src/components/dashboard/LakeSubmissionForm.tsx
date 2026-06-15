@@ -4,6 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
 
+type LakeRecordFishState = {
+  fishName: string;
+  weightKg: string;
+};
+
 type FormState = {
   name: string;
   description: string;
@@ -24,6 +29,9 @@ type FormState = {
   priceListUrl: string;
   rulesText: string;
   rulesUrl: string;
+  openingHours: string;
+  recordFish: LakeRecordFishState[];
+  equipmentRequirements: string;
   cottages: boolean;
   campfire: boolean;
   noKill: boolean;
@@ -173,6 +181,40 @@ const VOIVODESHIPS = [
   "zachodniopomorskie",
 ];
 
+const POPULAR_FISH_OPTIONS = [
+  "Amur",
+  "Boleń",
+  "Brzana",
+  "Jaź",
+  "Karaś",
+  "Karp",
+  "Kleń",
+  "Leszcz",
+  "Lin",
+  "Okoń",
+  "Płoć",
+  "Sandacz",
+  "Sum",
+  "Szczupak",
+  "Węgorz",
+  "Wzdręga",
+  "Pstrąg potokowy",
+  "Pstrąg tęczowy",
+  "Jesiotr",
+  "Tołpyga",
+];
+
+function getFishOptions(fishText: string) {
+  const fishFromLake = fishText
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return Array.from(new Set([...fishFromLake, ...POPULAR_FISH_OPTIONS])).sort(
+    (firstFish, secondFish) => firstFish.localeCompare(secondFish, "pl")
+  );
+}
+
 const STEP_FIELDS: Record<StepKey, (keyof FormState)[]> = {
   basic: ["name", "fish", "description", "ownerType", "fishingType"],
   location: ["street", "city", "postalCode", "voivodeship", "lat", "lng"],
@@ -185,6 +227,9 @@ const STEP_FIELDS: Record<StepKey, (keyof FormState)[]> = {
     "priceListUrl",
     "rulesText",
     "rulesUrl",
+    "openingHours",
+    "recordFish",
+    "equipmentRequirements",
   ],
   amenities: [
     "cottages",
@@ -397,6 +442,8 @@ export function LakeSubmissionForm() {
     }));
   }, [images]);
 
+  const fishOptions = useMemo(() => getFishOptions(form.fish), [form.fish]);
+
   useEffect(() => {
     return () => {
       imagePreviews.forEach((preview) => {
@@ -437,6 +484,46 @@ export function LakeSubmissionForm() {
     if (message) {
       setMessage("");
     }
+  }
+
+  function addRecordFish() {
+    setForm((current) => ({
+      ...current,
+      recordFish: [
+        ...current.recordFish,
+        {
+          fishName: fishOptions[0] || "Karp",
+          weightKg: "",
+        },
+      ],
+    }));
+  }
+
+  function updateRecordFish(
+    index: number,
+    field: keyof LakeRecordFishState,
+    value: string
+  ) {
+    setForm((current) => ({
+      ...current,
+      recordFish: current.recordFish.map((item, itemIndex) =>
+        itemIndex === index
+          ? {
+              ...item,
+              [field]: value,
+            }
+          : item
+      ),
+    }));
+  }
+
+  function removeRecordFish(index: number) {
+    setForm((current) => ({
+      ...current,
+      recordFish: current.recordFish.filter(
+        (_, itemIndex) => itemIndex !== index
+      ),
+    }));
   }
 
   function isFieldInStep(field: keyof FormState, step: StepKey) {
@@ -778,6 +865,22 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
       const formData = new FormData();
 
       Object.entries(form).forEach(([key, value]) => {
+        if (key === "recordFish") {
+          formData.append(
+            key,
+            JSON.stringify(
+              form.recordFish
+                .map((item) => ({
+                  fishName: item.fishName.trim(),
+                  weightKg: item.weightKg.replace(",", ".").trim(),
+                }))
+                .filter((item) => item.fishName && item.weightKg)
+            )
+          );
+
+          return;
+        }
+
         formData.append(key, String(value));
       });
 
@@ -1091,6 +1194,104 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
                   placeholder="np. staw / jezioro / rzeka"
                 />
               </div>
+
+              <div className="mt-5">
+                <Textarea
+                  label="Godziny otwarcia"
+                  value={form.openingHours}
+                  onChange={(value) => updateField("openingHours", value)}
+                  placeholder="np. Poniedziałek–Niedziela: 6:00–20:00 albo Łowisko czynne całodobowo po wcześniejszej rezerwacji."
+                  rows={4}
+                />
+              </div>
+            </StepCard>
+
+            <StepCard
+              title="Rekordowe ryby na łowisku"
+              description="Opcjonalnie dodaj największe ryby pływające na łowisku. Jeśli nic nie wpiszesz, sekcja nie pokaże się na stronie łowiska."
+            >
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-950">
+                      Lista rekordowych ryb
+                    </h3>
+
+                    <p className="mt-1 text-sm text-slate-500">
+                      Wybierz rybę z listy i wpisz wagę w kilogramach, np. 25.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={addRecordFish}
+                    className="rounded-2xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700"
+                  >
+                    + Dodaj rybę
+                  </button>
+                </div>
+
+                {form.recordFish.length > 0 ? (
+                  <div className="mt-4 space-y-3">
+                    {form.recordFish.map((item, index) => (
+                      <div
+                        key={`record-fish-${index}`}
+                        className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 lg:grid-cols-[1fr_180px_auto]"
+                      >
+                        <Select
+                          label="Ryba"
+                          value={item.fishName}
+                          onChange={(value) =>
+                            updateRecordFish(index, "fishName", value)
+                          }
+                          options={fishOptions.map((fishName) => ({
+                            label: fishName,
+                            value: fishName,
+                          }))}
+                        />
+
+                        <Input
+                          label="Waga w kg"
+                          value={item.weightKg}
+                          onChange={(value) =>
+                            updateRecordFish(index, "weightKg", value)
+                          }
+                          placeholder="np. 25"
+                        />
+
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={() => removeRecordFish(index)}
+                            className="h-12 w-full rounded-2xl bg-red-50 px-4 text-sm font-bold text-red-600 transition hover:bg-red-100 lg:w-auto"
+                          >
+                            Usuń
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-2xl bg-white p-4 text-sm text-slate-500">
+                    Nie dodano jeszcze rekordowych ryb. To pole jest opcjonalne.
+                  </p>
+                )}
+              </div>
+            </StepCard>
+
+            <StepCard
+              title="Wymagania sprzętowe"
+              description="Opcjonalnie wpisz sprzęt wymagany na łowisku. Każde wymaganie wpisz w osobnej linii."
+            >
+              <Textarea
+                label="Wymagania sprzętowe"
+                value={form.equipmentRequirements}
+                onChange={(value) =>
+                  updateField("equipmentRequirements", value)
+                }
+                placeholder={`np.\nMata karpiowa\nKołyska\nPodbierak\nŚrodek do dezynfekcji ran`}
+                rows={5}
+              />
             </StepCard>
 
             <StepCard

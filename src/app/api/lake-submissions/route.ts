@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 
 import { checkAndUnlockAchievements } from "@/lib/achievements";
+import { normalizeFishName } from "@/lib/fish-names";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { normalizeFishName } from "@/lib/fish-names";
+
 const BUCKET_NAME = "lake-images";
 const MAX_IMAGES = 10;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
@@ -11,6 +12,11 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 type UploadedImage = {
   imagePath: string;
   url: string;
+};
+
+type RecordFishInput = {
+  fishName?: string;
+  weightKg?: string | number;
 };
 
 function createSlug(text: string) {
@@ -60,6 +66,54 @@ function isValidImage(file: File) {
 
 function getNumberValue(value: string) {
   return Number(value.replace(",", "."));
+}
+
+function splitFishNames(value: string) {
+  return value
+    .split(",")
+    .map((item) => normalizeFishName(item))
+    .filter(Boolean);
+}
+
+function parseRecordFish(value: string) {
+  if (!value) {
+    return [];
+  }
+
+  try {
+    const parsedValue = JSON.parse(value);
+
+    if (!Array.isArray(parsedValue)) {
+      return [];
+    }
+
+    return parsedValue
+      .map((item) => {
+        const record = item as RecordFishInput;
+
+        const fishName = normalizeFishName(String(record.fishName || "").trim());
+        const weightKg = Number(String(record.weightKg || "").replace(",", "."));
+
+        return {
+          fishName,
+          weightKg,
+        };
+      })
+      .filter(
+        (item) =>
+          item.fishName && !Number.isNaN(item.weightKg) && item.weightKg > 0
+      );
+  } catch {
+    return [];
+  }
+}
+
+function parseEquipmentRequirements(value: string) {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join("\n");
 }
 
 async function removeUploadedImages(
@@ -118,7 +172,10 @@ export async function POST(request: Request) {
   const description = getFormValue(formData, "description");
   const ownerType = getFormValue(formData, "ownerType");
   const fishingType = getFormValue(formData, "fishingType");
-  const fish = normalizeFishName(getFormValue(formData, "fish"));
+
+  const rawFish = getFormValue(formData, "fish");
+  const fishItems = splitFishNames(rawFish);
+  const fish = fishItems.length > 0 ? fishItems.join(", ") : "";
 
   const lat = getFormValue(formData, "lat");
   const lng = getFormValue(formData, "lng");
@@ -127,6 +184,12 @@ export async function POST(request: Request) {
   const city = getFormValue(formData, "city");
   const postalCode = getFormValue(formData, "postalCode");
   const voivodeship = getFormValue(formData, "voivodeship");
+
+  const openingHours = getFormValue(formData, "openingHours");
+  const recordFish = parseRecordFish(getFormValue(formData, "recordFish"));
+  const equipmentRequirements = parseEquipmentRequirements(
+    getFormValue(formData, "equipmentRequirements")
+  );
 
   if (!name || !description) {
     return NextResponse.json(
@@ -197,26 +260,37 @@ export async function POST(request: Request) {
       data: {
         userId: user.id,
         status: "pending",
+
         name,
         slug: `${createSlug(name)}-${Date.now()}`,
         description,
+
         ownerType,
         fishingType,
         fish,
+
         lat: latitude,
         lng: longitude,
+
         street,
         city,
         postalCode,
         voivodeship,
+
         area: getFormValue(formData, "area") || null,
         averageDepth: getFormValue(formData, "averageDepth") || null,
         bottomType: getFormValue(formData, "bottomType") || null,
         waterType: getFormValue(formData, "waterType") || null,
+
         priceListText: getFormValue(formData, "priceListText") || null,
         priceListUrl: getFormValue(formData, "priceListUrl") || null,
         rulesText: getFormValue(formData, "rulesText") || null,
         rulesUrl: getFormValue(formData, "rulesUrl") || null,
+
+        openingHours: openingHours || null,
+        recordFish: recordFish.length > 0 ? recordFish : undefined,
+        equipmentRequirements: equipmentRequirements || null,
+
         cottages: getFormBoolean(formData, "cottages"),
         campfire: getFormBoolean(formData, "campfire"),
         noKill: getFormBoolean(formData, "noKill"),
@@ -227,11 +301,13 @@ export async function POST(request: Request) {
         shop: getFormBoolean(formData, "shop"),
         nightFishing: getFormBoolean(formData, "nightFishing"),
         boatRental: getFormBoolean(formData, "boatRental"),
+
         gearRental: getFormBoolean(formData, "gearRental"),
         shelter: getFormBoolean(formData, "shelter"),
         coveredSpots: getFormBoolean(formData, "coveredSpots"),
         playground: getFormBoolean(formData, "playground"),
         cardPayment: getFormBoolean(formData, "cardPayment"),
+
         contactName: getFormValue(formData, "contactName") || null,
         contactPhone: getFormValue(formData, "contactPhone") || null,
         contactEmail: getFormValue(formData, "contactEmail") || null,

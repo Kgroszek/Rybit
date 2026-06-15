@@ -32,6 +32,12 @@ export type LakeAmenitiesDto = {
   cardPayment: boolean;
 };
 
+export type LakeRecordFishDto = {
+  id: string;
+  fishName: string;
+  weightKg: number;
+};
+
 export type LakeListDto = {
   id: string;
   name: string;
@@ -66,6 +72,9 @@ export type LakeDto = LakeListDto & {
   priceListUrl: string | null;
   rules: string[];
   rulesUrl: string | null;
+  openingHours: string | null;
+  recordFish: LakeRecordFishDto[];
+  equipmentRequirements: string[];
   contact: {
     name: string;
     phone: string;
@@ -86,6 +95,16 @@ async function getLakesFromDatabase() {
       fishSpecies: true,
       priceList: true,
       rules: true,
+      recordFish: {
+        orderBy: {
+          weightKg: "desc",
+        },
+      },
+      equipmentRequirements: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
       images: true,
     },
     orderBy: {
@@ -175,6 +194,13 @@ function mapLakeToDto(
     priceListUrl: lake.priceListUrl,
     rules: lake.rules.map((rule) => rule.text),
     rulesUrl: lake.rulesUrl,
+    openingHours: lake.openingHours || null,
+    recordFish: lake.recordFish.map((item) => ({
+      id: item.id,
+      fishName: item.fishName,
+      weightKg: item.weightKg,
+    })),
+    equipmentRequirements: lake.equipmentRequirements.map((item) => item.text),
     contact: {
       name: lake.contactName || "",
       phone: lake.contactPhone || "",
@@ -318,8 +344,6 @@ export async function getLakesList() {
     },
   });
 
-  
-
   return lakes.map((lake) => mapLakeToListDto(lake));
 }
 
@@ -338,6 +362,16 @@ export async function getLakeBySlug(slug: string) {
       fishSpecies: true,
       priceList: true,
       rules: true,
+      recordFish: {
+        orderBy: {
+          weightKg: "desc",
+        },
+      },
+      equipmentRequirements: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
       images: true,
     },
   });
@@ -488,6 +522,9 @@ export async function getLakesDashboard(): Promise<LakeDto[]> {
     priceListUrl: null,
     rules: [],
     rulesUrl: null,
+    openingHours: null,
+    recordFish: [],
+    equipmentRequirements: [],
     contact: {
       name: "",
       phone: "",

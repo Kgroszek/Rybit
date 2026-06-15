@@ -54,19 +54,23 @@ model Lake {
   rulesText     String?
   rulesUrl      String?
 
+  openingHours String?
+
   contactName    String
   contactPhone   String
   contactEmail   String
   contactWebsite String
 
-  priceList         PriceItem[]
-  rules             Rule[]
-  fishSpecies       FishSpecies[]
-  images            LakeImage[]
-  favourites        Favourite[]
-  ratings           Rating[]
-  correctionReports LakeCorrectionReport[]
-  catches           FishingCatch[]
+  priceList             PriceItem[]
+  rules                 Rule[]
+  fishSpecies           FishSpecies[]
+  recordFish            LakeRecordFish[]
+  equipmentRequirements LakeEquipmentRequirement[]
+  images                LakeImage[]
+  favourites            Favourite[]
+  ratings               Rating[]
+  correctionReports     LakeCorrectionReport[]
+  catches               FishingCatch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -132,6 +136,33 @@ model FishSpecies {
 
   @@index([lakeId])
   @@index([name])
+}
+
+model LakeRecordFish {
+  id       String @id @default(cuid())
+  fishName String
+  weightKg Float
+  lakeId   String
+  lake     Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
+  @@index([fishName])
+  @@index([weightKg])
+}
+
+model LakeEquipmentRequirement {
+  id     String @id @default(cuid())
+  text   String
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
 }
 
 model LakeImage {
@@ -221,6 +252,10 @@ model LakeSubmission {
   priceListUrl  String?
   rulesText     String?
   rulesUrl      String?
+
+  openingHours          String?
+  recordFish            Json?
+  equipmentRequirements String?
 
   contactName    String?
   contactPhone   String?
