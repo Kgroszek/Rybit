@@ -143,7 +143,7 @@ function isVisibleTextItem(value: string, blockedLabel: string) {
   );
 }
 
-export function LakeDetailsPage({
+export function PublicLakeDetailsPage({
   lake,
   isAdmin = false,
 }: LakeDetailsPageProps) {
