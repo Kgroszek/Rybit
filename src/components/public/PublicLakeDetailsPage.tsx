@@ -8,8 +8,14 @@ import { CatchReportButton } from "@/components/dashboard/CatchReportButton";
 import { useToast } from "@/components/ui/ToastProvider";
 import type { ReactNode } from "react";
 
+type RecommendedLake = LakeDto & {
+  nearbyDistanceInKm?: number;
+  nearbyScore?: number;
+};
+
 type LakeDetailsPageProps = {
   lake: LakeDto;
+  recommendedLakes?: RecommendedLake[];
   isAdmin?: boolean;
 };
 
@@ -145,9 +151,11 @@ function isVisibleTextItem(value: string, blockedLabel: string) {
 
 export function PublicLakeDetailsPage({
   lake,
+  recommendedLakes = [],
   isAdmin = false,
 }: LakeDetailsPageProps) {
   const toast = useToast();
+  void recommendedLakes;
 
   const [displayRating, setDisplayRating] = useState(lake.rating);
   const [userRating, setUserRating] = useState(0);
