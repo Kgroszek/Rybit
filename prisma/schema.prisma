@@ -54,6 +54,9 @@ model Lake {
   rulesText     String?
   rulesUrl      String?
 
+  isOpenAllDay Boolean @default(false)
+  openingHours String?
+
   contactName    String
   contactPhone   String
   contactEmail   String
@@ -62,6 +65,8 @@ model Lake {
   priceList         PriceItem[]
   rules             Rule[]
   fishSpecies       FishSpecies[]
+  fishRecords       LakeFishRecord[]
+  gearRequirements  LakeGearRequirement[]
   images            LakeImage[]
   favourites        Favourite[]
   ratings           Rating[]
@@ -132,6 +137,33 @@ model FishSpecies {
 
   @@index([lakeId])
   @@index([name])
+}
+
+model LakeFishRecord {
+  id       String @id @default(cuid())
+  fishName String
+  weightKg Float
+  lakeId   String
+  lake     Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
+  @@index([fishName])
+  @@index([weightKg])
+}
+
+model LakeGearRequirement {
+  id     String @id @default(cuid())
+  text   String
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
 }
 
 model LakeImage {
@@ -222,12 +254,17 @@ model LakeSubmission {
   rulesText     String?
   rulesUrl      String?
 
+  isOpenAllDay Boolean @default(false)
+  openingHours String?
+
   contactName    String?
   contactPhone   String?
   contactEmail   String?
   contactWebsite String?
 
-  images LakeSubmissionImage[]
+  images           LakeSubmissionImage[]
+  fishRecords      LakeSubmissionFishRecord[]
+  gearRequirements LakeSubmissionGearRequirement[]
 
   adminNote String?
 
@@ -252,6 +289,33 @@ model LakeSubmissionImage {
 
   @@index([submissionId])
   @@index([createdAt])
+}
+
+model LakeSubmissionFishRecord {
+  id           String @id @default(cuid())
+  fishName     String
+  weightKg     Float
+  submissionId String
+  submission   LakeSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([submissionId])
+  @@index([fishName])
+  @@index([weightKg])
+}
+
+model LakeSubmissionGearRequirement {
+  id           String @id @default(cuid())
+  text         String
+  submissionId String
+  submission   LakeSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([submissionId])
 }
 
 model UserNotification {
