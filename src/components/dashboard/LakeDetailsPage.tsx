@@ -175,6 +175,11 @@ export function LakeDetailsPage({
   const previewImage =
     previewImageIndex !== null ? visibleImages[previewImageIndex] : null;
 
+  const hasFishRecords = lake.fishRecords.length > 0;
+  const hasGearRequirements = lake.gearRequirements.length > 0;
+  const hasOpeningHours =
+    lake.openingHours.isOpenAllDay || Boolean(lake.openingHours.text?.trim());
+
   function openPreview(index: number) {
     setPreviewImageIndex(index);
   }
@@ -546,6 +551,94 @@ export function LakeDetailsPage({
               ))}
             </div>
           </section>
+
+          {hasFishRecords && (
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-950">
+                    Rekordowe ryby na łowisku
+                  </h2>
+
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    Największe zgłoszone ryby złowione na tym łowisku.
+                  </p>
+                </div>
+
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                  {lake.fishRecords.length} rekordów
+                </span>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {lake.fishRecords.map((record) => (
+                  <div
+                    key={record.id}
+                    className="flex items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="break-words font-bold text-slate-950">
+                        {record.fishName}
+                      </p>
+
+                      <p className="mt-1 text-sm font-semibold text-emerald-700">
+                        Rekord łowiska
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 rounded-2xl bg-white px-4 py-2 text-sm font-black text-emerald-700 shadow-sm">
+                      {record.weightKg.toFixed(2)} kg
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {hasGearRequirements && (
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-950">
+                Wymagania sprzętowe
+              </h2>
+
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Sprzęt lub akcesoria wymagane podczas wędkowania na tym łowisku.
+              </p>
+
+              <div className="mt-5 space-y-3">
+                {lake.gearRequirements.map((requirement) => (
+                  <div
+                    key={requirement}
+                    className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4"
+                  >
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-black text-blue-700 shadow-sm">
+                      ✓
+                    </div>
+
+                    <p className="break-words text-sm font-semibold leading-6 text-slate-700">
+                      {requirement}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {hasOpeningHours && (
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-950">
+                Godziny otwarcia
+              </h2>
+
+              <div className="mt-5 rounded-2xl border border-sky-100 bg-sky-50 p-5">
+                <p className="whitespace-pre-line break-words text-sm font-bold leading-7 text-slate-800">
+                  {lake.openingHours.isOpenAllDay
+                    ? "Otwarte całodobowo"
+                    : lake.openingHours.text}
+                </p>
+              </div>
+            </section>
+          )}
 
           <CatchRankingsSection
             lake={lake}

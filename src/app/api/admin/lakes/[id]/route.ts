@@ -8,6 +8,15 @@ type RouteProps = {
   }>;
 };
 
+type FishRecordPayload = {
+  fishName?: string;
+  weightKg?: number | string;
+};
+
+type GearRequirementPayload = {
+  text?: string;
+};
+
 function splitLines(value: string) {
   return value
     .split("\n")
@@ -19,6 +28,70 @@ function splitFishNames(value: string) {
   return value
     .split(",")
     .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function getStringValue(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value.trim();
+}
+
+function getBooleanValue(value: unknown) {
+  return value === true || value === "true";
+}
+
+function getNumberValue(value: unknown) {
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    return Number(value.replace(",", "."));
+  }
+
+  return Number.NaN;
+}
+
+function parseFishRecords(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item): FishRecordPayload => {
+      if (!item || typeof item !== "object") {
+        return {};
+      }
+
+      return item as FishRecordPayload;
+    })
+    .map((item) => ({
+      fishName: getStringValue(item.fishName),
+      weightKg: getNumberValue(item.weightKg),
+    }))
+    .filter((item) => item.fishName && !Number.isNaN(item.weightKg) && item.weightKg > 0);
+}
+
+function parseGearRequirements(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => {
+      if (typeof item === "string") {
+        return item.trim();
+      }
+
+      if (item && typeof item === "object") {
+        return getStringValue((item as GearRequirementPayload).text);
+      }
+
+      return "";
+    })
     .filter(Boolean);
 }
 
@@ -35,9 +108,9 @@ export async function PUT(request: Request, { params }: RouteProps) {
   const { id } = await params;
   const body = await request.json();
 
-  const name = String(body.name || "").trim();
-  const description = String(body.description || "").trim();
-  const fish = String(body.fish || "").trim();
+  const name = getStringValue(body.name);
+  const description = getStringValue(body.description);
+  const fish = getStringValue(body.fish);
 
   const lat = Number(body.lat);
   const lng = Number(body.lng);
@@ -73,9 +146,15 @@ export async function PUT(request: Request, { params }: RouteProps) {
     );
   }
 
-  const priceListItems = splitLines(String(body.priceListText || ""));
-  const rulesItems = splitLines(String(body.rulesText || ""));
+  const priceListItems = splitLines(getStringValue(body.priceListText));
+  const rulesItems = splitLines(getStringValue(body.rulesText));
   const fishItems = splitFishNames(fish);
+
+  const fishRecords = parseFishRecords(body.fishRecords);
+  const gearRequirements = parseGearRequirements(body.gearRequirements);
+
+  const isOpenAllDay = getBooleanValue(body.isOpenAllDay);
+  const openingHours = getStringValue(body.openingHours);
 
   const updatedLake = await prisma.lake.update({
     where: {
@@ -85,27 +164,30 @@ export async function PUT(request: Request, { params }: RouteProps) {
       name,
       description,
 
-      ownerType: String(body.ownerType || "pzw"),
-      fishingType: String(body.fishingType || "general"),
+      ownerType: getStringValue(body.ownerType) || "pzw",
+      fishingType: getStringValue(body.fishingType) || "general",
       fish,
 
       lat,
       lng,
 
-      street: String(body.street || "").trim(),
-      city: String(body.city || "").trim(),
-      postalCode: String(body.postalCode || "").trim(),
-      voivodeship: String(body.voivodeship || "").trim(),
+      street: getStringValue(body.street),
+      city: getStringValue(body.city),
+      postalCode: getStringValue(body.postalCode),
+      voivodeship: getStringValue(body.voivodeship),
 
-      area: String(body.area || "").trim() || "Brak danych",
-      averageDepth: String(body.averageDepth || "").trim() || "Brak danych",
-      bottomType: String(body.bottomType || "").trim() || "Brak danych",
-      waterType: String(body.waterType || "").trim() || "Brak danych",
+      area: getStringValue(body.area) || "Brak danych",
+      averageDepth: getStringValue(body.averageDepth) || "Brak danych",
+      bottomType: getStringValue(body.bottomType) || "Brak danych",
+      waterType: getStringValue(body.waterType) || "Brak danych",
 
-      priceListText: String(body.priceListText || "").trim() || null,
-      priceListUrl: String(body.priceListUrl || "").trim() || null,
-      rulesText: String(body.rulesText || "").trim() || null,
-      rulesUrl: String(body.rulesUrl || "").trim() || null,
+      priceListText: getStringValue(body.priceListText) || null,
+      priceListUrl: getStringValue(body.priceListUrl) || null,
+      rulesText: getStringValue(body.rulesText) || null,
+      rulesUrl: getStringValue(body.rulesUrl) || null,
+
+      isOpenAllDay,
+      openingHours: isOpenAllDay ? null : openingHours || null,
 
       cottages: Boolean(body.cottages),
       campfire: Boolean(body.campfire),
@@ -124,10 +206,10 @@ export async function PUT(request: Request, { params }: RouteProps) {
       playground: Boolean(body.playground),
       cardPayment: Boolean(body.cardPayment),
 
-      contactName: String(body.contactName || "").trim() || "Brak danych",
-      contactPhone: String(body.contactPhone || "").trim() || "Brak danych",
-      contactEmail: String(body.contactEmail || "").trim(),
-      contactWebsite: String(body.contactWebsite || "").trim(),
+      contactName: getStringValue(body.contactName) || "Brak danych",
+      contactPhone: getStringValue(body.contactPhone) || "Brak danych",
+      contactEmail: getStringValue(body.contactEmail),
+      contactWebsite: getStringValue(body.contactWebsite),
 
       fishSpecies: {
         deleteMany: {},
@@ -135,6 +217,27 @@ export async function PUT(request: Request, { params }: RouteProps) {
           fishItems.length > 0
             ? fishItems.map((fishName) => ({
                 name: fishName,
+              }))
+            : [],
+      },
+
+      fishRecords: {
+        deleteMany: {},
+        create:
+          fishRecords.length > 0
+            ? fishRecords.map((record) => ({
+                fishName: record.fishName,
+                weightKg: record.weightKg,
+              }))
+            : [],
+      },
+
+      gearRequirements: {
+        deleteMany: {},
+        create:
+          gearRequirements.length > 0
+            ? gearRequirements.map((text) => ({
+                text,
               }))
             : [],
       },
@@ -166,6 +269,14 @@ export async function PUT(request: Request, { params }: RouteProps) {
                 },
               ],
       },
+    },
+    include: {
+      fishSpecies: true,
+      fishRecords: true,
+      gearRequirements: true,
+      priceList: true,
+      rules: true,
+      images: true,
     },
   });
 

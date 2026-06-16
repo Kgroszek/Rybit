@@ -24,6 +24,8 @@ type FormState = {
   priceListUrl: string;
   rulesText: string;
   rulesUrl: string;
+  isOpenAllDay: boolean;
+  openingHours: string;
   cottages: boolean;
   campfire: boolean;
   noKill: boolean;
@@ -43,6 +45,17 @@ type FormState = {
   contactPhone: string;
   contactEmail: string;
   contactWebsite: string;
+};
+
+type FishRecordFormItem = {
+  id: string;
+  fishName: string;
+  weightKg: string;
+};
+
+type GearRequirementFormItem = {
+  id: string;
+  text: string;
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
@@ -125,6 +138,8 @@ const initialFormState: FormState = {
   priceListUrl: "",
   rulesText: "",
   rulesUrl: "",
+  isOpenAllDay: false,
+  openingHours: "",
   cottages: false,
   campfire: false,
   noKill: false,
@@ -173,6 +188,25 @@ const VOIVODESHIPS = [
   "zachodniopomorskie",
 ];
 
+const FISH_RECORD_OPTIONS = [
+  "Karp",
+  "Amur",
+  "Szczupak",
+  "Sandacz",
+  "Sum",
+  "Okoń",
+  "Lin",
+  "Leszcz",
+  "Płoć",
+  "Karaś",
+  "Jesiotr",
+  "Tołpyga",
+  "Węgorz",
+  "Jaź",
+  "Kleń",
+  "Wzdręga",
+];
+
 const STEP_FIELDS: Record<StepKey, (keyof FormState)[]> = {
   basic: ["name", "fish", "description", "ownerType", "fishingType"],
   location: ["street", "city", "postalCode", "voivodeship", "lat", "lng"],
@@ -185,6 +219,8 @@ const STEP_FIELDS: Record<StepKey, (keyof FormState)[]> = {
     "priceListUrl",
     "rulesText",
     "rulesUrl",
+    "isOpenAllDay",
+    "openingHours",
   ],
   amenities: [
     "cottages",
@@ -382,6 +418,10 @@ export function LakeSubmissionForm() {
   const [successModalOpen, setSuccessModalOpen] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [canSubmitContactStep, setCanSubmitContactStep] = useState(false);
+  const [fishRecords, setFishRecords] = useState<FishRecordFormItem[]>([]);
+  const [gearRequirements, setGearRequirements] = useState<
+    GearRequirementFormItem[]
+  >([]);
 
   const currentStep = steps[currentStepIndex];
   const isFirstStep = currentStepIndex === 0;
@@ -421,6 +461,7 @@ export function LakeSubmissionForm() {
     setForm((current) => ({
       ...current,
       [field]: value,
+      ...(field === "isOpenAllDay" && value === true ? { openingHours: "" } : {}),
     }));
 
     setErrors((current) => {
@@ -437,6 +478,67 @@ export function LakeSubmissionForm() {
     if (message) {
       setMessage("");
     }
+  }
+
+  function addFishRecord() {
+    setFishRecords((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        fishName: "",
+        weightKg: "",
+      },
+    ]);
+  }
+
+  function updateFishRecord(
+    id: string,
+    field: keyof Omit<FishRecordFormItem, "id">,
+    value: string
+  ) {
+    setFishRecords((current) =>
+      current.map((record) =>
+        record.id === id
+          ? {
+              ...record,
+              [field]: value,
+            }
+          : record
+      )
+    );
+  }
+
+  function removeFishRecord(id: string) {
+    setFishRecords((current) => current.filter((record) => record.id !== id));
+  }
+
+  function addGearRequirement() {
+    setGearRequirements((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        text: "",
+      },
+    ]);
+  }
+
+  function updateGearRequirement(id: string, value: string) {
+    setGearRequirements((current) =>
+      current.map((requirement) =>
+        requirement.id === id
+          ? {
+              ...requirement,
+              text: value,
+            }
+          : requirement
+      )
+    );
+  }
+
+  function removeGearRequirement(id: string) {
+    setGearRequirements((current) =>
+      current.filter((requirement) => requirement.id !== id)
+    );
   }
 
   function isFieldInStep(field: keyof FormState, step: StepKey) {
@@ -781,6 +883,25 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         formData.append(key, String(value));
       });
 
+      const normalizedFishRecords = fishRecords
+        .map((record) => ({
+          fishName: record.fishName.trim(),
+          weightKg: Number(record.weightKg.replace(",", ".")),
+        }))
+        .filter(
+          (record) => record.fishName.length > 0 && !Number.isNaN(record.weightKg)
+        );
+
+      const normalizedGearRequirements = gearRequirements
+        .map((requirement) => requirement.text.trim())
+        .filter(Boolean);
+
+      formData.append("fishRecords", JSON.stringify(normalizedFishRecords));
+      formData.append(
+        "gearRequirements",
+        JSON.stringify(normalizedGearRequirements)
+      );
+
       images.forEach((image) => {
         formData.append("images", image);
       });
@@ -800,6 +921,8 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
       setSuccessModalOpen(true);
       setForm(initialFormState);
       setImages([]);
+      setFishRecords([]);
+      setGearRequirements([]);
       setErrors({});
       setCurrentStepIndex(0);
       setCanSubmitContactStep(false);
@@ -1090,6 +1213,134 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
                   onChange={(value) => updateField("waterType", value)}
                   placeholder="np. staw / jezioro / rzeka"
                 />
+              </div>
+            </StepCard>
+
+
+
+            <StepCard
+              title="Godziny otwarcia"
+              description="Możesz wpisać godziny otwarcia albo zaznaczyć, że łowisko jest dostępne całodobowo."
+            >
+              <div className="space-y-4">
+                <Checkbox
+                  label="Otwarte całodobowo"
+                  checked={form.isOpenAllDay}
+                  onChange={(value) => updateField("isOpenAllDay", value)}
+                />
+
+                {!form.isOpenAllDay && (
+                  <Textarea
+                    label="Godziny otwarcia"
+                    value={form.openingHours}
+                    onChange={(value) => updateField("openingHours", value)}
+                    placeholder="np. Poniedziałek–piątek: 7:00–20:00, sobota–niedziela: 6:00–22:00"
+                    rows={4}
+                  />
+                )}
+              </div>
+            </StepCard>
+
+            <StepCard
+              title="Rekordowe ryby"
+              description="Opcjonalnie dodaj największe ryby złowione na tym łowisku. Jeśli nic nie dodasz, sekcja nie będzie widoczna na stronie łowiska."
+            >
+              <div className="space-y-4">
+                {fishRecords.length > 0 && (
+                  <div className="space-y-3">
+                    {fishRecords.map((record) => (
+                      <div
+                        key={record.id}
+                        className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 lg:grid-cols-[1fr_180px_auto]"
+                      >
+                        <Select
+                          label="Gatunek ryby"
+                          value={record.fishName}
+                          onChange={(value) =>
+                            updateFishRecord(record.id, "fishName", value)
+                          }
+                          placeholder="Wybierz rybę"
+                          options={FISH_RECORD_OPTIONS.map((fishName) => ({
+                            label: fishName,
+                            value: fishName,
+                          }))}
+                        />
+
+                        <Input
+                          label="Waga w kg"
+                          value={record.weightKg}
+                          onChange={(value) =>
+                            updateFishRecord(record.id, "weightKg", value)
+                          }
+                          placeholder="np. 18,5"
+                        />
+
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={() => removeFishRecord(record.id)}
+                            className="h-12 rounded-2xl border border-red-200 bg-white px-4 text-sm font-bold text-red-600 transition hover:bg-red-50"
+                          >
+                            Usuń
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={addFishRecord}
+                  className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-100"
+                >
+                  + Dodaj rekordową rybę
+                </button>
+              </div>
+            </StepCard>
+
+            <StepCard
+              title="Wymagania sprzętowe"
+              description="Opcjonalnie dodaj wymagania, np. mata karpiowa, podbierak, środek do odkażania ran ryb."
+            >
+              <div className="space-y-4">
+                {gearRequirements.length > 0 && (
+                  <div className="space-y-3">
+                    {gearRequirements.map((requirement) => (
+                      <div
+                        key={requirement.id}
+                        className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 lg:grid-cols-[1fr_auto]"
+                      >
+                        <Input
+                          label="Wymaganie"
+                          value={requirement.text}
+                          onChange={(value) =>
+                            updateGearRequirement(requirement.id, value)
+                          }
+                          placeholder="np. Obowiązkowa mata karpiowa"
+                        />
+
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={() => removeGearRequirement(requirement.id)}
+                            className="h-12 rounded-2xl border border-red-200 bg-white px-4 text-sm font-bold text-red-600 transition hover:bg-red-50"
+                          >
+                            Usuń
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={addGearRequirement}
+                  className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-100"
+                >
+                  + Dodaj wymaganie sprzętowe
+                </button>
               </div>
             </StepCard>
 

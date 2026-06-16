@@ -67,6 +67,8 @@ export async function POST(_request: Request, { params }: RouteProps) {
     },
     include: {
       images: true,
+      fishRecords: true,
+      gearRequirements: true,
     },
   });
 
@@ -144,6 +146,9 @@ export async function POST(_request: Request, { params }: RouteProps) {
         rulesText: submission.rulesText,
         rulesUrl: submission.rulesUrl,
 
+        isOpenAllDay: submission.isOpenAllDay,
+        openingHours: submission.openingHours,
+
         contactName: submission.contactName || "Brak danych",
         contactPhone: submission.contactPhone || "Brak danych",
         contactEmail: submission.contactEmail || "Brak danych",
@@ -154,6 +159,27 @@ export async function POST(_request: Request, { params }: RouteProps) {
             name: fishName,
           })),
         },
+
+        ...(submission.fishRecords.length > 0
+          ? {
+              fishRecords: {
+                create: submission.fishRecords.map((record) => ({
+                  fishName: record.fishName,
+                  weightKg: record.weightKg,
+                })),
+              },
+            }
+          : {}),
+
+        ...(submission.gearRequirements.length > 0
+          ? {
+              gearRequirements: {
+                create: submission.gearRequirements.map((requirement) => ({
+                  text: requirement.text,
+                })),
+              },
+            }
+          : {}),
 
         priceList: {
           create:
@@ -195,6 +221,8 @@ export async function POST(_request: Request, { params }: RouteProps) {
       include: {
         images: true,
         fishSpecies: true,
+        fishRecords: true,
+        gearRequirements: true,
         priceList: true,
         rules: true,
       },

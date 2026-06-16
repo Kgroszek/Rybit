@@ -3,7 +3,39 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-type LakeEditFormState = {
+const FISH_OPTIONS = [
+  "Karp",
+  "Amur",
+  "Szczupak",
+  "Sandacz",
+  "Sum",
+  "Okoń",
+  "Lin",
+  "Leszcz",
+  "Płoć",
+  "Karaś",
+  "Karaś pospolity",
+  "Jesiotr",
+  "Tołpyga",
+  "Węgorz",
+  "Jaź",
+  "Kleń",
+  "Wzdręga",
+];
+
+type LakeFishRecordInput = {
+  id?: string;
+  fishName: string;
+  weightKg: string;
+};
+
+type LakeFishRecordFromProps = {
+  id?: string;
+  fishName: string;
+  weightKg: number | string;
+};
+
+type LakeEditFormLake = {
   id: string;
   name: string;
   slug: string;
@@ -26,6 +58,11 @@ type LakeEditFormState = {
   priceListUrl: string;
   rulesText: string;
   rulesUrl: string;
+
+  isOpenAllDay?: boolean;
+  openingHours?: string | null;
+  fishRecords?: LakeFishRecordFromProps[];
+  gearRequirements?: string[];
 
   cottages: boolean;
   campfire: boolean;
@@ -55,9 +92,31 @@ type LakeEditFormState = {
   }[];
 };
 
-type LakeEditFormProps = {
-  lake: LakeEditFormState;
+type LakeEditFormState = Omit<
+  LakeEditFormLake,
+  "isOpenAllDay" | "openingHours" | "fishRecords" | "gearRequirements"
+> & {
+  isOpenAllDay: boolean;
+  openingHours: string;
+  fishRecords: LakeFishRecordInput[];
+  gearRequirements: string[];
 };
+
+type LakeEditFormProps = {
+  lake: LakeEditFormLake;
+};
+
+function normalizeFishRecords(records?: LakeFishRecordFromProps[]) {
+  if (!records) {
+    return [];
+  }
+
+  return records.map((record) => ({
+    id: record.id,
+    fishName: record.fishName,
+    weightKg: String(record.weightKg ?? ""),
+  }));
+}
 
 export function LakeEditForm({ lake }: LakeEditFormProps) {
   const router = useRouter();
@@ -67,6 +126,10 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
     contactEmail: lake.contactEmail === "Brak danych" ? "" : lake.contactEmail,
     contactWebsite:
       lake.contactWebsite === "Brak danych" ? "" : lake.contactWebsite,
+    isOpenAllDay: Boolean(lake.isOpenAllDay),
+    openingHours: lake.openingHours || "",
+    fishRecords: normalizeFishRecords(lake.fishRecords),
+    gearRequirements: lake.gearRequirements || [],
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -81,6 +144,71 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
     setForm((current) => ({
       ...current,
       [field]: value,
+    }));
+  }
+
+  function addFishRecord() {
+    setForm((current) => ({
+      ...current,
+      fishRecords: [
+        ...current.fishRecords,
+        {
+          fishName: FISH_OPTIONS[0],
+          weightKg: "",
+        },
+      ],
+    }));
+  }
+
+  function updateFishRecord(
+    index: number,
+    field: keyof LakeFishRecordInput,
+    value: string
+  ) {
+    setForm((current) => ({
+      ...current,
+      fishRecords: current.fishRecords.map((record, recordIndex) =>
+        recordIndex === index
+          ? {
+              ...record,
+              [field]: value,
+            }
+          : record
+      ),
+    }));
+  }
+
+  function removeFishRecord(index: number) {
+    setForm((current) => ({
+      ...current,
+      fishRecords: current.fishRecords.filter(
+        (_record, recordIndex) => recordIndex !== index
+      ),
+    }));
+  }
+
+  function addGearRequirement() {
+    setForm((current) => ({
+      ...current,
+      gearRequirements: [...current.gearRequirements, ""],
+    }));
+  }
+
+  function updateGearRequirement(index: number, value: string) {
+    setForm((current) => ({
+      ...current,
+      gearRequirements: current.gearRequirements.map((requirement, itemIndex) =>
+        itemIndex === index ? value : requirement
+      ),
+    }));
+  }
+
+  function removeGearRequirement(index: number) {
+    setForm((current) => ({
+      ...current,
+      gearRequirements: current.gearRequirements.filter(
+        (_requirement, itemIndex) => itemIndex !== index
+      ),
     }));
   }
 
@@ -165,6 +293,18 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
         form.contactEmail === "Brak danych" ? "" : form.contactEmail.trim(),
       contactWebsite:
         form.contactWebsite === "Brak danych" ? "" : form.contactWebsite.trim(),
+      openingHours: form.isOpenAllDay ? "" : form.openingHours.trim(),
+      fishRecords: form.fishRecords
+        .map((record) => ({
+          fishName: record.fishName.trim(),
+          weightKg: Number(record.weightKg.replace(",", ".")),
+        }))
+        .filter(
+          (record) => record.fishName && !Number.isNaN(record.weightKg) && record.weightKg > 0
+        ),
+      gearRequirements: form.gearRequirements
+        .map((requirement) => requirement.trim())
+        .filter(Boolean),
     };
 
     const response = await fetch(`/api/admin/lakes/${form.id}`, {
@@ -331,6 +471,157 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
             value={form.waterType}
             onChange={(value) => updateField("waterType", value)}
           />
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-slate-950">
+          Godziny, rekordy i wymagania
+        </h2>
+
+        <div className="mt-5 space-y-6">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <Checkbox
+              label="Otwarte całodobowo"
+              checked={form.isOpenAllDay}
+              onChange={(value) =>
+                setForm((current) => ({
+                  ...current,
+                  isOpenAllDay: value,
+                  openingHours: value ? "" : current.openingHours,
+                }))
+              }
+            />
+
+            {!form.isOpenAllDay && (
+              <div className="mt-4">
+                <Textarea
+                  label="Godziny otwarcia"
+                  value={form.openingHours}
+                  onChange={(value) => updateField("openingHours", value)}
+                  rows={4}
+                  placeholder="np. Poniedziałek–piątek: 7:00–20:00\nSobota–niedziela: 6:00–22:00"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Rekordowe ryby
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Opcjonalnie dodaj największe złowione ryby na tym łowisku.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={addFishRecord}
+                className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                Dodaj rekord
+              </button>
+            </div>
+
+            {form.fishRecords.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {form.fishRecords.map((record, index) => (
+                  <div
+                    key={record.id || index}
+                    className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 lg:grid-cols-[1fr_160px_auto]"
+                  >
+                    <Select
+                      label="Ryba"
+                      value={record.fishName}
+                      onChange={(value) => updateFishRecord(index, "fishName", value)}
+                      options={FISH_OPTIONS.map((fishName) => ({
+                        label: fishName,
+                        value: fishName,
+                      }))}
+                    />
+
+                    <Input
+                      label="Waga w kg"
+                      value={record.weightKg}
+                      onChange={(value) => updateFishRecord(index, "weightKg", value)}
+                      type="number"
+                      placeholder="np. 18.5"
+                    />
+
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={() => removeFishRecord(index)}
+                        className="h-12 rounded-2xl bg-red-50 px-4 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                      >
+                        Usuń
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-2xl bg-white p-4 text-sm text-slate-500">
+                Brak dodanych rekordowych ryb.
+              </p>
+            )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Wymagania sprzętowe
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Opcjonalnie dodaj wymagania, np. mata karpiowa, podbierak lub środek do dezynfekcji ran ryb.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={addGearRequirement}
+                className="rounded-2xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              >
+                Dodaj wymaganie
+              </button>
+            </div>
+
+            {form.gearRequirements.length > 0 ? (
+              <div className="mt-4 space-y-3">
+                {form.gearRequirements.map((requirement, index) => (
+                  <div
+                    key={index}
+                    className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-3 lg:grid-cols-[1fr_auto]"
+                  >
+                    <Input
+                      label="Wymaganie"
+                      value={requirement}
+                      onChange={(value) => updateGearRequirement(index, value)}
+                      placeholder="np. Obowiązkowa mata karpiowa"
+                    />
+
+                    <div className="flex items-end">
+                      <button
+                        type="button"
+                        onClick={() => removeGearRequirement(index)}
+                        className="h-12 rounded-2xl bg-red-50 px-4 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                      >
+                        Usuń
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 rounded-2xl bg-white p-4 text-sm text-slate-500">
+                Brak dodanych wymagań sprzętowych.
+              </p>
+            )}
+          </div>
         </div>
       </section>
 

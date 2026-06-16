@@ -4,13 +4,46 @@ import { checkAndUnlockAchievements } from "@/lib/achievements";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeFishName } from "@/lib/fish-names";
+
 const BUCKET_NAME = "lake-images";
 const MAX_IMAGES = 10;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
+const MAX_FISH_RECORDS = 30;
+const MAX_GEAR_REQUIREMENTS = 30;
+
+const FISH_RECORD_OPTIONS = new Set([
+  "Amur",
+  "Boleń",
+  "Brzana",
+  "Jaź",
+  "Jesiotr",
+  "Karaś",
+  "Karp",
+  "Kleń",
+  "Leszcz",
+  "Lin",
+  "Miętus",
+  "Okoń",
+  "Płoć",
+  "Sandacz",
+  "Sielawa",
+  "Sum",
+  "Szczupak",
+  "Tołpyga",
+  "Troć",
+  "Węgorz",
+  "Wzdręga",
+]);
+
 type UploadedImage = {
   imagePath: string;
   url: string;
+};
+
+type FishRecordInput = {
+  fishName: string;
+  weightKg: number;
 };
 
 function createSlug(text: string) {
@@ -60,6 +93,90 @@ function isValidImage(file: File) {
 
 function getNumberValue(value: string) {
   return Number(value.replace(",", "."));
+}
+
+function parseJsonArray(formData: FormData, key: string) {
+  const rawValue = getFormValue(formData, key);
+
+  if (!rawValue) {
+    return [] as unknown[];
+  }
+
+  try {
+    const parsedValue: unknown = JSON.parse(rawValue);
+
+    if (!Array.isArray(parsedValue)) {
+      return [] as unknown[];
+    }
+
+    return parsedValue;
+  } catch {
+    return [] as unknown[];
+  }
+}
+
+function getFishRecords(formData: FormData) {
+  const rawRecords = parseJsonArray(formData, "fishRecords");
+
+  return rawRecords
+    .map((record) => {
+      if (!record || typeof record !== "object") {
+        return null;
+      }
+
+      const fishName =
+        "fishName" in record && typeof record.fishName === "string"
+          ? record.fishName.trim()
+          : "";
+
+      const weightValue =
+        "weightKg" in record
+          ? typeof record.weightKg === "number"
+            ? record.weightKg
+            : typeof record.weightKg === "string"
+              ? getNumberValue(record.weightKg)
+              : Number.NaN
+          : Number.NaN;
+
+      if (!fishName || !FISH_RECORD_OPTIONS.has(fishName)) {
+        return null;
+      }
+
+      if (Number.isNaN(weightValue) || weightValue <= 0) {
+        return null;
+      }
+
+      return {
+        fishName,
+        weightKg: weightValue,
+      } satisfies FishRecordInput;
+    })
+    .filter((record): record is FishRecordInput => record !== null)
+    .slice(0, MAX_FISH_RECORDS);
+}
+
+function getGearRequirements(formData: FormData) {
+  const rawRequirements = parseJsonArray(formData, "gearRequirements");
+
+  return rawRequirements
+    .map((requirement) => {
+      if (typeof requirement === "string") {
+        return requirement.trim();
+      }
+
+      if (
+        requirement &&
+        typeof requirement === "object" &&
+        "text" in requirement &&
+        typeof requirement.text === "string"
+      ) {
+        return requirement.text.trim();
+      }
+
+      return "";
+    })
+    .filter(Boolean)
+    .slice(0, MAX_GEAR_REQUIREMENTS);
 }
 
 async function removeUploadedImages(
@@ -127,6 +244,14 @@ export async function POST(request: Request) {
   const city = getFormValue(formData, "city");
   const postalCode = getFormValue(formData, "postalCode");
   const voivodeship = getFormValue(formData, "voivodeship");
+
+  const isOpenAllDay = getFormBoolean(formData, "isOpenAllDay");
+  const openingHours = isOpenAllDay
+    ? null
+    : getFormValue(formData, "openingHours") || null;
+
+  const fishRecords = getFishRecords(formData);
+  const gearRequirements = getGearRequirements(formData);
 
   if (!name || !description) {
     return NextResponse.json(
@@ -217,6 +342,8 @@ export async function POST(request: Request) {
         priceListUrl: getFormValue(formData, "priceListUrl") || null,
         rulesText: getFormValue(formData, "rulesText") || null,
         rulesUrl: getFormValue(formData, "rulesUrl") || null,
+        isOpenAllDay,
+        openingHours,
         cottages: getFormBoolean(formData, "cottages"),
         campfire: getFormBoolean(formData, "campfire"),
         noKill: getFormBoolean(formData, "noKill"),
@@ -236,6 +363,23 @@ export async function POST(request: Request) {
         contactPhone: getFormValue(formData, "contactPhone") || null,
         contactEmail: getFormValue(formData, "contactEmail") || null,
         contactWebsite: getFormValue(formData, "contactWebsite") || null,
+        fishRecords:
+          fishRecords.length > 0
+            ? {
+                create: fishRecords.map((record) => ({
+                  fishName: record.fishName,
+                  weightKg: record.weightKg,
+                })),
+              }
+            : undefined,
+        gearRequirements:
+          gearRequirements.length > 0
+            ? {
+                create: gearRequirements.map((requirement) => ({
+                  text: requirement,
+                })),
+              }
+            : undefined,
       },
     });
 
@@ -287,6 +431,8 @@ export async function POST(request: Request) {
       },
       include: {
         images: true,
+        fishRecords: true,
+        gearRequirements: true,
       },
     });
 

@@ -54,6 +54,11 @@ export function PublicLakeDetailsPage({
     .map((item) => cleanListItemText(item))
     .filter(Boolean);
 
+  const hasFishRecords = lake.fishRecords.length > 0;
+  const hasGearRequirements = lake.gearRequirements.length > 0;
+  const hasOpeningHours =
+    lake.openingHours.isOpenAllDay || Boolean(lake.openingHours.text?.trim());
+
   return (
     <>
       <div className="mx-auto w-full max-w-[1500px] overflow-hidden px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
@@ -238,6 +243,54 @@ export function PublicLakeDetailsPage({
               )}
             </Section>
 
+            {hasFishRecords && (
+              <Section title="Rekordowe ryby na łowisku">
+                <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {lake.fishRecords.map((record) => (
+                    <div
+                      key={record.id}
+                      className="flex min-w-0 items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4"
+                    >
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-2xl shadow-sm">
+                        🏆
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="break-words font-black text-slate-950">
+                          {record.fishName}
+                        </p>
+
+                        <p className="text-sm font-bold text-blue-700">
+                          {formatWeight(record.weightKg)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {hasGearRequirements && (
+              <Section title="Wymagania sprzętowe">
+                <div className="space-y-3">
+                  {lake.gearRequirements.map((requirement, index) => (
+                    <div
+                      key={`${requirement}-${index}`}
+                      className="flex min-w-0 gap-3 rounded-2xl border border-amber-100 bg-amber-50 p-4"
+                    >
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-lg shadow-sm">
+                        ✓
+                      </div>
+
+                      <p className="min-w-0 break-words text-sm font-bold leading-6 text-slate-800">
+                        {requirement}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+            )}
+
             <Section title="Udogodnienia">
               <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
                 {amenitiesLabels.map((amenity) => {
@@ -320,6 +373,18 @@ export function PublicLakeDetailsPage({
                 <InfoRow label="Typ wody" value={lake.details.waterType} />
               </div>
             </Section>
+
+            {hasOpeningHours && (
+              <Section title="Godziny otwarcia">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="break-words text-sm font-bold leading-6 text-slate-950">
+                    {lake.openingHours.isOpenAllDay
+                      ? "Otwarte całodobowo"
+                      : lake.openingHours.text}
+                  </p>
+                </div>
+              </Section>
+            )}
 
             <Section title="Adres">
               <div className="rounded-2xl bg-slate-50 p-4">
@@ -600,6 +665,13 @@ function InfoRow({ label, value }: { label: string; value: string }) {
       </p>
     </div>
   );
+}
+
+function formatWeight(weightKg: number) {
+  return `${Number(weightKg).toLocaleString("pl-PL", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })} kg`;
 }
 
 function getWebsiteUrl(value: string) {

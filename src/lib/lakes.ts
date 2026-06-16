@@ -32,6 +32,17 @@ export type LakeAmenitiesDto = {
   cardPayment: boolean;
 };
 
+export type LakeFishRecordDto = {
+  id: string;
+  fishName: string;
+  weightKg: number;
+};
+
+export type LakeOpeningHoursDto = {
+  isOpenAllDay: boolean;
+  text: string | null;
+};
+
 export type LakeListDto = {
   id: string;
   name: string;
@@ -72,6 +83,9 @@ export type LakeDto = LakeListDto & {
     email: string;
     website: string;
   };
+  fishRecords: LakeFishRecordDto[];
+  gearRequirements: string[];
+  openingHours: LakeOpeningHoursDto;
   catchRankings: {
     byWeight: CatchRankingItem[];
     byLength: CatchRankingItem[];
@@ -87,6 +101,12 @@ async function getLakesFromDatabase() {
       priceList: true,
       rules: true,
       images: true,
+      fishRecords: {
+        orderBy: {
+          weightKg: "desc",
+        },
+      },
+      gearRequirements: true,
     },
     orderBy: {
       createdAt: "desc",
@@ -180,6 +200,16 @@ function mapLakeToDto(
       phone: lake.contactPhone || "",
       email: lake.contactEmail || "",
       website: lake.contactWebsite || "",
+    },
+    fishRecords: lake.fishRecords.map((record) => ({
+      id: record.id,
+      fishName: record.fishName,
+      weightKg: record.weightKg,
+    })),
+    gearRequirements: lake.gearRequirements.map((requirement) => requirement.text),
+    openingHours: {
+      isOpenAllDay: lake.isOpenAllDay,
+      text: lake.openingHours,
     },
     images: lake.images.map((image) => image.url),
     catchRankings,
@@ -318,8 +348,6 @@ export async function getLakesList() {
     },
   });
 
-  
-
   return lakes.map((lake) => mapLakeToListDto(lake));
 }
 
@@ -339,6 +367,12 @@ export async function getLakeBySlug(slug: string) {
       priceList: true,
       rules: true,
       images: true,
+      fishRecords: {
+        orderBy: {
+          weightKg: "desc",
+        },
+      },
+      gearRequirements: true,
     },
   });
 
@@ -493,6 +527,12 @@ export async function getLakesDashboard(): Promise<LakeDto[]> {
       phone: "",
       email: "",
       website: "",
+    },
+    fishRecords: [],
+    gearRequirements: [],
+    openingHours: {
+      isOpenAllDay: false,
+      text: null,
     },
     images: lake.images.map((image) => image.url),
     catchRankings: {
