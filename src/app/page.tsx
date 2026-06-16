@@ -137,6 +137,36 @@ const faq = [
     answer:
       "Tak. Właściciele i użytkownicy mogą zgłaszać poprawki danych, np. dotyczące regulaminu, cennika, kontaktu, zdjęć lub udogodnień.",
   },
+  {
+    question: "Czy w Rybio znajdę łowiska w całej Polsce?",
+    answer:
+      "Tak. Rybio rozwija publiczną bazę łowisk z różnych regionów Polski. Możesz przeglądać łowiska według lokalizacji, typu łowiska, dostępnych gatunków ryb oraz udogodnień.",
+  },
+  {
+    question: "Czy Rybio pokazuje łowiska komercyjne i PZW?",
+    answer:
+      "Tak. W bazie Rybio mogą znajdować się zarówno łowiska komercyjne, jak i łowiska PZW. Dzięki filtrom możesz szybciej znaleźć miejsce dopasowane do swojego stylu łowienia.",
+  },
+  {
+    question: "Czy mogę znaleźć łowisko na mapie?",
+    answer:
+      "Tak. Rybio umożliwia przeglądanie łowisk na mapie, dzięki czemu możesz łatwiej znaleźć miejsca w swojej okolicy lub zaplanować wyjazd na ryby w innym regionie.",
+  },
+  {
+    question: "Czy w Rybio znajdę informacje o rybach na danym łowisku?",
+    answer:
+      "Tak. Przy łowiskach mogą być dostępne informacje o występujących gatunkach ryb, takich jak karp, amur, szczupak, sum, sandacz, lin, leszcz, okoń czy jesiotr.",
+  },
+  {
+    question: "Czy Rybio pomaga zaplanować wyprawę na ryby?",
+    answer:
+      "Tak. Po założeniu konta możesz planować swoje wyprawy wędkarskie, zapisywać wybrane łowiska, dodawać notatki i prowadzić historię swoich połowów.",
+  },
+  {
+    question: "Czy Rybio jest aplikacją mobilną?",
+    answer:
+      "Rybio działa jako nowoczesna strona internetowa dostosowana do telefonów, tabletów i komputerów. Możesz korzystać z niej wygodnie w przeglądarce, również podczas planowania wyprawy nad wodą.",
+  },
 ];
 
 export default function HomePage() {
