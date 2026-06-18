@@ -48,11 +48,11 @@ export function PublicLakeDetailsPage({
 
   const cleanRules = lake.rules
     .map((rule) => cleanListItemText(rule))
-    .filter(Boolean);
+    .filter((rule) => isVisibleListItem(rule, "link do regulaminu"));
 
   const cleanPriceList = lake.priceList
     .map((item) => cleanListItemText(item))
-    .filter(Boolean);
+    .filter((item) => isVisibleListItem(item, "link do cennika"));
 
   const hasFishRecords = lake.fishRecords.length > 0;
   const hasGearRequirements = lake.gearRequirements.length > 0;
@@ -332,33 +332,95 @@ export function PublicLakeDetailsPage({
               </div>
             </Section>
 
-            <Section title="Cennik">
-              {cleanPriceList.length > 0 ? (
-                <div className="rounded-2xl bg-slate-50 px-5 py-5">
-                  <p className="whitespace-pre-line break-words text-sm font-medium leading-7 text-slate-700">
-                    {cleanPriceList.join("\n")}
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
-                  Brak dodanego cennika.
-                </div>
-              )}
-            </Section>
+            <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="break-words text-xl font-black text-slate-950">
+                  Cennik
+                </h2>
 
-            <Section title="Zasady na łowisku">
-              {cleanRules.length > 0 ? (
-                <div className="rounded-2xl bg-slate-50 px-5 py-5">
-                  <p className="whitespace-pre-line break-words text-sm font-medium leading-7 text-slate-700">
-                    {cleanRules.join("\n")}
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
-                  Brak dodanych zasad łowiska.
-                </div>
-              )}
-            </Section>
+                {lake.priceListUrl && (
+                  <a
+                    href={lake.priceListUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-50 px-4 py-2 text-sm font-black text-blue-600 transition hover:bg-blue-100 sm:w-auto"
+                  >
+                    Otwórz cennik
+                  </a>
+                )}
+              </div>
+
+              <div className="mt-5 min-w-0">
+                {cleanPriceList.length > 0 ? (
+                  <div className="rounded-2xl bg-slate-50 px-5 py-5">
+                    <p className="whitespace-pre-line break-words text-sm font-medium leading-7 text-slate-700">
+                      {cleanPriceList.join("\n")}
+                    </p>
+                  </div>
+                ) : lake.priceListUrl ? (
+                  <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+                    Link do cennika:{" "}
+                    <a
+                      href={lake.priceListUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 transition hover:text-blue-700 hover:underline"
+                    >
+                      Link
+                    </a>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+                    Brak dodanego cennika.
+                  </div>
+                )}
+              </div>
+            </section>
+
+            <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="break-words text-xl font-black text-slate-950">
+                  Zasady na łowisku
+                </h2>
+
+                {lake.rulesUrl && (
+                  <a
+                    href={lake.rulesUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-50 px-4 py-2 text-sm font-black text-blue-600 transition hover:bg-blue-100 sm:w-auto"
+                  >
+                    Otwórz regulamin
+                  </a>
+                )}
+              </div>
+
+              <div className="mt-5 min-w-0">
+                {cleanRules.length > 0 ? (
+                  <div className="rounded-2xl bg-slate-50 px-5 py-5">
+                    <p className="whitespace-pre-line break-words text-sm font-medium leading-7 text-slate-700">
+                      {cleanRules.join("\n")}
+                    </p>
+                  </div>
+                ) : lake.rulesUrl ? (
+                  <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+                    Link do regulaminu:{" "}
+                    <a
+                      href={lake.rulesUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 transition hover:text-blue-700 hover:underline"
+                    >
+                      Link
+                    </a>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
+                    Brak dodanych zasad łowiska.
+                  </div>
+                )}
+              </div>
+            </section>
           </div>
 
           <aside className="min-w-0 space-y-6">
@@ -791,4 +853,15 @@ function cleanListItemText(value: string) {
     .replace(/^[a-zA-Z][.)]\s*/g, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function isVisibleListItem(value: string, blockedLabel: string) {
+  const normalizedValue = value.toLowerCase().trim();
+
+  return (
+    normalizedValue.length > 0 &&
+    !normalizedValue.startsWith(blockedLabel) &&
+    !normalizedValue.includes("http://") &&
+    !normalizedValue.includes("https://")
+  );
 }
