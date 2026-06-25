@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 const siteUrl = "https://rybio.pl";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const now = new Date();
+
   const lakes = await prisma.lake.findMany({
     select: {
       slug: true,
@@ -17,91 +19,109 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: `${siteUrl}`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 1,
     },
     {
       url: `${siteUrl}/lowiska-w-polsce`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "daily",
       priority: 0.95,
     },
+
+    // Województwa
     {
       url: `${siteUrl}/lowiska-mazowieckie`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-lubelskie`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-malopolskie`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-wielkopolskie`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-podkarpackie`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-slaskie`,
-      lastModified: new Date(),
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    {
+      url: `${siteUrl}/lowiska-zachodniopomorskie`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+
+    // Typy i kategorie łowisk
+    {
+      url: `${siteUrl}/lowiska-komercyjne`,
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-no-kill`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${siteUrl}/lowiska-z-domkami`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${siteUrl}/lowiska-z-noclegiem`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${siteUrl}/lowiska-karpiowe`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.75,
     },
+
+    // Pozostałe strony
     {
       url: `${siteUrl}/kontakt`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${siteUrl}/regulamin`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.3,
     },
     {
       url: `${siteUrl}/polityka-prywatnosci`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.3,
     },

@@ -83,6 +83,8 @@ const seoLinks = [
   { label: "Łowiska lubelskie", href: "/lowiska-lubelskie" },
   { label: "Łowiska wielkopolskie", href: "/lowiska-wielkopolskie" },
   { label: "Łowiska podkarpackie", href: "/lowiska-podkarpackie" },
+  { label: "Łowiska zachodniopomorskie", href: "/lowiska-zachodniopomorskie" },
+  { label: "Łowiska komercyjne", href: "/lowiska-komercyjne" },
   { label: "Łowiska z domkami", href: "/lowiska-z-domkami" },
   { label: "Łowiska z noclegiem", href: "/lowiska-z-noclegiem" },
   { label: "Łowiska karpiowe", href: "/lowiska-karpiowe" },
@@ -197,7 +199,7 @@ export default function HomePage() {
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link
-                href="/lowiska"
+                href="/lowiska-w-polsce"
                 className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black text-white shadow-sm transition hover:bg-blue-700"
               >
                 Przeglądaj łowiska
@@ -530,7 +532,7 @@ export default function HomePage() {
               </Link>
 
               <Link
-                href="/lowiska"
+                href="/lowiska-w-polsce"
                 className="inline-flex items-center justify-center rounded-2xl bg-blue-700 px-6 py-4 text-sm font-black text-white transition hover:bg-blue-800"
               >
                 Zobacz łowiska

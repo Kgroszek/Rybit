@@ -15,7 +15,24 @@ type PublicLakesPageProps = {
 };
 
 type ViewMode = "grid" | "list";
-type SortOption = "rating-desc" | "name-asc" | "name-desc";
+
+type SortOption =
+  | "rating-desc"
+  | "distance-asc"
+  | "name-asc"
+  | "name-desc";
+
+type AuthModalType = "rating" | "favourite";
+
+type UserLocation = {
+  lat: number;
+  lng: number;
+};
+
+type LakeWithDistance = LakeDto & {
+  displayDistance: string;
+  distanceInKm: number | null;
+};
 
 const ITEMS_PER_PAGE = 15;
 
@@ -69,9 +86,13 @@ export function PublicLakesPage({
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [currentPage, setCurrentPage] = useState(1);
-  const [authModalType, setAuthModalType] = useState<
-    "rating" | "favourite" | null
-  >(null);
+  const [authModalType, setAuthModalType] = useState<AuthModalType | null>(
+    null
+  );
+
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [isLocationLoading, setIsLocationLoading] = useState(false);
+  const [locationError, setLocationError] = useState("");
 
   const voivodeships = useMemo(() => {
     return Array.from(
@@ -83,10 +104,45 @@ export function PublicLakesPage({
     return normalizeFishList(lakes.flatMap((lake) => lake.fishSpecies));
   }, [lakes]);
 
+  const lakesWithDistance = useMemo<LakeWithDistance[]>(() => {
+    return lakes.map((lake) => {
+      if (!userLocation) {
+        return {
+          ...lake,
+          displayDistance: "Udostępnij lokalizację",
+          distanceInKm: null,
+        };
+      }
+
+      const lakeCoordinates = getLakeCoordinates(lake);
+
+      if (!lakeCoordinates) {
+        return {
+          ...lake,
+          displayDistance: "Brak współrzędnych",
+          distanceInKm: null,
+        };
+      }
+
+      const distanceInKm = calculateDistanceInKm(
+        userLocation.lat,
+        userLocation.lng,
+        lakeCoordinates.lat,
+        lakeCoordinates.lng
+      );
+
+      return {
+        ...lake,
+        displayDistance: formatDistance(distanceInKm),
+        distanceInKm,
+      };
+    });
+  }, [lakes, userLocation]);
+
   const filteredLakes = useMemo(() => {
     const searchValue = search.toLowerCase().trim();
 
-    const result = lakes.filter((lake) => {
+    const result = lakesWithDistance.filter((lake) => {
       const searchableText = [
         lake.name,
         lake.description,
@@ -133,6 +189,18 @@ export function PublicLakesPage({
     });
 
     return result.sort((firstLake, secondLake) => {
+      if (sort === "distance-asc") {
+        const firstDistance = firstLake.distanceInKm ?? Number.POSITIVE_INFINITY;
+        const secondDistance =
+          secondLake.distanceInKm ?? Number.POSITIVE_INFINITY;
+
+        if (firstDistance !== secondDistance) {
+          return firstDistance - secondDistance;
+        }
+
+        return firstLake.name.localeCompare(secondLake.name, "pl");
+      }
+
       if (sort === "name-asc") {
         return firstLake.name.localeCompare(secondLake.name, "pl");
       }
@@ -144,7 +212,7 @@ export function PublicLakesPage({
       return Number(secondLake.rating) - Number(firstLake.rating);
     });
   }, [
-    lakes,
+    lakesWithDistance,
     search,
     ownerType,
     fishingType,
@@ -164,6 +232,7 @@ export function PublicLakesPage({
     fish,
     selectedAmenities,
     sort,
+    userLocation,
   ]);
 
   const totalPages = Math.max(
@@ -177,6 +246,47 @@ export function PublicLakesPage({
 
     return filteredLakes.slice(startIndex, endIndex);
   }, [filteredLakes, currentPage]);
+
+  function handleGetUserLocation() {
+    setLocationError("");
+
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setLocationError("Twoja przeglądarka nie obsługuje lokalizacji.");
+      return;
+    }
+
+    setIsLocationLoading(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+
+        setSort("distance-asc");
+        setIsLocationLoading(false);
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError(
+            "Nie udzielono zgody na lokalizację. Możesz ją włączyć w ustawieniach przeglądarki."
+          );
+        } else {
+          setLocationError(
+            "Nie udało się pobrać lokalizacji. Spróbuj ponownie za chwilę."
+          );
+        }
+
+        setIsLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
+  }
 
   function toggleAmenity(key: string) {
     setSelectedAmenities((current) =>
@@ -232,6 +342,46 @@ export function PublicLakesPage({
           </Link>
         </div>
 
+        <div className="mb-6 rounded-3xl border border-blue-100 bg-blue-50 p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-black text-blue-950">
+                Chcesz zobaczyć odległość od siebie?
+              </p>
+
+              <p className="mt-1 text-sm leading-6 text-blue-800">
+                Udostępnij lokalizację, a Rybio pokaże orientacyjną odległość do
+                łowisk i posortuje je od najbliższych.
+              </p>
+
+              {userLocation && (
+                <p className="mt-2 text-xs font-bold text-blue-700">
+                  Lokalizacja została pobrana. Odległości są orientacyjne.
+                </p>
+              )}
+
+              {locationError && (
+                <p className="mt-2 text-xs font-bold text-red-600">
+                  {locationError}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGetUserLocation}
+              disabled={isLocationLoading}
+              className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isLocationLoading
+                ? "Pobieranie lokalizacji..."
+                : userLocation
+                  ? "Odśwież lokalizację"
+                  : "Pokaż najbliższe łowiska"}
+            </button>
+          </div>
+        </div>
+
         <div className="mb-8 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="grid gap-4 xl:grid-cols-[1fr_220px]">
             <div>
@@ -258,6 +408,7 @@ export function PublicLakesPage({
                 className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-bold outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
               >
                 <option value="rating-desc">Najwyższa ocena</option>
+                <option value="distance-asc">Najbliżej mnie</option>
                 <option value="name-asc">Nazwa A-Z</option>
                 <option value="name-desc">Nazwa Z-A</option>
               </select>
@@ -616,10 +767,11 @@ function LakeCard({
   lake,
   onRequireAuth,
 }: {
-  lake: LakeDto;
-  onRequireAuth: (type: "rating" | "favourite") => void;
+  lake: LakeWithDistance;
+  onRequireAuth: (type: AuthModalType) => void;
 }) {
   const imageUrl = lake.images?.[0];
+  const hasRating = Number(lake.rating || 0) > 0;
 
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
@@ -667,7 +819,7 @@ function LakeCard({
             onClick={() => onRequireAuth("rating")}
             className="shrink-0 rounded-2xl bg-blue-50 px-3 py-2 text-sm font-black text-blue-700"
           >
-            ★ {Number(lake.rating || 0).toFixed(1)}
+            {hasRating ? `★ ${Number(lake.rating).toFixed(1)}` : "Brak ocen"}
           </button>
         </div>
 
@@ -690,7 +842,7 @@ function LakeCard({
 
         <div className="mt-6 flex items-center justify-between gap-3">
           <p className="text-sm font-black text-slate-500">
-            {lake.distance || "0 km"}
+            {lake.displayDistance}
           </p>
 
           <div className="flex items-center gap-2">
@@ -720,10 +872,11 @@ function LakeListItem({
   lake,
   onRequireAuth,
 }: {
-  lake: LakeDto;
-  onRequireAuth: (type: "rating" | "favourite") => void;
+  lake: LakeWithDistance;
+  onRequireAuth: (type: AuthModalType) => void;
 }) {
   const imageUrl = lake.images?.[0];
+  const hasRating = Number(lake.rating || 0) > 0;
 
   return (
     <article className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[220px_1fr_auto]">
@@ -755,6 +908,10 @@ function LakeListItem({
           {lake.address.city}, woj. {lake.address.voivodeship}
         </p>
 
+        <p className="mt-3 text-sm font-black text-slate-500">
+          {lake.displayDistance}
+        </p>
+
         <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-500">
           {lake.description}
         </p>
@@ -772,7 +929,7 @@ function LakeListItem({
           onClick={() => onRequireAuth("rating")}
           className="rounded-2xl bg-blue-50 px-4 py-3 text-sm font-black text-blue-700"
         >
-          ★ {Number(lake.rating || 0).toFixed(1)}
+          {hasRating ? `★ ${Number(lake.rating).toFixed(1)}` : "Brak ocen"}
         </button>
 
         <div className="flex gap-2 md:flex-col">
@@ -808,7 +965,7 @@ function AuthRequiredModal({
   type,
   onClose,
 }: {
-  type: "rating" | "favourite";
+  type: AuthModalType;
   onClose: () => void;
 }) {
   const title =
@@ -869,6 +1026,73 @@ function AuthRequiredModal({
       </div>
     </div>
   );
+}
+
+function getLakeCoordinates(lake: LakeDto) {
+  const lakeWithCoordinates = lake as LakeDto & {
+    lat?: number | string | null;
+    lng?: number | string | null;
+    latitude?: number | string | null;
+    longitude?: number | string | null;
+  };
+
+  const lat = Number(lakeWithCoordinates.lat ?? lakeWithCoordinates.latitude);
+  const lng = Number(lakeWithCoordinates.lng ?? lakeWithCoordinates.longitude);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return null;
+  }
+
+  if (lat === 0 && lng === 0) {
+    return null;
+  }
+
+  return {
+    lat,
+    lng,
+  };
+}
+
+function calculateDistanceInKm(
+  firstLat: number,
+  firstLng: number,
+  secondLat: number,
+  secondLng: number
+) {
+  const earthRadiusKm = 6371;
+
+  const latDifference = degreesToRadians(secondLat - firstLat);
+  const lngDifference = degreesToRadians(secondLng - firstLng);
+
+  const firstLatRadians = degreesToRadians(firstLat);
+  const secondLatRadians = degreesToRadians(secondLat);
+
+  const a =
+    Math.sin(latDifference / 2) * Math.sin(latDifference / 2) +
+    Math.cos(firstLatRadians) *
+      Math.cos(secondLatRadians) *
+      Math.sin(lngDifference / 2) *
+      Math.sin(lngDifference / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return earthRadiusKm * c;
+}
+
+function degreesToRadians(value: number) {
+  return (value * Math.PI) / 180;
+}
+
+function formatDistance(distanceInKm: number) {
+  if (distanceInKm < 1) {
+    return `${Math.round(distanceInKm * 1000)} m`;
+  }
+
+  if (distanceInKm < 10) {
+    return `${distanceInKm.toFixed(1)} km`;
+  }
+
+  return `${Math.round(distanceInKm)} km`;
 }
 
 function getFishingTypeLabel(value: string) {
