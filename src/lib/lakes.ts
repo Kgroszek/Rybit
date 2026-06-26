@@ -100,7 +100,16 @@ async function getLakesFromDatabase() {
       fishSpecies: true,
       priceList: true,
       rules: true,
-      images: true,
+      images: {
+        orderBy: [
+          {
+            sortOrder: "asc",
+          },
+          {
+            createdAt: "asc",
+          },
+        ],
+      },
       fishRecords: {
         orderBy: {
           weightKg: "desc",
@@ -338,9 +347,14 @@ export async function getLakesList() {
           url: true,
         },
         take: 1,
-        orderBy: {
-          createdAt: "asc",
-        },
+        orderBy: [
+          {
+            sortOrder: "asc",
+          },
+          {
+            createdAt: "asc",
+          },
+        ],
       },
     },
     orderBy: {
@@ -366,7 +380,16 @@ export async function getLakeBySlug(slug: string) {
       fishSpecies: true,
       priceList: true,
       rules: true,
-      images: true,
+      images: {
+        orderBy: [
+          {
+            sortOrder: "asc",
+          },
+          {
+            createdAt: "asc",
+          },
+        ],
+      },
       fishRecords: {
         orderBy: {
           weightKg: "desc",
@@ -469,6 +492,14 @@ export async function getLakesDashboard(): Promise<LakeDto[]> {
           url: true,
         },
         take: 1,
+        orderBy: [
+          {
+            sortOrder: "asc",
+          },
+          {
+            createdAt: "asc",
+          },
+        ],
       },
     },
     orderBy: {

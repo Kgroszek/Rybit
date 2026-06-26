@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { DashboardTopbar } from "./DashboardTopbar";
 import { MobileBottomNav } from "./MobileBottomNav";
@@ -11,13 +12,21 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
 type DashboardLayoutProps = {
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 type AdminNotificationCounts = {
   pendingSubmissionsCount: number;
   pendingCorrectionsCount: number;
   pendingCatchReportsCount: number;
+  pendingOwnerClaimsCount: number;
+};
+
+const emptyAdminNotificationCounts: AdminNotificationCounts = {
+  pendingSubmissionsCount: 0,
+  pendingCorrectionsCount: 0,
+  pendingCatchReportsCount: 0,
+  pendingOwnerClaimsCount: 0,
 };
 
 const getAdminNotificationCounts = unstable_cache(
@@ -26,6 +35,7 @@ const getAdminNotificationCounts = unstable_cache(
       pendingSubmissionsCount,
       pendingCorrectionsCount,
       pendingCatchReportsCount,
+      pendingOwnerClaimsCount,
     ] = await Promise.all([
       prisma.lakeSubmission.count({
         where: {
@@ -44,12 +54,19 @@ const getAdminNotificationCounts = unstable_cache(
           status: "pending",
         },
       }),
+
+      prisma.lakeOwnerClaim.count({
+        where: {
+          status: "pending",
+        },
+      }),
     ]);
 
     return {
       pendingSubmissionsCount,
       pendingCorrectionsCount,
       pendingCatchReportsCount,
+      pendingOwnerClaimsCount,
     };
   },
   ["dashboard-admin-notification-counts"],
@@ -94,26 +111,36 @@ export async function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const isAdmin = isAdminUser(user);
 
+  const [adminNotificationCounts, ownedLakesCount] = await Promise.all([
+    isAdmin ? getAdminNotificationCounts() : emptyAdminNotificationCounts,
+
+    prisma.lakeOwner.count({
+      where: {
+        userId: user.id,
+        isActive: true,
+      },
+    }),
+  ]);
+
+  const isOwner = ownedLakesCount > 0;
+
   const {
     pendingSubmissionsCount,
     pendingCorrectionsCount,
     pendingCatchReportsCount,
-  } = isAdmin
-    ? await getAdminNotificationCounts()
-    : {
-        pendingSubmissionsCount: 0,
-        pendingCorrectionsCount: 0,
-        pendingCatchReportsCount: 0,
-      };
+    pendingOwnerClaimsCount,
+  } = adminNotificationCounts;
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
       <div className="flex min-h-screen">
         <Sidebar
           isAdmin={isAdmin}
+          isOwner={isOwner}
           pendingSubmissionsCount={pendingSubmissionsCount}
           pendingCorrectionsCount={pendingCorrectionsCount}
           pendingCatchReportsCount={pendingCatchReportsCount}
+          pendingOwnerClaimsCount={pendingOwnerClaimsCount}
         />
 
         <section className="min-w-0 flex-1 px-4 pb-32 pt-4 sm:px-5 lg:p-8">
@@ -160,9 +187,11 @@ export async function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <MobileBottomNav
         isAdmin={isAdmin}
+        isOwner={isOwner}
         pendingSubmissionsCount={pendingSubmissionsCount}
         pendingCorrectionsCount={pendingCorrectionsCount}
         pendingCatchReportsCount={pendingCatchReportsCount}
+        pendingOwnerClaimsCount={pendingOwnerClaimsCount}
       />
     </main>
   );

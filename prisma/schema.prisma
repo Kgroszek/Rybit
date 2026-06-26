@@ -73,6 +73,9 @@ model Lake {
   correctionReports LakeCorrectionReport[]
   catches           FishingCatch[]
 
+  owners      LakeOwner[]
+  ownerClaims LakeOwnerClaim[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -109,6 +112,67 @@ model LakeCorrectionReport {
   @@index([status])
   @@index([createdAt])
   @@index([status, createdAt])
+}
+
+model LakeOwner {
+  id String @id @default(cuid())
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  userId    String
+  userEmail String?
+
+  role String @default("owner")
+
+  canEditLake           Boolean @default(true)
+  canManageReservations Boolean @default(true)
+  canManageSpots        Boolean @default(true)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([lakeId, userId])
+  @@index([lakeId])
+  @@index([userId])
+  @@index([isActive])
+  @@index([lakeId, isActive])
+  @@index([userId, isActive])
+}
+
+model LakeOwnerClaim {
+  id String @id @default(cuid())
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  userId    String
+  userEmail String?
+
+  claimantName  String?
+  claimantPhone String?
+  claimantRole  String?
+
+  message String?
+
+  status String @default("pending")
+
+  adminNote        String?
+  reviewedAt       DateTime?
+  reviewedByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([lakeId, status])
+  @@index([userId, status])
 }
 
 model PriceItem {
@@ -167,15 +231,21 @@ model LakeGearRequirement {
 }
 
 model LakeImage {
-  id        String  @id @default(cuid())
+  id        String @id @default(cuid())
   url       String
   imagePath String?
-  lakeId    String
-  lake      Lake    @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  sortOrder Int @default(0)
 
   createdAt DateTime @default(now())
 
   @@index([lakeId])
+  @@index([imagePath])
+  @@index([sortOrder])
+  @@index([lakeId, sortOrder])
   @@index([createdAt])
 }
 

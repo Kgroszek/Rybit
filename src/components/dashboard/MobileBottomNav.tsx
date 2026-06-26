@@ -3,27 +3,32 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type MobileBottomNavProps = {
   isAdmin?: boolean;
+  isOwner?: boolean;
   pendingSubmissionsCount?: number;
   pendingCorrectionsCount?: number;
   pendingCatchReportsCount?: number;
+  pendingOwnerClaimsCount?: number;
 };
 
 type MenuItem = {
   label: string;
   href: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   badge?: number;
 };
 
 export function MobileBottomNav({
   isAdmin = false,
+  isOwner = false,
   pendingSubmissionsCount = 0,
   pendingCorrectionsCount = 0,
   pendingCatchReportsCount = 0,
+  pendingOwnerClaimsCount = 0,
 }: MobileBottomNavProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -33,37 +38,43 @@ export function MobileBottomNav({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
-useEffect(() => {
-  function isFormField(element: Element | null) {
-    return (
-      element instanceof HTMLInputElement ||
-      element instanceof HTMLTextAreaElement ||
-      element instanceof HTMLSelectElement
-    );
-  }
+  const totalAdminPendingCount =
+    pendingSubmissionsCount +
+    pendingCorrectionsCount +
+    pendingCatchReportsCount +
+    pendingOwnerClaimsCount;
 
-  function handleFocusIn(event: FocusEvent) {
-    if (isFormField(event.target as Element)) {
-      setIsKeyboardOpen(true);
+  useEffect(() => {
+    function isFormField(element: Element | null) {
+      return (
+        element instanceof HTMLInputElement ||
+        element instanceof HTMLTextAreaElement ||
+        element instanceof HTMLSelectElement
+      );
     }
-  }
 
-  function handleFocusOut() {
-    window.setTimeout(() => {
-      if (!isFormField(document.activeElement)) {
-        setIsKeyboardOpen(false);
+    function handleFocusIn(event: FocusEvent) {
+      if (isFormField(event.target as Element)) {
+        setIsKeyboardOpen(true);
       }
-    }, 120);
-  }
+    }
 
-  window.addEventListener("focusin", handleFocusIn);
-  window.addEventListener("focusout", handleFocusOut);
+    function handleFocusOut() {
+      window.setTimeout(() => {
+        if (!isFormField(document.activeElement)) {
+          setIsKeyboardOpen(false);
+        }
+      }, 120);
+    }
 
-  return () => {
-    window.removeEventListener("focusin", handleFocusIn);
-    window.removeEventListener("focusout", handleFocusOut);
-  };
-}, []);
+    window.addEventListener("focusin", handleFocusIn);
+    window.addEventListener("focusout", handleFocusOut);
+
+    return () => {
+      window.removeEventListener("focusin", handleFocusIn);
+      window.removeEventListener("focusout", handleFocusOut);
+    };
+  }, []);
 
   const mainItems: MenuItem[] = [
     {
@@ -103,6 +114,14 @@ useEffect(() => {
     },
   ];
 
+  const ownerItems: MenuItem[] = [
+    {
+      label: "Moje łowiska",
+      href: "/moje-lowiska",
+      icon: <MapIcon />,
+    },
+  ];
+
   const accountItems: MenuItem[] = [
     {
       label: "Profil",
@@ -127,6 +146,12 @@ useEffect(() => {
       href: "/admin/zgloszenia-lowisk",
       icon: <NotificationIcon />,
       badge: pendingSubmissionsCount,
+    },
+    {
+      label: "Zgłoszenia właścicieli",
+      href: "/admin/zgloszenia-wlascicieli",
+      icon: <UsersIcon />,
+      badge: pendingOwnerClaimsCount,
     },
     {
       label: "Zgłoszone poprawki",
@@ -224,6 +249,19 @@ useEffect(() => {
                 ))}
               </MobileMenuGroup>
 
+              {isOwner && (
+                <MobileMenuGroup title="Właściciel">
+                  {ownerItems.map((item) => (
+                    <MobileMenuLink
+                      key={item.href}
+                      item={item}
+                      pathname={pathname}
+                      onClick={closeMenu}
+                    />
+                  ))}
+                </MobileMenuGroup>
+              )}
+
               <MobileMenuGroup title="Moje konto">
                 {accountItems.map((item) => (
                   <MobileMenuLink
@@ -267,13 +305,13 @@ useEffect(() => {
         </div>
       )}
 
-    <nav
+      <nav
         className={`fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white px-3 pt-2 shadow-lg transition-all duration-200 lg:hidden ${
-              isKeyboardOpen
-                ? "pointer-events-none translate-y-full opacity-0"
-                : "translate-y-0 opacity-100"
-            } pb-[max(0.75rem,env(safe-area-inset-bottom))]`}
-          >
+          isKeyboardOpen
+            ? "pointer-events-none translate-y-full opacity-0"
+            : "translate-y-0 opacity-100"
+        } pb-[max(0.75rem,env(safe-area-inset-bottom))]`}
+      >
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
           {bottomItems.map((item) => (
             <BottomNavLink key={item.href} item={item} pathname={pathname} />
@@ -288,17 +326,11 @@ useEffect(() => {
 
             <span>Menu</span>
 
-            {isAdmin &&
-              pendingSubmissionsCount +
-                pendingCorrectionsCount +
-                pendingCatchReportsCount >
-                0 && (
-                <span className="absolute right-2 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
-                  {pendingSubmissionsCount +
-                    pendingCorrectionsCount +
-                    pendingCatchReportsCount}
-                </span>
-              )}
+            {isAdmin && totalAdminPendingCount > 0 && (
+              <span className="absolute right-2 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
+                {totalAdminPendingCount}
+              </span>
+            )}
           </button>
         </div>
       </nav>
@@ -336,7 +368,7 @@ function MobileMenuGroup({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section>
@@ -386,7 +418,7 @@ function MobileMenuLink({
   );
 }
 
-function IconBase({ children }: { children: React.ReactNode }) {
+function IconBase({ children }: { children: ReactNode }) {
   return (
     <svg
       className="h-5 w-5"
@@ -486,7 +518,6 @@ function UserIcon() {
     </IconBase>
   );
 }
-
 
 function SettingsIcon() {
   return (

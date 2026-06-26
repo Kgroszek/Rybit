@@ -2,20 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
 type MenuItem = {
   label: string;
   href: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   badge?: number;
 };
 
 type SidebarProps = {
   isAdmin?: boolean;
+  isOwner?: boolean;
   pendingSubmissionsCount?: number;
   pendingCorrectionsCount?: number;
   pendingCatchReportsCount?: number;
+  pendingOwnerClaimsCount?: number;
 };
 
 const mainMenuItems: MenuItem[] = [
@@ -71,10 +74,20 @@ const accountMenuItems: MenuItem[] = [
 
 export function Sidebar({
   isAdmin = false,
+  isOwner = false,
   pendingSubmissionsCount = 0,
   pendingCorrectionsCount = 0,
   pendingCatchReportsCount = 0,
+  pendingOwnerClaimsCount = 0,
 }: SidebarProps) {
+  const ownerMenuItems: MenuItem[] = [
+    {
+      label: "Moje łowiska",
+      href: "/moje-lowiska",
+      icon: <MapIcon />,
+    },
+  ];
+
   const adminMenuItems: MenuItem[] = [
     {
       label: "Panel admina",
@@ -86,6 +99,12 @@ export function Sidebar({
       href: "/admin/zgloszenia-lowisk",
       icon: <NotificationIcon />,
       badge: pendingSubmissionsCount,
+    },
+    {
+      label: "Zgłoszenia właścicieli",
+      href: "/admin/zgloszenia-wlascicieli",
+      icon: <UsersIcon />,
+      badge: pendingOwnerClaimsCount,
     },
     {
       label: "Zgłoszone poprawki",
@@ -123,6 +142,20 @@ export function Sidebar({
           <SidebarButton key={item.href} item={item} />
         ))}
       </nav>
+
+      {isOwner && (
+        <div className="mt-8 border-t border-slate-200 pt-6">
+          <p className="mb-3 px-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+            Właściciel
+          </p>
+
+          <nav className="space-y-1">
+            {ownerMenuItems.map((item) => (
+              <SidebarButton key={item.href} item={item} />
+            ))}
+          </nav>
+        </div>
+      )}
 
       <div className="mt-8 border-t border-slate-200 pt-6">
         <p className="mb-3 px-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
@@ -192,7 +225,7 @@ function SidebarButton({ item }: { item: MenuItem }) {
   );
 }
 
-function IconBase({ children }: { children: React.ReactNode }) {
+function IconBase({ children }: { children: ReactNode }) {
   return (
     <svg
       className="h-5 w-5"
@@ -314,8 +347,6 @@ function UsersIcon() {
     </IconBase>
   );
 }
-
-
 
 function SettingsIcon() {
   return (

@@ -419,6 +419,34 @@ export function PublicLakeDetailsPage({
                 <InfoRow label="Strona" value={lake.contact.website} />
               </div>
             </Section>
+
+            <section className="min-w-0 overflow-hidden rounded-3xl border border-blue-100 bg-blue-50 p-4 shadow-sm sm:p-6">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
+                Dla właściciela
+              </p>
+
+              <h2 className="mt-2 break-words text-xl font-black text-blue-950">
+                Jesteś właścicielem tego łowiska?
+              </h2>
+
+              <p className="mt-3 break-words text-sm leading-6 text-blue-800">
+                Przejmij profil łowiska w Rybio i zyskaj możliwość edycji
+                opisu, zdjęć, kontaktu, cennika, regulaminu oraz informacji
+                przydatnych dla wędkarzy.
+              </p>
+
+              <Link
+                href={`/lowiska-w-polsce/${lake.slug}/przejmij`}
+                className="mt-5 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
+              >
+                Przejmij profil łowiska
+              </Link>
+
+              <p className="mt-3 text-xs leading-5 text-blue-700">
+                Zgłoszenie zostanie sprawdzone przez administrację Rybio przed
+                nadaniem dostępu.
+              </p>
+            </section>
           </aside>
         </div>
 
@@ -611,11 +639,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
   const normalizedLabel = label.toLowerCase();
 
-  let content: ReactNode = isEmpty ? (
-    "Brak danych"
-  ) : (
-    cleanValue
-  );
+  let content: ReactNode = isEmpty ? "Brak danych" : cleanValue;
 
   if (!isEmpty && normalizedLabel === "strona") {
     const websiteUrl = getWebsiteUrl(cleanValue);
