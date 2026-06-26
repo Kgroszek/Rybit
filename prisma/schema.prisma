@@ -76,6 +76,10 @@ model Lake {
   owners      LakeOwner[]
   ownerClaims LakeOwnerClaim[]
 
+  spots           LakeSpot[]
+  reservations    LakeReservation[]
+  bookingSettings LakeBookingSettings?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -610,4 +614,139 @@ model UserAchievement {
   @@unique([userId, achievementId])
   @@index([userId])
   @@index([achievementId])
+}
+
+model LakeSpot {
+  id String @id @default(cuid())
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  name        String
+  slug        String?
+  description String?
+
+  maxPeople Int @default(2)
+
+  pricePerDay   Float?
+  pricePerNight Float?
+  pricePer24h   Float?
+
+  isActive           Boolean @default(true)
+  isReservableOnline Boolean @default(false)
+
+  sortOrder Int @default(0)
+
+  reservations LakeReservation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
+  @@index([slug])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([lakeId, isActive])
+  @@index([lakeId, sortOrder])
+}
+
+model LakeReservation {
+  id String @id @default(cuid())
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  spotId String?
+  spot   LakeSpot? @relation(fields: [spotId], references: [id], onDelete: SetNull)
+
+  scope  String @default("spot")
+  type   String @default("reservation")
+  status String @default("confirmed")
+
+  title String?
+
+  startsAt DateTime
+  endsAt   DateTime
+
+  customerName  String?
+  customerPhone String?
+  customerEmail String?
+
+  organizerName  String?
+  organizerPhone String?
+  organizerEmail String?
+
+  peopleCount Int @default(1)
+
+  totalPrice    Float?
+  depositAmount Float?
+  paymentStatus String @default("unpaid")
+
+  note         String?
+  internalNote String?
+
+  isPublicEvent Boolean @default(false)
+
+  createdByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
+  @@index([spotId])
+  @@index([scope])
+  @@index([type])
+  @@index([status])
+  @@index([startsAt])
+  @@index([endsAt])
+  @@index([createdAt])
+  @@index([lakeId, startsAt])
+  @@index([lakeId, endsAt])
+  @@index([lakeId, status])
+  @@index([lakeId, scope])
+  @@index([lakeId, type])
+  @@index([spotId, startsAt, endsAt])
+  @@index([lakeId, scope, startsAt, endsAt])
+}
+
+model LakeBookingSettings {
+  id String @id @default(cuid())
+
+  lakeId String @unique
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  isBookingEnabled       Boolean @default(false)
+  isOnlineBookingEnabled Boolean @default(false)
+
+  requiresOwnerConfirmation Boolean @default(true)
+
+  defaultStartTime String @default("12:00")
+  defaultEndTime   String @default("10:00")
+
+  fullDayStartTime String @default("06:00")
+  fullDayEndTime   String @default("07:00")
+
+  dayStartTime String @default("08:00")
+  dayEndTime   String @default("16:00")
+
+  nightStartTime String @default("16:00")
+  nightEndTime   String @default("06:00")
+
+  minReservationHours Int?
+  maxReservationDays  Int?
+
+  requiresDeposit Boolean @default(false)
+  depositAmount   Float?
+
+  bookingPhone String?
+  bookingEmail String?
+
+  bookingRules        String?
+  confirmationMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isBookingEnabled])
+  @@index([isOnlineBookingEnabled])
 }
