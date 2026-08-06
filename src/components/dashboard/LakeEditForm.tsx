@@ -31,9 +31,24 @@ type LakeFishRecordInput = {
 
 type LakeFishRecordFromProps = {
   id?: string;
-  fishName: string;
-  weightKg: number | string;
+  fishName?: string;
+  weightKg?: number | string;
 };
+
+type LakeGearRequirementFromProps =
+  | string
+  | {
+      id?: string;
+      text?: string;
+    };
+
+type LakeOpeningHoursFromProps =
+  | string
+  | null
+  | {
+      isOpenAllDay?: boolean;
+      text?: string | null;
+    };
 
 type LakeEditFormLake = {
   id: string;
@@ -60,9 +75,9 @@ type LakeEditFormLake = {
   rulesUrl: string;
 
   isOpenAllDay?: boolean;
-  openingHours?: string | null;
+  openingHours?: LakeOpeningHoursFromProps;
   fishRecords?: LakeFishRecordFromProps[];
-  gearRequirements?: string[];
+  gearRequirements?: LakeGearRequirementFromProps[];
 
   cottages: boolean;
   campfire: boolean;
@@ -107,15 +122,53 @@ type LakeEditFormProps = {
 };
 
 function normalizeFishRecords(records?: LakeFishRecordFromProps[]) {
-  if (!records) {
+  if (!Array.isArray(records)) {
     return [];
   }
 
-  return records.map((record) => ({
-    id: record.id,
-    fishName: record.fishName,
-    weightKg: String(record.weightKg ?? ""),
-  }));
+  return records
+    .map((record) => ({
+      id: record.id,
+      fishName: String(record.fishName || "").trim(),
+      weightKg: String(record.weightKg ?? "").replace(".", ","),
+    }))
+    .filter((record) => record.fishName || record.weightKg);
+}
+
+function normalizeGearRequirements(requirements?: LakeGearRequirementFromProps[]) {
+  if (!Array.isArray(requirements)) {
+    return [];
+  }
+
+  return requirements
+    .map((requirement) => {
+      if (typeof requirement === "string") {
+        return requirement.trim();
+      }
+
+      return String(requirement.text || "").trim();
+    })
+    .filter(Boolean);
+}
+
+function getInitialIsOpenAllDay(lake: LakeEditFormLake) {
+  if (
+    lake.openingHours &&
+    typeof lake.openingHours === "object" &&
+    "isOpenAllDay" in lake.openingHours
+  ) {
+    return Boolean(lake.openingHours.isOpenAllDay);
+  }
+
+  return Boolean(lake.isOpenAllDay);
+}
+
+function getInitialOpeningHours(lake: LakeEditFormLake) {
+  if (lake.openingHours && typeof lake.openingHours === "object") {
+    return lake.openingHours.text || "";
+  }
+
+  return lake.openingHours || "";
 }
 
 export function LakeEditForm({ lake }: LakeEditFormProps) {
@@ -126,10 +179,10 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
     contactEmail: lake.contactEmail === "Brak danych" ? "" : lake.contactEmail,
     contactWebsite:
       lake.contactWebsite === "Brak danych" ? "" : lake.contactWebsite,
-    isOpenAllDay: Boolean(lake.isOpenAllDay),
-    openingHours: lake.openingHours || "",
+    isOpenAllDay: getInitialIsOpenAllDay(lake),
+    openingHours: getInitialOpeningHours(lake),
     fishRecords: normalizeFishRecords(lake.fishRecords),
-    gearRequirements: lake.gearRequirements || [],
+    gearRequirements: normalizeGearRequirements(lake.gearRequirements),
   });
 
   const [isLoading, setIsLoading] = useState(false);

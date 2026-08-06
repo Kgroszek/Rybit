@@ -351,7 +351,7 @@ export default function TermsPage() {
               </p>
 
               <p className="mt-1 text-xl font-black text-slate-950">
-                [wpisz datę]
+                25.06.2026
               </p>
             </div>
           </div>

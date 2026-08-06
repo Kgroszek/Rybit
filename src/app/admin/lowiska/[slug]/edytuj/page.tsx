@@ -43,6 +43,10 @@ function isAdminUser(user: {
   );
 }
 
+function isVisibleTextItem(item: string, hiddenPrefix: string) {
+  return !item.toLowerCase().trim().startsWith(hiddenPrefix.toLowerCase());
+}
+
 export default async function EditLakePage({ params }: EditLakePageProps) {
   const supabase = await createClient();
 
@@ -70,6 +74,16 @@ export default async function EditLakePage({ params }: EditLakePageProps) {
           name: "asc",
         },
       },
+      fishRecords: {
+        orderBy: {
+          weightKg: "desc",
+        },
+      },
+      gearRequirements: {
+        orderBy: {
+          id: "asc",
+        },
+      },
       priceList: {
         orderBy: {
           id: "asc",
@@ -91,6 +105,20 @@ export default async function EditLakePage({ params }: EditLakePageProps) {
   if (!lake) {
     notFound();
   }
+
+  const priceListText =
+    lake.priceListText ||
+    lake.priceList
+      .map((item) => item.text)
+      .filter((item) => isVisibleTextItem(item, "link do cennika"))
+      .join("\n");
+
+  const rulesText =
+    lake.rulesText ||
+    lake.rules
+      .map((item) => item.text)
+      .filter((item) => isVisibleTextItem(item, "link do regulaminu"))
+      .join("\n");
 
   return (
     <DashboardLayout>
@@ -176,14 +204,25 @@ export default async function EditLakePage({ params }: EditLakePageProps) {
             playground: lake.playground,
             cardPayment: lake.cardPayment,
 
-            priceListText:
-              lake.priceListText ||
-              lake.priceList.map((item) => item.text).join("\n"),
+            priceListText,
             priceListUrl: lake.priceListUrl || "",
 
-            rulesText:
-              lake.rulesText || lake.rules.map((item) => item.text).join("\n"),
+            rulesText,
             rulesUrl: lake.rulesUrl || "",
+
+            isOpenAllDay: lake.isOpenAllDay,
+            openingHours: lake.openingHours || "",
+
+            fishRecords: lake.fishRecords.map((record) => ({
+              id: record.id,
+              fishName: record.fishName,
+              weightKg: record.weightKg,
+            })),
+
+            gearRequirements: lake.gearRequirements.map((requirement) => ({
+              id: requirement.id,
+              text: requirement.text,
+            })),
 
             images: lake.images.map((image) => ({
               id: image.id,

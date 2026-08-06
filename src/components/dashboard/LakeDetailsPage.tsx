@@ -762,7 +762,7 @@ export function LakeDetailsPage({
             </div>
           </section>
 
-          <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+         <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="break-words text-xl font-bold text-slate-950">
                 Zasady na łowisku
@@ -780,11 +780,11 @@ export function LakeDetailsPage({
               )}
             </div>
 
-            <div className="mt-5">
+            <div className="mt-5 space-y-3">
               {lake.rules
                 .filter((rule) => isVisibleTextItem(rule, "link do regulaminu"))
                 .map((rule) => cleanListItemText(rule))
-                .filter(Boolean).length > 0 ? (
+                .filter(Boolean).length > 0 && (
                 <div className="rounded-2xl bg-slate-50 px-5 py-5">
                   <p className="whitespace-pre-line break-words text-sm font-medium leading-7 text-slate-700">
                     {lake.rules
@@ -794,11 +794,31 @@ export function LakeDetailsPage({
                       .join("\n")}
                   </p>
                 </div>
-              ) : !lake.rulesUrl ? (
-                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
-                  Brak dodanych zasad łowiska.
+              )}
+
+              {lake.rulesUrl && (
+                <div className="rounded-2xl bg-slate-50 px-5 py-4 text-sm font-semibold text-slate-600">
+                  Link do regulaminu:{" "}
+                  <a
+                    href={lake.rulesUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-blue-600 transition hover:text-blue-700 hover:underline"
+                  >
+                    Link
+                  </a>
                 </div>
-              ) : null}
+              )}
+
+              {lake.rules
+                .filter((rule) => isVisibleTextItem(rule, "link do regulaminu"))
+                .map((rule) => cleanListItemText(rule))
+                .filter(Boolean).length === 0 &&
+                !lake.rulesUrl && (
+                  <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-500">
+                    Brak dodanych zasad łowiska.
+                  </div>
+                )}
             </div>
           </section>
         </div>

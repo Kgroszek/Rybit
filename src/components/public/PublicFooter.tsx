@@ -53,6 +53,14 @@ const seoLinks = [
     href: "/lowiska-podkarpackie",
   },
   {
+    label: "Łowiska zachodniopomorskie",
+    href: "/lowiska-zachodniopomorskie",
+  },
+  {
+    label: "Łowiska komercyjne",
+    href: "/lowiska-komercyjne",
+  },
+  {
     label: "Łowiska z domkami",
     href: "/lowiska-z-domkami",
   },
@@ -69,7 +77,6 @@ const seoLinks = [
     href: "/lowiska-no-kill",
   },
 ];
-
 const legalLinks = [
   {
     label: "Regulamin",
@@ -82,6 +89,21 @@ const legalLinks = [
   {
     label: "Kontakt",
     href: "/kontakt",
+  },
+];
+
+const socialLinks = [
+  {
+    label: "Facebook",
+    href: "https://www.facebook.com/profile.php?id=61590096264443",
+  },
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/ryb.io/",
+  },
+  {
+    label: "TikTok",
+    href: "https://www.tiktok.com/@rybio.pl",
   },
 ];
 
@@ -174,6 +196,27 @@ export function PublicFooter() {
                 </Link>
               ))}
             </nav>
+
+            <div className="mt-6">
+              <p className="text-sm font-black text-slate-950">
+                Social media
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {socialLinks.map((link) => (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Otwórz profil Rybio na ${link.label}`}
+                    className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-600"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
 
             <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5">
               <p className="text-sm font-black text-slate-950">
