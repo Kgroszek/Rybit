@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { LakeDto } from "@/lib/lakes";
 import { getFishKey, normalizeFishList } from "@/lib/fish-names";
 
@@ -41,6 +41,19 @@ type SortOption =
   | "name-desc";
 
 type AuthModalType = "rating" | "favourite";
+
+type ActiveFilter = {
+  id: string;
+  label: string;
+  type:
+    | "search"
+    | "ownerType"
+    | "fishingType"
+    | "voivodeship"
+    | "fish"
+    | "amenity";
+  value?: string;
+};
 
 type UserLocation = {
   lat: number;
@@ -111,6 +124,173 @@ export function PublicLakesPage({
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [isLocationLoading, setIsLocationLoading] = useState(false);
   const [locationError, setLocationError] = useState("");
+
+  const isUrlStateReadyRef = useRef(false);
+
+  const initialAmenitiesKey = useMemo(
+    () => [...initialAmenities].sort().join(","),
+    [initialAmenities]
+  );
+
+  useEffect(() => {
+    function applyStateFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+
+      const ownerParam = params.get("owner");
+      const fishingParam = params.get("fishing");
+      const voivodeshipParam = params.get("voivodeship");
+      const fishParam = params.get("fish");
+      const amenitiesParam = params.get("amenities");
+      const sortParam = params.get("sort");
+
+      const validOwnerTypes = ownerTypeFilters.map((item) => item.value);
+      const validFishingTypes = fishingTypeFilters.map((item) => item.value);
+      const validAmenities = new Set(
+        amenityOptions.map((item) => item.key as string)
+      );
+      const validSortOptions: SortOption[] = [
+        "rating-desc",
+        "distance-asc",
+        "name-asc",
+        "name-desc",
+      ];
+
+      const nextOwnerType = ownerParam ?? initialOwnerType;
+      const nextFishingType = fishingParam ?? initialFishingType;
+
+      setSearch(params.get("q") ?? "");
+      setOwnerType(
+        validOwnerTypes.includes(nextOwnerType)
+          ? nextOwnerType
+          : initialOwnerType
+      );
+      setFishingType(
+        validFishingTypes.includes(nextFishingType)
+          ? nextFishingType
+          : initialFishingType
+      );
+      setVoivodeship(voivodeshipParam ?? initialVoivodeship);
+      setFish(fishParam ?? initialFish);
+
+      if (amenitiesParam === null) {
+        setSelectedAmenities(
+          initialAmenitiesKey ? initialAmenitiesKey.split(",") : []
+        );
+      } else if (amenitiesParam === "none") {
+        setSelectedAmenities([]);
+      } else {
+        setSelectedAmenities(
+          Array.from(
+            new Set(
+              amenitiesParam
+                .split(",")
+                .map((item) => item.trim())
+                .filter((item) => validAmenities.has(item))
+            )
+          )
+        );
+      }
+
+      setSort(
+        sortParam && validSortOptions.includes(sortParam as SortOption)
+          ? (sortParam as SortOption)
+          : "rating-desc"
+      );
+    }
+
+    applyStateFromUrl();
+    isUrlStateReadyRef.current = true;
+
+    window.addEventListener("popstate", applyStateFromUrl);
+
+    return () => {
+      window.removeEventListener("popstate", applyStateFromUrl);
+    };
+  }, [
+    initialOwnerType,
+    initialFishingType,
+    initialVoivodeship,
+    initialFish,
+    initialAmenitiesKey,
+  ]);
+
+  useEffect(() => {
+    if (!isUrlStateReadyRef.current) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      const trimmedSearch = search.trim();
+      const sortedAmenities = [...selectedAmenities].sort();
+      const selectedAmenitiesKey = sortedAmenities.join(",");
+
+      function setOrDeleteParam(
+        key: string,
+        value: string,
+        defaultValue: string
+      ) {
+        if (value === defaultValue) {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      }
+
+      if (trimmedSearch) {
+        params.set("q", trimmedSearch);
+      } else {
+        params.delete("q");
+      }
+
+      setOrDeleteParam("owner", ownerType, initialOwnerType);
+      setOrDeleteParam("fishing", fishingType, initialFishingType);
+      setOrDeleteParam(
+        "voivodeship",
+        voivodeship,
+        initialVoivodeship
+      );
+      setOrDeleteParam("fish", fish, initialFish);
+      setOrDeleteParam("sort", sort, "rating-desc");
+
+      if (selectedAmenitiesKey === initialAmenitiesKey) {
+        params.delete("amenities");
+      } else if (sortedAmenities.length === 0) {
+        params.set("amenities", "none");
+      } else {
+        params.set("amenities", selectedAmenitiesKey);
+      }
+
+      const queryString = params.toString();
+      const nextUrl = `${window.location.pathname}${
+        queryString ? `?${queryString}` : ""
+      }${window.location.hash}`;
+      const currentUrl = `${window.location.pathname}${
+        window.location.search
+      }${window.location.hash}`;
+
+      if (nextUrl !== currentUrl) {
+        window.history.pushState(null, "", nextUrl);
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    search,
+    ownerType,
+    fishingType,
+    voivodeship,
+    fish,
+    selectedAmenities,
+    sort,
+    initialOwnerType,
+    initialFishingType,
+    initialVoivodeship,
+    initialFish,
+    initialAmenitiesKey,
+  ]);
 
   const voivodeships = useMemo(() => {
     return Array.from(
@@ -316,23 +496,116 @@ export function PublicLakesPage({
 
   function clearFilters() {
     setSearch("");
-    setOwnerType(initialOwnerType);
-    setFishingType(initialFishingType);
-    setVoivodeship(initialVoivodeship);
-    setFish(initialFish);
-    setSelectedAmenities(initialAmenities);
-    setSort("rating-desc");
+    setOwnerType("all");
+    setFishingType("all");
+    setVoivodeship("all");
+    setFish("all");
+    setSelectedAmenities([]);
     setCurrentPage(1);
   }
 
-  const hasActiveFilters =
-    Boolean(search) ||
-    ownerType !== initialOwnerType ||
-    fishingType !== initialFishingType ||
-    voivodeship !== initialVoivodeship ||
-    fish !== initialFish ||
-    selectedAmenities.join(",") !== initialAmenities.join(",") ||
-    sort !== "rating-desc";
+  const activeFilters = useMemo<ActiveFilter[]>(() => {
+    const filters: ActiveFilter[] = [];
+    const trimmedSearch = search.trim();
+
+    if (trimmedSearch) {
+      filters.push({
+        id: "search",
+        label: `Szukaj: ${trimmedSearch}`,
+        type: "search",
+      });
+    }
+
+    if (ownerType !== "all") {
+      const label =
+        ownerTypeFilters.find((item) => item.value === ownerType)?.label ||
+        ownerType;
+
+      filters.push({
+        id: `owner-${ownerType}`,
+        label: `Rodzaj: ${label}`,
+        type: "ownerType",
+      });
+    }
+
+    if (fishingType !== "all") {
+      const label =
+        fishingTypeFilters.find((item) => item.value === fishingType)?.label ||
+        fishingType;
+
+      filters.push({
+        id: `fishing-${fishingType}`,
+        label: `Typ łowienia: ${label}`,
+        type: "fishingType",
+      });
+    }
+
+    if (voivodeship !== "all") {
+      filters.push({
+        id: `voivodeship-${voivodeship}`,
+        label: `Województwo: ${voivodeship}`,
+        type: "voivodeship",
+      });
+    }
+
+    if (fish !== "all") {
+      filters.push({
+        id: `fish-${fish}`,
+        label: `Ryba: ${fish}`,
+        type: "fish",
+      });
+    }
+
+    selectedAmenities.forEach((amenityKey) => {
+      const label =
+        amenityOptions.find((item) => item.key === amenityKey)?.label ||
+        amenityKey;
+
+      filters.push({
+        id: `amenity-${amenityKey}`,
+        label: `Udogodnienie: ${label}`,
+        type: "amenity",
+        value: amenityKey,
+      });
+    });
+
+    return filters;
+  }, [search, ownerType, fishingType, voivodeship, fish, selectedAmenities]);
+
+  function removeActiveFilter(filter: ActiveFilter) {
+    if (filter.type === "search") {
+      setSearch("");
+      return;
+    }
+
+    if (filter.type === "ownerType") {
+      setOwnerType("all");
+      return;
+    }
+
+    if (filter.type === "fishingType") {
+      setFishingType("all");
+      return;
+    }
+
+    if (filter.type === "voivodeship") {
+      setVoivodeship("all");
+      return;
+    }
+
+    if (filter.type === "fish") {
+      setFish("all");
+      return;
+    }
+
+    if (filter.type === "amenity" && filter.value) {
+      setSelectedAmenities((current) =>
+        current.filter((item) => item !== filter.value)
+      );
+    }
+  }
+
+  const hasActiveFilters = activeFilters.length > 0;
 
   return (
     <>
@@ -542,6 +815,50 @@ export function PublicLakesPage({
               </div>
             )}
           </div>
+
+          {hasActiveFilters && (
+            <div className="mt-5 border-t border-slate-200 pt-5">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-black text-slate-950">
+                    Aktywne filtry
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    Kliknij × przy etykiecie, aby usunąć pojedynczy filtr.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="w-fit rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-black text-slate-700 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                >
+                  Wyczyść wszystko
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {activeFilters.map((filter) => (
+                  <button
+                    key={filter.id}
+                    type="button"
+                    onClick={() => removeActiveFilter(filter)}
+                    className="inline-flex max-w-full items-center gap-2 rounded-full bg-blue-50 px-3 py-2 text-left text-xs font-black text-blue-700 transition hover:bg-blue-100"
+                    aria-label={`Usuń filtr: ${filter.label}`}
+                    title={`Usuń filtr: ${filter.label}`}
+                  >
+                    <span className="truncate">{filter.label}</span>
+                    <span
+                      aria-hidden="true"
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-sm leading-none text-blue-700 shadow-sm"
+                    >
+                      ×
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -554,29 +871,18 @@ export function PublicLakesPage({
             )}
           </p>
 
-          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
-            <button
-              type="button"
-              onClick={clearFilters}
-              disabled={!hasActiveFilters}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Resetuj filtry
-            </button>
+          <div className="grid w-full grid-cols-2 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200 sm:w-auto">
+            <ViewModeButton
+              label="Kafelki"
+              isActive={viewMode === "grid"}
+              onClick={() => setViewMode("grid")}
+            />
 
-            <div className="grid w-full grid-cols-2 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200 sm:w-auto">
-              <ViewModeButton
-                label="Kafelki"
-                isActive={viewMode === "grid"}
-                onClick={() => setViewMode("grid")}
-              />
-
-              <ViewModeButton
-                label="Lista"
-                isActive={viewMode === "list"}
-                onClick={() => setViewMode("list")}
-              />
-            </div>
+            <ViewModeButton
+              label="Lista"
+              isActive={viewMode === "list"}
+              onClick={() => setViewMode("list")}
+            />
           </div>
         </div>
 
@@ -634,7 +940,7 @@ export function PublicLakesPage({
               onClick={clearFilters}
               className="mt-5 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
             >
-              Wyczyść filtry
+              Wyczyść wszystko
             </button>
           </div>
         )}

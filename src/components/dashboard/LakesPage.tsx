@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 import { MapSection } from "@/components/dashboard/MapSection";
@@ -16,6 +16,12 @@ type OwnerTypeFilter = "all" | "pzw" | "commercial";
 type FishingTypeFilter = "all" | "general" | "spinning" | "carp";
 type SortType = "rating" | "name" | "distance";
 type ViewMode = "grid" | "list" | "map";
+
+type ActiveFilterItem = {
+  key: string;
+  label: string;
+  onRemove: () => void;
+};
 
 type AmenityKey =
   | "cottages"
@@ -61,6 +67,71 @@ const amenityFilters: {
   { key: "cardPayment", label: "Płatność kartą" },
 ];
 
+
+const URL_FILTER_KEYS = [
+  "q",
+  "owner",
+  "fishing",
+  "voivodeship",
+  "fish",
+  "amenities",
+  "sort",
+] as const;
+
+function isAmenityKey(value: string): value is AmenityKey {
+  return amenityFilters.some((amenity) => amenity.key === value);
+}
+
+function parseOwnerType(value: string | null): OwnerTypeFilter {
+  if (value === "pzw" || value === "commercial") {
+    return value;
+  }
+
+  return "all";
+}
+
+function parseFishingType(value: string | null): FishingTypeFilter {
+  if (
+    value === "general" ||
+    value === "spinning" ||
+    value === "carp"
+  ) {
+    return value;
+  }
+
+  return "all";
+}
+
+function parseSortType(value: string | null): SortType {
+  if (value === "name" || value === "distance") {
+    return value;
+  }
+
+  return "rating";
+}
+
+function parseAmenities(value: string | null): AmenityKey[] {
+  if (!value) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .split(",")
+        .map((item) => item.trim())
+        .filter(isAmenityKey)
+    )
+  );
+}
+
+function getSortTypeLabel(type: SortType) {
+  if (type === "name") return "Nazwa A-Z";
+  if (type === "distance") return "Najbliżej";
+
+  return "Najwyższa ocena";
+}
+
 function getOwnerTypeLabel(type: string) {
   if (type === "pzw") return "PZW";
   if (type === "commercial") return "Komercyjne";
@@ -88,6 +159,9 @@ function getLakeDistanceLabel(
 
 export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
   const { userLocation } = useUserLocation();
+
+  const isUrlStateReady = useRef(false);
+  const lastUrlQuery = useRef("");
 
   const [search, setSearch] = useState("");
   const [ownerType, setOwnerType] = useState<OwnerTypeFilter>("all");
@@ -132,13 +206,72 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
     );
   }, [lakes]);
 
-  const activeFiltersCount =
-    Number(Boolean(search.trim())) +
-    Number(ownerType !== "all") +
-    Number(fishingType !== "all") +
-    Number(voivodeship !== "all") +
-    Number(fish !== "all") +
-    selectedAmenities.length;
+  const activeFilterItems: ActiveFilterItem[] = [];
+
+  if (search.trim()) {
+    activeFilterItems.push({
+      key: "search",
+      label: `Szukaj: ${search.trim()}`,
+      onRemove: () => setSearch(""),
+    });
+  }
+
+  if (ownerType !== "all") {
+    activeFilterItems.push({
+      key: "ownerType",
+      label: `Rodzaj: ${getOwnerTypeLabel(ownerType)}`,
+      onRemove: () => setOwnerType("all"),
+    });
+  }
+
+  if (fishingType !== "all") {
+    activeFilterItems.push({
+      key: "fishingType",
+      label: `Typ: ${getFishingTypeLabel(fishingType)}`,
+      onRemove: () => setFishingType("all"),
+    });
+  }
+
+  if (voivodeship !== "all") {
+    activeFilterItems.push({
+      key: "voivodeship",
+      label: `Województwo: ${voivodeship}`,
+      onRemove: () => setVoivodeship("all"),
+    });
+  }
+
+  if (fish !== "all") {
+    activeFilterItems.push({
+      key: "fish",
+      label: `Ryba: ${fish}`,
+      onRemove: () => setFish("all"),
+    });
+  }
+
+  selectedAmenities.forEach((amenityKey) => {
+    const amenity = amenityFilters.find(
+      (item) => item.key === amenityKey
+    );
+
+    activeFilterItems.push({
+      key: `amenity-${amenityKey}`,
+      label: amenity?.label ?? amenityKey,
+      onRemove: () =>
+        setSelectedAmenities((current) =>
+          current.filter((item) => item !== amenityKey)
+        ),
+    });
+  });
+
+  if (sortType !== "rating") {
+    activeFilterItems.push({
+      key: "sort",
+      label: `Sortowanie: ${getSortTypeLabel(sortType)}`,
+      onRemove: () => setSortType("rating"),
+    });
+  }
+
+  const activeFiltersCount = activeFilterItems.length;
 
   const filteredLakes = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -223,6 +356,103 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
     selectedAmenities,
     sortType,
     userLocation,
+  ]);
+
+  useEffect(() => {
+    function restoreFiltersFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+
+      setSearch(params.get("q")?.trim() ?? "");
+      setOwnerType(parseOwnerType(params.get("owner")));
+      setFishingType(parseFishingType(params.get("fishing")));
+      setVoivodeship(params.get("voivodeship")?.trim() || "all");
+      setFish(params.get("fish")?.trim() || "all");
+      setSelectedAmenities(parseAmenities(params.get("amenities")));
+      setSortType(parseSortType(params.get("sort")));
+      setCurrentPage(1);
+
+      lastUrlQuery.current = params.toString();
+    }
+
+    restoreFiltersFromUrl();
+    isUrlStateReady.current = true;
+
+    window.addEventListener("popstate", restoreFiltersFromUrl);
+
+    return () => {
+      window.removeEventListener("popstate", restoreFiltersFromUrl);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isUrlStateReady.current) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+
+      URL_FILTER_KEYS.forEach((key) => {
+        params.delete(key);
+      });
+
+      if (search.trim()) {
+        params.set("q", search.trim());
+      }
+
+      if (ownerType !== "all") {
+        params.set("owner", ownerType);
+      }
+
+      if (fishingType !== "all") {
+        params.set("fishing", fishingType);
+      }
+
+      if (voivodeship !== "all") {
+        params.set("voivodeship", voivodeship);
+      }
+
+      if (fish !== "all") {
+        params.set("fish", fish);
+      }
+
+      if (selectedAmenities.length > 0) {
+        params.set(
+          "amenities",
+          [...selectedAmenities].sort().join(",")
+        );
+      }
+
+      if (sortType !== "rating") {
+        params.set("sort", sortType);
+      }
+
+      const nextQuery = params.toString();
+
+      if (nextQuery === lastUrlQuery.current) {
+        return;
+      }
+
+      lastUrlQuery.current = nextQuery;
+
+      const nextUrl = `${window.location.pathname}${
+        nextQuery ? `?${nextQuery}` : ""
+      }${window.location.hash}`;
+
+      window.history.pushState(null, "", nextUrl);
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    search,
+    ownerType,
+    fishingType,
+    voivodeship,
+    fish,
+    selectedAmenities,
+    sortType,
   ]);
 
   useEffect(() => {
@@ -544,7 +774,7 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
                 onClick={clearFilters}
                 className="text-sm font-bold text-blue-600 transition hover:text-blue-700"
               >
-                Resetuj filtry
+                Wyczyść wszystko
               </button>
             </div>
 
@@ -553,7 +783,7 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
               onClick={clearFilters}
               className="text-left text-sm font-bold text-blue-600 transition hover:text-blue-700 md:hidden"
             >
-              Resetuj filtry
+              Wyczyść wszystko
             </button>
 
             <div className="hidden w-fit rounded-2xl border border-slate-200 bg-white p-1 md:inline-flex">
@@ -584,6 +814,52 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
           </div>
         </div>
       </section>
+
+      {activeFilterItems.length > 0 && (
+        <section className="mb-6 rounded-3xl border border-blue-100 bg-blue-50/70 p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <p className="text-sm font-black text-blue-950">
+                  Aktywne filtry
+                </p>
+
+                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-black text-blue-700 shadow-sm">
+                  {activeFilterItems.length}
+                </span>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {activeFilterItems.map((filterItem) => (
+                  <button
+                    key={filterItem.key}
+                    type="button"
+                    onClick={filterItem.onRemove}
+                    className="inline-flex max-w-full items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-2 text-left text-xs font-bold text-blue-800 shadow-sm transition hover:border-blue-300 hover:bg-blue-50"
+                    aria-label={`Usuń filtr: ${filterItem.label}`}
+                  >
+                    <span className="truncate">{filterItem.label}</span>
+                    <span
+                      aria-hidden="true"
+                      className="text-base leading-none text-blue-500"
+                    >
+                      ×
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="w-fit shrink-0 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700"
+            >
+              Wyczyść wszystko
+            </button>
+          </div>
+        </section>
+      )}
 
       <div>
         {filteredLakes.length > 0 ? (
