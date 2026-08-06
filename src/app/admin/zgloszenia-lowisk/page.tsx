@@ -4,38 +4,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { AdminSubmissionActions } from "@/components/dashboard/AdminSubmissionActions";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-
-function getAdminEmails() {
-  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
-  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
-
-  return [singleAdminEmail, multipleAdminEmails]
-    .join(",")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isAdminUser(user: {
-  email?: string | null;
-  app_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-  user_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-}) {
-  const adminEmails = getAdminEmails();
-  const userEmail = user.email?.trim().toLowerCase() ?? "";
-
-  return (
-    user.app_metadata?.role === "admin" ||
-    user.user_metadata?.role === "admin" ||
-    adminEmails.includes(userEmail)
-  );
-}
+import { isAdminUser } from "@/lib/auth";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("pl-PL", {
@@ -67,9 +36,10 @@ export default async function LakeSubmissionsAdminPage() {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     redirect("/login");
   }
 
@@ -77,38 +47,42 @@ export default async function LakeSubmissionsAdminPage() {
     redirect("/dashboard");
   }
 
-  const [pendingSubmissions, allSubmissionsCount, approvedCount, rejectedCount] =
-    await Promise.all([
-      prisma.lakeSubmission.findMany({
-        where: {
-          status: "pending",
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          images: {
-            orderBy: {
-              createdAt: "desc",
-            },
+  const [
+    pendingSubmissions,
+    allSubmissionsCount,
+    approvedCount,
+    rejectedCount,
+  ] = await Promise.all([
+    prisma.lakeSubmission.findMany({
+      where: {
+        status: "pending",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        images: {
+          orderBy: {
+            createdAt: "desc",
           },
         },
-      }),
+      },
+    }),
 
-      prisma.lakeSubmission.count(),
+    prisma.lakeSubmission.count(),
 
-      prisma.lakeSubmission.count({
-        where: {
-          status: "approved",
-        },
-      }),
+    prisma.lakeSubmission.count({
+      where: {
+        status: "approved",
+      },
+    }),
 
-      prisma.lakeSubmission.count({
-        where: {
-          status: "rejected",
-        },
-      }),
-    ]);
+    prisma.lakeSubmission.count({
+      where: {
+        status: "rejected",
+      },
+    }),
+  ]);
 
   return (
     <DashboardLayout>
@@ -153,7 +127,11 @@ export default async function LakeSubmissionsAdminPage() {
             variant="success"
           />
 
-          <StatCard label="Odrzucone" value={rejectedCount} variant="danger" />
+          <StatCard
+            label="Odrzucone"
+            value={rejectedCount}
+            variant="danger"
+          />
 
           <StatCard
             label="Wszystkie zgłoszenia"
@@ -200,7 +178,10 @@ export default async function LakeSubmissionsAdminPage() {
                     </p>
 
                     <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-2 xl:grid-cols-4">
-                      <InfoBox label="Ryby" value={submission.fish} />
+                      <InfoBox
+                        label="Ryby"
+                        value={submission.fish}
+                      />
 
                       <InfoBox
                         label="Adres"
@@ -313,58 +294,72 @@ export default async function LakeSubmissionsAdminPage() {
                           active={submission.cottages}
                           label="Domki"
                         />
+
                         <AmenityBadge
                           active={submission.campfire}
                           label="Ognisko"
                         />
+
                         <AmenityBadge
                           active={submission.noKill}
                           label="No Kill"
                         />
+
                         <AmenityBadge
                           active={submission.tent}
                           label="Namiot"
                         />
+
                         <AmenityBadge
                           active={submission.parking}
                           label="Parking"
                         />
+
                         <AmenityBadge
                           active={submission.pier}
                           label="Pomost"
                         />
+
                         <AmenityBadge
                           active={submission.toilet}
                           label="Toaleta"
                         />
+
                         <AmenityBadge
                           active={submission.shop}
                           label="Sklep"
                         />
+
                         <AmenityBadge
                           active={submission.nightFishing}
                           label="Wędkowanie nocne"
                         />
+
                         <AmenityBadge
                           active={submission.boatRental}
                           label="Wypożyczalnia łodzi"
                         />
+
                         <AmenityBadge
                           active={submission.gearRental}
                           label="Wypożyczalnia sprzętu"
                         />
+
                         <AmenityBadge
                           active={submission.shelter}
                           label="Altana"
                         />
+
                         <AmenityBadge
                           active={submission.coveredSpots}
                           label="Zadaszone stanowiska"
                         />
+
                         <AmenityBadge
                           active={submission.playground}
                           label="Plac zabaw"
                         />
+
                         <AmenityBadge
                           active={submission.cardPayment}
                           label="Płatność kartą"
@@ -419,7 +414,9 @@ export default async function LakeSubmissionsAdminPage() {
                       Edytuj
                     </Link>
 
-                    <AdminSubmissionActions submissionId={submission.id} />
+                    <AdminSubmissionActions
+                      submissionId={submission.id}
+                    />
                   </div>
                 </div>
               </article>
@@ -465,14 +462,27 @@ function StatCard({
   };
 
   return (
-    <div className={`rounded-3xl border p-5 shadow-sm ${classes[variant]}`}>
-      <p className="text-sm font-bold">{label}</p>
-      <p className="mt-3 text-4xl font-black">{value}</p>
+    <div
+      className={`rounded-3xl border p-5 shadow-sm ${classes[variant]}`}
+    >
+      <p className="text-sm font-bold">
+        {label}
+      </p>
+
+      <p className="mt-3 text-4xl font-black">
+        {value}
+      </p>
     </div>
   );
 }
 
-function InfoBox({ label, value }: { label: string; value: string }) {
+function InfoBox({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
       <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
@@ -506,7 +516,9 @@ function TextBox({
           {text}
         </p>
       ) : (
-        <p className="mt-2 text-sm font-bold text-slate-500">Brak treści.</p>
+        <p className="mt-2 text-sm font-bold text-slate-500">
+          Brak treści.
+        </p>
       )}
 
       {url && (
@@ -523,7 +535,13 @@ function TextBox({
   );
 }
 
-function AmenityBadge({ active, label }: { active: boolean; label: string }) {
+function AmenityBadge({
+  active,
+  label,
+}: {
+  active: boolean;
+  label: string;
+}) {
   if (!active) {
     return null;
   }

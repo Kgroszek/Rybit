@@ -2,41 +2,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-
-function getAdminEmails() {
-  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
-  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
-
-  return [singleAdminEmail, multipleAdminEmails]
-    .join(",")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isAdminUser(user: {
-  email?: string | null;
-  app_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-  user_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-}) {
-  const adminEmails = getAdminEmails();
-  const userEmail = user.email?.trim().toLowerCase() ?? "";
-
-  return (
-    user.app_metadata?.role === "admin" ||
-    user.user_metadata?.role === "admin" ||
-    adminEmails.includes(userEmail)
-  );
-}
+import { isAdminUser } from "@/lib/auth";
 
 function formatDate(date?: string | null) {
-  if (!date) return "Brak";
+  if (!date) {
+    return "Brak";
+  }
 
   return new Intl.DateTimeFormat("pl-PL", {
     day: "2-digit",
@@ -52,9 +23,10 @@ export default async function AdminUsersPage() {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     redirect("/login");
   }
 
@@ -64,19 +36,27 @@ export default async function AdminUsersPage() {
 
   const supabaseAdmin = createAdminClient();
 
-  const { data, error } = await supabaseAdmin.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
+  const { data, error } =
+    await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
 
   const users = data?.users ?? [];
 
   const sortedUsers = [...users].sort((a, b) => {
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    return (
+      new Date(b.created_at).getTime() -
+      new Date(a.created_at).getTime()
+    );
   });
 
-  const confirmedUsers = users.filter((item) => item.email_confirmed_at).length;
-  const unconfirmedUsers = users.length - confirmedUsers;
+  const confirmedUsers = users.filter(
+    (item) => item.email_confirmed_at
+  ).length;
+
+  const unconfirmedUsers =
+    users.length - confirmedUsers;
 
   return (
     <div className="space-y-8">
@@ -92,8 +72,8 @@ export default async function AdminUsersPage() {
             </h1>
 
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
-              Lista kont zarejestrowanych w Rybio. Dane pobierane są z Supabase
-              Auth.
+              Lista kont zarejestrowanych w Rybio. Dane
+              pobierane są z Supabase Auth.
             </p>
           </div>
 
@@ -108,14 +88,26 @@ export default async function AdminUsersPage() {
 
       {error && (
         <div className="rounded-3xl border border-red-100 bg-red-50 p-5 text-sm font-bold text-red-700">
-          Nie udało się pobrać użytkowników: {error.message}
+          Nie udało się pobrać użytkowników:{" "}
+          {error.message}
         </div>
       )}
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Wszyscy użytkownicy" value={users.length} />
-        <StatCard label="Potwierdzone e-maile" value={confirmedUsers} />
-        <StatCard label="Niepotwierdzone e-maile" value={unconfirmedUsers} />
+        <StatCard
+          label="Wszyscy użytkownicy"
+          value={users.length}
+        />
+
+        <StatCard
+          label="Potwierdzone e-maile"
+          value={confirmedUsers}
+        />
+
+        <StatCard
+          label="Niepotwierdzone e-maile"
+          value={unconfirmedUsers}
+        />
       </section>
 
       <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -128,20 +120,38 @@ export default async function AdminUsersPage() {
             <table className="w-full min-w-[900px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-400">
                 <tr>
-                  <th className="px-4 py-3">Użytkownik</th>
-                  <th className="px-4 py-3">E-mail</th>
-                  <th className="px-4 py-3">Status e-maila</th>
-                  <th className="px-4 py-3">Utworzono</th>
-                  <th className="px-4 py-3">Ostatnie logowanie</th>
+                  <th className="px-4 py-3">
+                    Użytkownik
+                  </th>
+
+                  <th className="px-4 py-3">
+                    E-mail
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Status e-maila
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Utworzono
+                  </th>
+
+                  <th className="px-4 py-3">
+                    Ostatnie logowanie
+                  </th>
                 </tr>
               </thead>
 
               <tbody className="divide-y divide-slate-200 bg-white">
                 {sortedUsers.map((item) => {
                   const profileName =
-                    item.user_metadata?.name ||
-                    item.user_metadata?.full_name ||
-                    "Użytkownik";
+                    typeof item.user_metadata?.name ===
+                    "string"
+                      ? item.user_metadata.name
+                      : typeof item.user_metadata
+                            ?.full_name === "string"
+                        ? item.user_metadata.full_name
+                        : "Użytkownik";
 
                   return (
                     <tr key={item.id}>
@@ -170,7 +180,9 @@ export default async function AdminUsersPage() {
                       </td>
 
                       <td className="px-4 py-3 text-slate-600">
-                        {formatDate(item.last_sign_in_at)}
+                        {formatDate(
+                          item.last_sign_in_at
+                        )}
                       </td>
                     </tr>
                   );
@@ -195,11 +207,22 @@ export default async function AdminUsersPage() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-bold text-slate-500">{label}</p>
-      <p className="mt-3 text-4xl font-black text-slate-950">{value}</p>
+      <p className="text-sm font-bold text-slate-500">
+        {label}
+      </p>
+
+      <p className="mt-3 text-4xl font-black text-slate-950">
+        {value}
+      </p>
     </div>
   );
 }

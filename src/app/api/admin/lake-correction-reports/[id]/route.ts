@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminUser } from "@/lib/auth";
 
 type RouteProps = {
   params: Promise<{
@@ -8,133 +9,186 @@ type RouteProps = {
   }>;
 };
 
-function getAdminEmails() {
-  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
-  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
+const ALLOWED_STATUSES = ["resolved", "rejected"] as const;
 
-  return [singleAdminEmail, multipleAdminEmails]
-    .join(",")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
+type CorrectionReportStatus = (typeof ALLOWED_STATUSES)[number];
 
-function isAdminUser(user: {
-  email?: string | null;
-  app_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-  user_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-}) {
-  const adminEmails = getAdminEmails();
-  const userEmail = user.email?.trim().toLowerCase() ?? "";
-
-  return (
-    user.app_metadata?.role === "admin" ||
-    user.user_metadata?.role === "admin" ||
-    adminEmails.includes(userEmail)
+function isCorrectionReportStatus(
+  value: string
+): value is CorrectionReportStatus {
+  return ALLOWED_STATUSES.includes(
+    value as CorrectionReportStatus
   );
 }
 
-export async function PATCH(request: Request, { params }: RouteProps) {
+export async function PATCH(
+  request: Request,
+  { params }: RouteProps
+) {
   const supabase = await createClient();
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     return NextResponse.json(
-      { message: "Musisz być zalogowany." },
-      { status: 401 }
+      {
+        message: "Musisz być zalogowany.",
+      },
+      {
+        status: 401,
+      }
     );
   }
 
   if (!isAdminUser(user)) {
     return NextResponse.json(
-      { message: "Brak uprawnień administratora." },
-      { status: 403 }
+      {
+        message: "Brak uprawnień administratora.",
+      },
+      {
+        status: 403,
+      }
     );
   }
 
   const { id } = await params;
-  const body = await request.json().catch(() => null);
 
-  const status = String(body?.status || "").trim();
-  const adminNote = String(body?.adminNote || "").trim();
-
-  if (!["resolved", "rejected"].includes(status)) {
+  if (!id) {
     return NextResponse.json(
-      { message: "Nieprawidłowy status zgłoszenia." },
-      { status: 400 }
+      {
+        message: "Brakuje identyfikatora zgłoszenia.",
+      },
+      {
+        status: 400,
+      }
     );
   }
 
-  const existingReport = await prisma.lakeCorrectionReport.findUnique({
-    where: {
-      id,
-    },
-    include: {
-      lake: {
-        select: {
-          name: true,
-          slug: true,
+  const body = await request.json().catch(() => null);
+
+  if (!body || typeof body !== "object") {
+    return NextResponse.json(
+      {
+        message: "Nieprawidłowe dane żądania.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  const status = String(
+    (body as { status?: unknown }).status ?? ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const adminNote = String(
+    (body as { adminNote?: unknown }).adminNote ?? ""
+  ).trim();
+
+  if (!isCorrectionReportStatus(status)) {
+    return NextResponse.json(
+      {
+        message: "Nieprawidłowy status zgłoszenia.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (adminNote.length > 2000) {
+    return NextResponse.json(
+      {
+        message:
+          "Notatka administratora może mieć maksymalnie 2000 znaków.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  const existingReport =
+    await prisma.lakeCorrectionReport.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        lake: {
+          select: {
+            name: true,
+            slug: true,
+          },
         },
       },
-    },
-  });
+    });
 
   if (!existingReport) {
     return NextResponse.json(
-      { message: "Nie znaleziono zgłoszenia poprawki." },
-      { status: 404 }
+      {
+        message: "Nie znaleziono zgłoszenia poprawki.",
+      },
+      {
+        status: 404,
+      }
     );
   }
 
   if (existingReport.status !== "pending") {
     return NextResponse.json(
-      { message: "To zgłoszenie zostało już obsłużone." },
-      { status: 400 }
+      {
+        message: "To zgłoszenie zostało już obsłużone.",
+      },
+      {
+        status: 409,
+      }
     );
   }
 
-  const report = await prisma.lakeCorrectionReport.update({
-    where: {
-      id,
-    },
-    data: {
-      status,
-      adminNote: adminNote || null,
-    },
-    include: {
-      lake: {
-        select: {
-          name: true,
-          slug: true,
+  const notificationTitle =
+    status === "resolved"
+      ? "Twoja poprawka łowiska została rozpatrzona"
+      : "Twoja poprawka łowiska została odrzucona";
+
+  const notificationMessage =
+    status === "resolved"
+      ? `Administrator rozpatrzył Twoją poprawkę dotyczącą łowiska: ${existingReport.lake.name}.`
+      : `Administrator odrzucił Twoją poprawkę dotyczącą łowiska: ${existingReport.lake.name}.`;
+
+  const [report] = await prisma.$transaction([
+    prisma.lakeCorrectionReport.update({
+      where: {
+        id,
+      },
+      data: {
+        status,
+        adminNote: adminNote || null,
+      },
+      include: {
+        lake: {
+          select: {
+            name: true,
+            slug: true,
+          },
         },
       },
-    },
-  });
+    }),
 
-  await prisma.userNotification.create({
-    data: {
-      userId: existingReport.userId,
-      title:
-        status === "resolved"
-          ? "Twoja poprawka łowiska została rozpatrzona"
-          : "Twoja poprawka łowiska została odrzucona",
-      message:
-        status === "resolved"
-          ? `Administrator rozpatrzył Twoją poprawkę dotyczącą łowiska: ${existingReport.lake.name}.`
-          : `Administrator odrzucił Twoją poprawkę dotyczącą łowiska: ${existingReport.lake.name}.`,
-      href: `/lowiska/${existingReport.lake.slug}`,
-      type: "lake_correction_report",
-    },
-  });
+    prisma.userNotification.create({
+      data: {
+        userId: existingReport.userId,
+        title: notificationTitle,
+        message: notificationMessage,
+        href: `/lowiska/${existingReport.lake.slug}`,
+        type: "lake_correction_report",
+      },
+    }),
+  ]);
 
   return NextResponse.json({
     message:

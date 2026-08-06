@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isAdminUser } from "@/lib/auth";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("pl-PL", {
@@ -26,23 +27,16 @@ function getStatusLabel(status: string) {
 
 function getStatusClass(status: string) {
   if (status === "pending") return "bg-amber-50 text-amber-700";
-  if (status === "approved" || status === "resolved")
+
+  if (status === "approved" || status === "resolved") {
     return "bg-emerald-50 text-emerald-700";
-  if (status === "rejected" || status === "hidden")
+  }
+
+  if (status === "rejected" || status === "hidden") {
     return "bg-red-50 text-red-700";
+  }
 
   return "bg-slate-100 text-slate-600";
-}
-
-function getAdminEmails() {
-  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
-  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
-
-  return [singleAdminEmail, multipleAdminEmails]
-    .join(",")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
 }
 
 async function getRegisteredUsersCount() {
@@ -60,7 +54,11 @@ async function getRegisteredUsersCount() {
       });
 
       if (error) {
-        console.error("Nie udało się pobrać użytkowników:", error.message);
+        console.error(
+          "Nie udało się pobrać użytkowników:",
+          error.message
+        );
+
         return total;
       }
 
@@ -76,7 +74,11 @@ async function getRegisteredUsersCount() {
 
     return total;
   } catch (error) {
-    console.error("Nie udało się pobrać liczby użytkowników:", error);
+    console.error(
+      "Nie udało się pobrać liczby użytkowników:",
+      error
+    );
+
     return 0;
   }
 }
@@ -86,21 +88,14 @@ export default async function AdminDashboardPage() {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     redirect("/login");
   }
 
-  const adminEmails = getAdminEmails();
-  const userEmail = user.email?.trim().toLowerCase() ?? "";
-
-  const isAdmin =
-    user.app_metadata?.role === "admin" ||
-    user.user_metadata?.role === "admin" ||
-    adminEmails.includes(userEmail);
-
-  if (!isAdmin) {
+  if (!isAdminUser(user)) {
     redirect("/dashboard");
   }
 
@@ -131,6 +126,7 @@ export default async function AdminDashboardPage() {
     prisma.lake.count(),
 
     prisma.lakeSubmission.count(),
+
     prisma.lakeSubmission.count({
       where: {
         status: "pending",
@@ -138,6 +134,7 @@ export default async function AdminDashboardPage() {
     }),
 
     prisma.lakeCorrectionReport.count(),
+
     prisma.lakeCorrectionReport.count({
       where: {
         status: "pending",
@@ -145,6 +142,7 @@ export default async function AdminDashboardPage() {
     }),
 
     prisma.fishingCatchReport.count(),
+
     prisma.fishingCatchReport.count({
       where: {
         status: "pending",
@@ -152,11 +150,13 @@ export default async function AdminDashboardPage() {
     }),
 
     prisma.fishingCatch.count(),
+
     prisma.fishingCatch.count({
       where: {
         isPublic: true,
       },
     }),
+
     prisma.fishingCatch.count({
       where: {
         rankingStatus: "hidden",
@@ -164,8 +164,11 @@ export default async function AdminDashboardPage() {
     }),
 
     prisma.fishingTrip.count(),
+
     prisma.fishingGear.count(),
+
     prisma.favourite.count(),
+
     prisma.rating.count(),
 
     prisma.lake.findMany({
@@ -283,9 +286,9 @@ export default async function AdminDashboardPage() {
               </h1>
 
               <p className="mt-3 max-w-3xl text-sm leading-6 text-white/80 sm:text-base">
-                Zarządzaj zgłoszeniami łowisk, poprawkami danych, zgłoszeniami
-                połowów, użytkownikami, rankingami oraz podstawowymi statystykami
-                aplikacji.
+                Zarządzaj zgłoszeniami łowisk, poprawkami danych,
+                zgłoszeniami połowów, użytkownikami, rankingami oraz
+                podstawowymi statystykami aplikacji.
               </p>
             </div>
 
@@ -294,7 +297,9 @@ export default async function AdminDashboardPage() {
                 Oczekujące sprawy
               </p>
 
-              <p className="mt-1 text-4xl font-black">{pendingTotal}</p>
+              <p className="mt-1 text-4xl font-black">
+                {pendingTotal}
+              </p>
             </div>
           </div>
         </div>
@@ -345,21 +350,51 @@ export default async function AdminDashboardPage() {
           label="Wszystkie zgłoszenia łowisk"
           value={lakeSubmissionsCount}
         />
+
         <SmallStatCard
           label="Wszystkie poprawki"
           value={lakeCorrectionsCount}
         />
+
         <SmallStatCard
           label="Wszystkie zgłoszenia połowów"
           value={catchReportsCount}
         />
-        <SmallStatCard label="Ukryte połowy" value={hiddenCatchesCount} />
-        <SmallStatCard label="Wszystkie połowy" value={catchesCount} />
-        <SmallStatCard label="Publiczne połowy" value={publicCatchesCount} />
-        <SmallStatCard label="Wyprawy" value={tripsCount} />
-        <SmallStatCard label="Elementy ekwipunku" value={gearCount} />
-        <SmallStatCard label="Ulubione łowiska" value={favouritesCount} />
-        <SmallStatCard label="Oceny łowisk" value={ratingsCount} />
+
+        <SmallStatCard
+          label="Ukryte połowy"
+          value={hiddenCatchesCount}
+        />
+
+        <SmallStatCard
+          label="Wszystkie połowy"
+          value={catchesCount}
+        />
+
+        <SmallStatCard
+          label="Publiczne połowy"
+          value={publicCatchesCount}
+        />
+
+        <SmallStatCard
+          label="Wyprawy"
+          value={tripsCount}
+        />
+
+        <SmallStatCard
+          label="Elementy ekwipunku"
+          value={gearCount}
+        />
+
+        <SmallStatCard
+          label="Ulubione łowiska"
+          value={favouritesCount}
+        />
+
+        <SmallStatCard
+          label="Oceny łowisk"
+          value={ratingsCount}
+        />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-4">
@@ -407,10 +442,14 @@ export default async function AdminDashboardPage() {
                 >
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
-                      <p className="font-black text-slate-950">{lake.name}</p>
+                      <p className="font-black text-slate-950">
+                        {lake.name}
+                      </p>
+
                       <p className="mt-1 text-sm text-slate-500">
                         {lake.city}, woj. {lake.voivodeship}
                       </p>
+
                       <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
                         {lake.ownerType}
                       </p>
@@ -448,8 +487,10 @@ export default async function AdminDashboardPage() {
                       <p className="font-black text-slate-950">
                         {submission.name}
                       </p>
+
                       <p className="mt-1 text-sm text-slate-500">
-                        {submission.city}, woj. {submission.voivodeship}
+                        {submission.city}, woj.{" "}
+                        {submission.voivodeship}
                       </p>
                     </div>
 
@@ -495,6 +536,7 @@ export default async function AdminDashboardPage() {
                       <p className="font-black text-slate-950">
                         {report.lake.name}
                       </p>
+
                       <p className="mt-1 text-sm font-semibold text-slate-500">
                         Kategoria: {report.category}
                       </p>
@@ -546,9 +588,13 @@ export default async function AdminDashboardPage() {
                       <p className="font-black text-slate-950">
                         {report.fishingCatch.fishName}
                       </p>
+
                       <p className="mt-1 text-sm text-slate-500">
-                        {report.fishingCatch.lakeName || "Brak łowiska"} •{" "}
-                        {report.fishingCatch.userName || "Użytkownik"}
+                        {report.fishingCatch.lakeName ||
+                          "Brak łowiska"}{" "}
+                        •{" "}
+                        {report.fishingCatch.userName ||
+                          "Użytkownik"}
                       </p>
                     </div>
 
@@ -636,7 +682,9 @@ export default async function AdminDashboardPage() {
                             fishingCatch.rankingStatus
                           )}`}
                         >
-                          {getStatusLabel(fishingCatch.rankingStatus)}
+                          {getStatusLabel(
+                            fishingCatch.rankingStatus
+                          )}
                         </span>
                       </td>
 
@@ -674,7 +722,9 @@ function StatCard({
     <Link
       href={href}
       className={`rounded-3xl border p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md ${
-        danger ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"
+        danger
+          ? "border-amber-200 bg-amber-50"
+          : "border-slate-200 bg-white"
       }`}
     >
       <p
@@ -685,7 +735,9 @@ function StatCard({
         {label}
       </p>
 
-      <p className="mt-3 text-4xl font-black text-slate-950">{value}</p>
+      <p className="mt-3 text-4xl font-black text-slate-950">
+        {value}
+      </p>
 
       <p
         className={`mt-3 text-sm leading-6 ${
@@ -698,11 +750,22 @@ function StatCard({
   );
 }
 
-function SmallStatCard({ label, value }: { label: string; value: number }) {
+function SmallStatCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-bold text-slate-500">{label}</p>
-      <p className="mt-3 text-3xl font-black text-slate-950">{value}</p>
+      <p className="text-sm font-bold text-slate-500">
+        {label}
+      </p>
+
+      <p className="mt-3 text-3xl font-black text-slate-950">
+        {value}
+      </p>
     </div>
   );
 }
@@ -724,7 +787,9 @@ function AdminShortcut({
     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-black text-slate-950">{title}</h2>
+          <h2 className="text-xl font-black text-slate-950">
+            {title}
+          </h2>
 
           <p className="mt-3 text-sm leading-6 text-slate-500">
             {description}
@@ -757,13 +822,20 @@ function PanelCard({
 }) {
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="text-xl font-black text-slate-950">{title}</h2>
+      <h2 className="text-xl font-black text-slate-950">
+        {title}
+      </h2>
+
       <div className="mt-5">{children}</div>
     </section>
   );
 }
 
-function EmptyState({ text }: { text: string }) {
+function EmptyState({
+  text,
+}: {
+  text: string;
+}) {
   return (
     <div className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">
       {text}

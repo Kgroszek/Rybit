@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminUser } from "@/lib/auth";
 
 type RouteProps = {
   params: Promise<{
@@ -8,69 +9,103 @@ type RouteProps = {
   }>;
 };
 
-function getAdminEmails() {
-  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
-  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
+const ALLOWED_ACTIONS = ["dismiss", "hide"] as const;
 
-  return [singleAdminEmail, multipleAdminEmails]
-    .join(",")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+type AdminAction = (typeof ALLOWED_ACTIONS)[number];
+
+function isAdminAction(value: string): value is AdminAction {
+  return ALLOWED_ACTIONS.includes(value as AdminAction);
 }
 
-function isAdminUser(user: {
-  email?: string | null;
-  app_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-  user_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-}) {
-  const adminEmails = getAdminEmails();
-  const userEmail = user.email?.trim().toLowerCase() ?? "";
-
-  return (
-    user.app_metadata?.role === "admin" ||
-    user.user_metadata?.role === "admin" ||
-    adminEmails.includes(userEmail)
-  );
-}
-
-export async function PATCH(request: Request, { params }: RouteProps) {
+export async function PATCH(
+  request: Request,
+  { params }: RouteProps
+) {
   const supabase = await createClient();
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     return NextResponse.json(
-      { message: "Musisz być zalogowany." },
-      { status: 401 }
+      {
+        message: "Musisz być zalogowany.",
+      },
+      {
+        status: 401,
+      }
     );
   }
 
   if (!isAdminUser(user)) {
     return NextResponse.json(
-      { message: "Brak uprawnień administratora." },
-      { status: 403 }
+      {
+        message: "Brak uprawnień administratora.",
+      },
+      {
+        status: 403,
+      }
     );
   }
 
   const { reportId } = await params;
+
+  if (!reportId) {
+    return NextResponse.json(
+      {
+        message: "Brakuje identyfikatora zgłoszenia.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
   const body = await request.json().catch(() => null);
 
-  const action = String(body?.action || "").trim();
-  const adminNote = String(body?.adminNote || "").trim();
-
-  if (!["dismiss", "hide"].includes(action)) {
+  if (!body || typeof body !== "object") {
     return NextResponse.json(
-      { message: "Nieprawidłowa akcja." },
-      { status: 400 }
+      {
+        message: "Nieprawidłowe dane żądania.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  const action = String(
+    (body as { action?: unknown }).action ?? ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const adminNote = String(
+    (body as { adminNote?: unknown }).adminNote ?? ""
+  ).trim();
+
+  if (!isAdminAction(action)) {
+    return NextResponse.json(
+      {
+        message: "Nieprawidłowa akcja.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  if (adminNote.length > 2000) {
+    return NextResponse.json(
+      {
+        message:
+          "Notatka administratora może mieć maksymalnie 2000 znaków.",
+      },
+      {
+        status: 400,
+      }
     );
   }
 
@@ -85,31 +120,40 @@ export async function PATCH(request: Request, { params }: RouteProps) {
 
   if (!report) {
     return NextResponse.json(
-      { message: "Nie znaleziono zgłoszenia." },
-      { status: 404 }
+      {
+        message: "Nie znaleziono zgłoszenia.",
+      },
+      {
+        status: 404,
+      }
     );
   }
 
   if (report.status !== "pending") {
     return NextResponse.json(
-      { message: "To zgłoszenie zostało już obsłużone." },
-      { status: 400 }
+      {
+        message: "To zgłoszenie zostało już obsłużone.",
+      },
+      {
+        status: 409,
+      }
     );
   }
 
   if (action === "dismiss") {
-    const updatedReport = await prisma.fishingCatchReport.update({
-      where: {
-        id: reportId,
-      },
-      data: {
-        status: "rejected",
-        adminNote: adminNote || null,
-      },
-      include: {
-        fishingCatch: true,
-      },
-    });
+    const updatedReport =
+      await prisma.fishingCatchReport.update({
+        where: {
+          id: reportId,
+        },
+        data: {
+          status: "rejected",
+          adminNote: adminNote || null,
+        },
+        include: {
+          fishingCatch: true,
+        },
+      });
 
     await prisma.userNotification.create({
       data: {
@@ -127,49 +171,49 @@ export async function PATCH(request: Request, { params }: RouteProps) {
     });
   }
 
-  const [updatedReport, updatedCatch] = await prisma.$transaction([
-    prisma.fishingCatchReport.update({
-      where: {
-        id: reportId,
-      },
-      data: {
-        status: "accepted",
-        adminNote: adminNote || null,
-      },
-      include: {
-        fishingCatch: true,
-      },
-    }),
+  const [updatedReport, updatedCatch] =
+    await prisma.$transaction([
+      prisma.fishingCatchReport.update({
+        where: {
+          id: reportId,
+        },
+        data: {
+          status: "accepted",
+          adminNote: adminNote || null,
+        },
+        include: {
+          fishingCatch: true,
+        },
+      }),
 
-    prisma.fishingCatch.update({
-      where: {
-        id: report.catchId,
-      },
-      data: {
-        isPublic: false,
-        rankingStatus: "hidden",
-      },
-    }),
-  ]);
+      prisma.fishingCatch.update({
+        where: {
+          id: report.catchId,
+        },
+        data: {
+          isPublic: false,
+          rankingStatus: "hidden",
+        },
+      }),
+    ]);
 
-  await prisma.userNotification.create({
-    data: {
-      userId: report.fishingCatch.userId,
-      title: "Twój połów został ukryty z rankingu",
-      message: `Połów ${report.fishingCatch.fishName} został ukryty po weryfikacji zgłoszenia.`,
-      href: "/polowy",
-      type: "catch_report",
-    },
-  });
-
-  await prisma.userNotification.create({
-    data: {
-      userId: report.userId,
-      title: "Twoje zgłoszenie zostało zaakceptowane",
-      message: `Połów ${report.fishingCatch.fishName} został ukryty z rankingu.`,
-      href: "/powiadomienia",
-      type: "catch_report",
-    },
+  await prisma.userNotification.createMany({
+    data: [
+      {
+        userId: report.fishingCatch.userId,
+        title: "Twój połów został ukryty z rankingu",
+        message: `Połów ${report.fishingCatch.fishName} został ukryty po weryfikacji zgłoszenia.`,
+        href: "/polowy",
+        type: "catch_report",
+      },
+      {
+        userId: report.userId,
+        title: "Twoje zgłoszenie zostało zaakceptowane",
+        message: `Połów ${report.fishingCatch.fishName} został ukryty z rankingu.`,
+        href: "/powiadomienia",
+        type: "catch_report",
+      },
+    ],
   });
 
   return NextResponse.json({

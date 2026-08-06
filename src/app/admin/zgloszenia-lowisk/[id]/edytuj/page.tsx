@@ -4,44 +4,13 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { AdminLakeSubmissionEditForm } from "@/components/dashboard/AdminLakeSubmissionEditForm";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminUser } from "@/lib/auth";
 
 type EditSubmissionPageProps = {
   params: Promise<{
     id: string;
   }>;
 };
-
-function getAdminEmails() {
-  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
-  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
-
-  return [singleAdminEmail, multipleAdminEmails]
-    .join(",")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isAdminUser(user: {
-  email?: string | null;
-  app_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-  user_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-}) {
-  const adminEmails = getAdminEmails();
-  const userEmail = user.email?.trim().toLowerCase() ?? "";
-
-  return (
-    user.app_metadata?.role === "admin" ||
-    user.user_metadata?.role === "admin" ||
-    adminEmails.includes(userEmail)
-  );
-}
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("pl-PL", {
@@ -62,9 +31,17 @@ function getStatusLabel(status: string) {
 }
 
 function getStatusClass(status: string) {
-  if (status === "pending") return "bg-amber-50 text-amber-700";
-  if (status === "approved") return "bg-emerald-50 text-emerald-700";
-  if (status === "rejected") return "bg-red-50 text-red-700";
+  if (status === "pending") {
+    return "bg-amber-50 text-amber-700";
+  }
+
+  if (status === "approved") {
+    return "bg-emerald-50 text-emerald-700";
+  }
+
+  if (status === "rejected") {
+    return "bg-red-50 text-red-700";
+  }
 
   return "bg-slate-100 text-slate-600";
 }
@@ -76,9 +53,10 @@ export default async function EditSubmissionPage({
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     redirect("/login");
   }
 
@@ -147,21 +125,19 @@ export default async function EditSubmissionPage({
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <InfoBox label="Nazwa" value={submission.name} />
-            <InfoBox label="Miasto" value={submission.city} />
-            <InfoBox label="Województwo" value={submission.voivodeship} />
-            <InfoBox label="Status" value={getStatusLabel(submission.status)} />
             <InfoBox
-              label="Data zgłoszenia"
-              value={formatDate(submission.createdAt)}
+              label="Nazwa"
+              value={submission.name}
             />
+
             <InfoBox
-              label="ID użytkownika"
-              value={submission.userId || "Brak"}
+              label="Miasto"
+              value={submission.city}
             />
+
             <InfoBox
-              label="Zdjęcia"
-              value={String(submission.images.length)}
+              label="Województwo"
+              value={submission.voivodeship}
             />
 
             <div className="rounded-2xl bg-slate-50 p-4">
@@ -177,6 +153,21 @@ export default async function EditSubmissionPage({
                 {getStatusLabel(submission.status)}
               </span>
             </div>
+
+            <InfoBox
+              label="Data zgłoszenia"
+              value={formatDate(submission.createdAt)}
+            />
+
+            <InfoBox
+              label="ID użytkownika"
+              value={submission.userId || "Brak"}
+            />
+
+            <InfoBox
+              label="Zdjęcia"
+              value={String(submission.images.length)}
+            />
           </div>
 
           {submission.adminNote && (
@@ -252,7 +243,13 @@ export default async function EditSubmissionPage({
   );
 }
 
-function InfoBox({ label, value }: { label: string; value: string }) {
+function InfoBox({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
       <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">

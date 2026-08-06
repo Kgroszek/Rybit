@@ -4,38 +4,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { AdminCorrectionReportActions } from "@/components/dashboard/AdminCorrectionReportActions";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-
-function getAdminEmails() {
-  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
-  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
-
-  return [singleAdminEmail, multipleAdminEmails]
-    .join(",")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isAdminUser(user: {
-  email?: string | null;
-  app_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-  user_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-}) {
-  const adminEmails = getAdminEmails();
-  const userEmail = user.email?.trim().toLowerCase() ?? "";
-
-  return (
-    user.app_metadata?.role === "admin" ||
-    user.user_metadata?.role === "admin" ||
-    adminEmails.includes(userEmail)
-  );
-}
+import { isAdminUser } from "@/lib/auth";
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("pl-PL", {
@@ -52,15 +21,22 @@ function getStatusLabel(status: string) {
   if (status === "resolved") return "Rozwiązane";
   if (status === "rejected") return "Odrzucone";
   if (status === "approved") return "Zaakceptowane";
+
   return status;
 }
 
 function getStatusClass(status: string) {
-  if (status === "pending") return "bg-amber-50 text-amber-700";
+  if (status === "pending") {
+    return "bg-amber-50 text-amber-700";
+  }
+
   if (status === "resolved" || status === "approved") {
     return "bg-emerald-50 text-emerald-700";
   }
-  if (status === "rejected") return "bg-red-50 text-red-600";
+
+  if (status === "rejected") {
+    return "bg-red-50 text-red-600";
+  }
 
   return "bg-slate-100 text-slate-600";
 }
@@ -84,9 +60,10 @@ export default async function LakeCorrectionReportsAdminPage() {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     redirect("/login");
   }
 
@@ -153,9 +130,23 @@ export default async function LakeCorrectionReportsAdminPage() {
         </section>
 
         <section className="grid gap-4 sm:grid-cols-3">
-          <StatCard label="Oczekujące" value={pendingCount} variant="warning" />
-          <StatCard label="Rozwiązane" value={resolvedCount} variant="success" />
-          <StatCard label="Odrzucone" value={rejectedCount} variant="danger" />
+          <StatCard
+            label="Oczekujące"
+            value={pendingCount}
+            variant="warning"
+          />
+
+          <StatCard
+            label="Rozwiązane"
+            value={resolvedCount}
+            variant="success"
+          />
+
+          <StatCard
+            label="Odrzucone"
+            value={rejectedCount}
+            variant="danger"
+          />
         </section>
 
         {reports.length > 0 ? (
@@ -242,7 +233,9 @@ export default async function LakeCorrectionReportsAdminPage() {
 
                   {report.status === "pending" && (
                     <div className="w-full xl:w-[360px] xl:shrink-0">
-                      <AdminCorrectionReportActions reportId={report.id} />
+                      <AdminCorrectionReportActions
+                        reportId={report.id}
+                      />
                     </div>
                   )}
                 </div>
@@ -282,14 +275,25 @@ function StatCard({
   };
 
   return (
-    <div className={`rounded-3xl border p-5 shadow-sm ${classes[variant]}`}>
+    <div
+      className={`rounded-3xl border p-5 shadow-sm ${classes[variant]}`}
+    >
       <p className="text-sm font-bold">{label}</p>
-      <p className="mt-3 text-4xl font-black">{value}</p>
+
+      <p className="mt-3 text-4xl font-black">
+        {value}
+      </p>
     </div>
   );
 }
 
-function InfoBox({ label, value }: { label: string; value: string }) {
+function InfoBox({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
       <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">

@@ -4,40 +4,9 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { CatchReportAdminActions } from "@/components/dashboard/CatchReportAdminActions";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminUser } from "@/lib/auth";
 
 const BUCKET_NAME = "catch-images";
-
-function getAdminEmails() {
-  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
-  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
-
-  return [singleAdminEmail, multipleAdminEmails]
-    .join(",")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isAdminUser(user: {
-  email?: string | null;
-  app_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-  user_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-}) {
-  const adminEmails = getAdminEmails();
-  const userEmail = user.email?.trim().toLowerCase() ?? "";
-
-  return (
-    user.app_metadata?.role === "admin" ||
-    user.user_metadata?.role === "admin" ||
-    adminEmails.includes(userEmail)
-  );
-}
 
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("pl-PL", {
@@ -60,7 +29,9 @@ function getStatusLabel(status: string) {
 }
 
 function getStatusClass(status: string) {
-  if (status === "pending") return "bg-amber-50 text-amber-700";
+  if (status === "pending") {
+    return "bg-amber-50 text-amber-700";
+  }
 
   if (
     status === "accepted" ||
@@ -70,18 +41,26 @@ function getStatusClass(status: string) {
     return "bg-emerald-50 text-emerald-700";
   }
 
-  if (status === "rejected") return "bg-red-50 text-red-700";
+  if (status === "rejected") {
+    return "bg-red-50 text-red-700";
+  }
 
   return "bg-slate-100 text-slate-600";
 }
 
 function formatWeight(weight: number | null) {
-  if (weight === null) return "Brak";
+  if (weight === null) {
+    return "Brak";
+  }
+
   return `${weight.toFixed(2)} kg`;
 }
 
 function formatLength(length: number | null) {
-  if (length === null) return "Brak";
+  if (length === null) {
+    return "Brak";
+  }
+
   return `${length.toFixed(0)} cm`;
 }
 
@@ -90,9 +69,10 @@ export default async function AdminCatchReportsPage() {
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     redirect("/login");
   }
 
@@ -127,9 +107,14 @@ export default async function AdminCatchReportsPage() {
       if (report.fishingCatch.imagePath) {
         const { data } = await supabase.storage
           .from(BUCKET_NAME)
-          .createSignedUrl(report.fishingCatch.imagePath, 60 * 60);
+          .createSignedUrl(
+            report.fishingCatch.imagePath,
+            60 * 60
+          );
 
-        previewImageUrl = data?.signedUrl ?? report.fishingCatch.imageUrl;
+        previewImageUrl =
+          data?.signedUrl ??
+          report.fishingCatch.imageUrl;
       }
 
       return {
@@ -169,8 +154,9 @@ export default async function AdminCatchReportsPage() {
               </h1>
 
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
-                Weryfikuj zgłoszone połowy z rankingów łowisk. Możesz odrzucić
-                zgłoszenie albo ukryć połów z publicznego rankingu.
+                Weryfikuj zgłoszone połowy z rankingów łowisk. Możesz
+                odrzucić zgłoszenie albo ukryć połów z publicznego
+                rankingu.
               </p>
             </div>
 
@@ -184,8 +170,18 @@ export default async function AdminCatchReportsPage() {
         </section>
 
         <section className="grid gap-4 sm:grid-cols-3">
-          <StatCard label="Oczekujące" value={pendingCount} variant="warning" />
-          <StatCard label="Ukryte połowy" value={hiddenCount} variant="success" />
+          <StatCard
+            label="Oczekujące"
+            value={pendingCount}
+            variant="warning"
+          />
+
+          <StatCard
+            label="Ukryte połowy"
+            value={hiddenCount}
+            variant="success"
+          />
+
           <StatCard
             label="Odrzucone zgłoszenia"
             value={rejectedCount}
@@ -244,7 +240,8 @@ export default async function AdminCatchReportsPage() {
                         </h2>
 
                         <p className="mt-1 break-words text-sm text-slate-500">
-                          Zgłoszone przez: {report.userEmail || report.userId}
+                          Zgłoszone przez:{" "}
+                          {report.userEmail || report.userId}
                         </p>
                       </div>
 
@@ -272,12 +269,16 @@ export default async function AdminCatchReportsPage() {
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                       <InfoTile
                         label="Waga"
-                        value={formatWeight(report.fishingCatch.weight)}
+                        value={formatWeight(
+                          report.fishingCatch.weight
+                        )}
                       />
 
                       <InfoTile
                         label="Długość"
-                        value={formatLength(report.fishingCatch.length)}
+                        value={formatLength(
+                          report.fishingCatch.length
+                        )}
                       />
 
                       <InfoTile
@@ -291,29 +292,42 @@ export default async function AdminCatchReportsPage() {
 
                       <InfoTile
                         label="Użytkownik"
-                        value={report.fishingCatch.userName || "Użytkownik"}
+                        value={
+                          report.fishingCatch.userName ||
+                          "Użytkownik"
+                        }
                       />
                     </div>
 
                     <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                       <InfoTile
                         label="Metoda"
-                        value={report.fishingCatch.method || "Brak"}
+                        value={
+                          report.fishingCatch.method ||
+                          "Brak"
+                        }
                       />
 
                       <InfoTile
                         label="Przynęta"
-                        value={report.fishingCatch.bait || "Brak"}
+                        value={
+                          report.fishingCatch.bait ||
+                          "Brak"
+                        }
                       />
 
                       <InfoTile
                         label="Data połowu"
-                        value={formatDate(report.fishingCatch.caughtAt)}
+                        value={formatDate(
+                          report.fishingCatch.caughtAt
+                        )}
                       />
 
                       <InfoTile
                         label="Status rankingu"
-                        value={getStatusLabel(report.fishingCatch.rankingStatus)}
+                        value={getStatusLabel(
+                          report.fishingCatch.rankingStatus
+                        )}
                       />
                     </div>
 
@@ -353,7 +367,9 @@ export default async function AdminCatchReportsPage() {
 
                     {report.status === "pending" && (
                       <div className="mt-5">
-                        <CatchReportAdminActions reportId={report.id} />
+                        <CatchReportAdminActions
+                          reportId={report.id}
+                        />
                       </div>
                     )}
                   </div>
@@ -368,7 +384,8 @@ export default async function AdminCatchReportsPage() {
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              Gdy użytkownicy zgłoszą połów z rankingu, pojawi się on tutaj.
+              Gdy użytkownicy zgłoszą połów z rankingu, pojawi się on
+              tutaj.
             </p>
 
             <Link
@@ -395,19 +412,33 @@ function StatCard({
 }) {
   const classes = {
     warning: "border-amber-100 bg-amber-50 text-amber-700",
-    success: "border-emerald-100 bg-emerald-50 text-emerald-700",
+    success:
+      "border-emerald-100 bg-emerald-50 text-emerald-700",
     danger: "border-red-100 bg-red-50 text-red-700",
   };
 
   return (
-    <div className={`rounded-3xl border p-5 shadow-sm ${classes[variant]}`}>
-      <p className="text-sm font-bold">{label}</p>
-      <p className="mt-3 text-4xl font-black">{value}</p>
+    <div
+      className={`rounded-3xl border p-5 shadow-sm ${classes[variant]}`}
+    >
+      <p className="text-sm font-bold">
+        {label}
+      </p>
+
+      <p className="mt-3 text-4xl font-black">
+        {value}
+      </p>
     </div>
   );
 }
 
-function InfoTile({ label, value }: { label: string; value: string }) {
+function InfoTile({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
       <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">

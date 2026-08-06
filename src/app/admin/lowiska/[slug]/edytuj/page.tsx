@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { LakeEditForm } from "@/components/dashboard/LakeEditForm";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { isAdminUser } from "@/lib/auth";
 
 type EditLakePageProps = {
   params: Promise<{
@@ -11,50 +12,24 @@ type EditLakePageProps = {
   }>;
 };
 
-function getAdminEmails() {
-  const singleAdminEmail = process.env.ADMIN_EMAIL ?? "";
-  const multipleAdminEmails = process.env.ADMIN_EMAILS ?? "";
-
-  return [singleAdminEmail, multipleAdminEmails]
-    .join(",")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-function isAdminUser(user: {
-  email?: string | null;
-  app_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-  user_metadata?: {
-    role?: string;
-    [key: string]: unknown;
-  };
-}) {
-  const adminEmails = getAdminEmails();
-  const userEmail = user.email?.trim().toLowerCase() ?? "";
-
-  return (
-    user.app_metadata?.role === "admin" ||
-    user.user_metadata?.role === "admin" ||
-    adminEmails.includes(userEmail)
-  );
-}
-
 function isVisibleTextItem(item: string, hiddenPrefix: string) {
-  return !item.toLowerCase().trim().startsWith(hiddenPrefix.toLowerCase());
+  return !item
+    .toLowerCase()
+    .trim()
+    .startsWith(hiddenPrefix.toLowerCase());
 }
 
-export default async function EditLakePage({ params }: EditLakePageProps) {
+export default async function EditLakePage({
+  params,
+}: EditLakePageProps) {
   const supabase = await createClient();
 
   const {
     data: { user },
+    error: userError,
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  if (userError || !user) {
     redirect("/login");
   }
 
@@ -110,14 +85,18 @@ export default async function EditLakePage({ params }: EditLakePageProps) {
     lake.priceListText ||
     lake.priceList
       .map((item) => item.text)
-      .filter((item) => isVisibleTextItem(item, "link do cennika"))
+      .filter((item) =>
+        isVisibleTextItem(item, "link do cennika")
+      )
       .join("\n");
 
   const rulesText =
     lake.rulesText ||
     lake.rules
       .map((item) => item.text)
-      .filter((item) => isVisibleTextItem(item, "link do regulaminu"))
+      .filter((item) =>
+        isVisibleTextItem(item, "link do regulaminu")
+      )
       .join("\n");
 
   return (
@@ -135,8 +114,8 @@ export default async function EditLakePage({ params }: EditLakePageProps) {
               </h1>
 
               <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
-                Popraw dane łowiska, lokalizację, udogodnienia, kontakt, cennik,
-                regulamin oraz zdjęcia.
+                Popraw dane łowiska, lokalizację, udogodnienia,
+                kontakt, cennik, regulamin oraz zdjęcia.
               </p>
             </div>
 
@@ -158,10 +137,25 @@ export default async function EditLakePage({ params }: EditLakePageProps) {
           </div>
 
           <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <InfoBox label="Nazwa" value={lake.name} />
-            <InfoBox label="Miasto" value={lake.city} />
-            <InfoBox label="Województwo" value={lake.voivodeship} />
-            <InfoBox label="Slug" value={lake.slug} />
+            <InfoBox
+              label="Nazwa"
+              value={lake.name}
+            />
+
+            <InfoBox
+              label="Miasto"
+              value={lake.city}
+            />
+
+            <InfoBox
+              label="Województwo"
+              value={lake.voivodeship}
+            />
+
+            <InfoBox
+              label="Slug"
+              value={lake.slug}
+            />
           </div>
         </section>
 
@@ -219,10 +213,12 @@ export default async function EditLakePage({ params }: EditLakePageProps) {
               weightKg: record.weightKg,
             })),
 
-            gearRequirements: lake.gearRequirements.map((requirement) => ({
-              id: requirement.id,
-              text: requirement.text,
-            })),
+            gearRequirements: lake.gearRequirements.map(
+              (requirement) => ({
+                id: requirement.id,
+                text: requirement.text,
+              })
+            ),
 
             images: lake.images.map((image) => ({
               id: image.id,
@@ -240,7 +236,13 @@ export default async function EditLakePage({ params }: EditLakePageProps) {
   );
 }
 
-function InfoBox({ label, value }: { label: string; value: string }) {
+function InfoBox({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
       <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
