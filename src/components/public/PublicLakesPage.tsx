@@ -1,9 +1,27 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { LakeDto } from "@/lib/lakes";
 import { getFishKey, normalizeFishList } from "@/lib/fish-names";
+
+const PublicLakesMap = dynamic(
+  () =>
+    import("@/components/public/PublicLakesMap").then(
+      (module) => module.PublicLakesMap
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center bg-slate-100">
+        <p className="text-sm font-bold text-slate-500">
+          Ładowanie mapy...
+        </p>
+      </div>
+    ),
+  }
+);
 
 type PublicLakesPageProps = {
   lakes: LakeDto[];
@@ -526,7 +544,7 @@ export function PublicLakesPage({
           </div>
         </div>
 
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <p className="text-sm font-bold text-slate-600">
             Wyniki: {filteredLakes.length} / {lakes.length}
             {filteredLakes.length > ITEMS_PER_PAGE && (
@@ -536,7 +554,7 @@ export function PublicLakesPage({
             )}
           </p>
 
-          <div className="flex items-center gap-3">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
             <button
               type="button"
               onClick={clearFilters}
@@ -546,57 +564,52 @@ export function PublicLakesPage({
               Resetuj filtry
             </button>
 
-            <div className="flex rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200">
-              <button
-                type="button"
+            <div className="grid w-full grid-cols-2 rounded-2xl bg-white p-1 shadow-sm ring-1 ring-slate-200 sm:w-auto">
+              <ViewModeButton
+                label="Kafelki"
+                isActive={viewMode === "grid"}
                 onClick={() => setViewMode("grid")}
-                className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-                  viewMode === "grid"
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-500 hover:bg-slate-50"
-                }`}
-              >
-                Kafelki
-              </button>
+              />
 
-              <button
-                type="button"
+              <ViewModeButton
+                label="Lista"
+                isActive={viewMode === "list"}
                 onClick={() => setViewMode("list")}
-                className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
-                  viewMode === "list"
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-500 hover:bg-slate-50"
-                }`}
-              >
-                Lista
-              </button>
+              />
             </div>
           </div>
         </div>
 
         {filteredLakes.length > 0 ? (
           <>
-            {viewMode === "grid" ? (
-              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-                {paginatedLakes.map((lake) => (
-                  <LakeCard
-                    key={lake.id}
-                    lake={lake}
-                    onRequireAuth={setAuthModalType}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {paginatedLakes.map((lake) => (
-                  <LakeListItem
-                    key={lake.id}
-                    lake={lake}
-                    onRequireAuth={setAuthModalType}
-                  />
-                ))}
-              </div>
-            )}
+            <PublicMapPanel
+              lakes={filteredLakes}
+              userLocation={userLocation}
+            />
+
+            <div className="mt-6">
+              {viewMode === "grid" ? (
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                  {paginatedLakes.map((lake) => (
+                    <LakeCard
+                      key={lake.id}
+                      lake={lake}
+                      onRequireAuth={setAuthModalType}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {paginatedLakes.map((lake) => (
+                    <LakeListItem
+                      key={lake.id}
+                      lake={lake}
+                      onRequireAuth={setAuthModalType}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
 
             {filteredLakes.length > ITEMS_PER_PAGE && (
               <Pagination
@@ -635,6 +648,76 @@ export function PublicLakesPage({
       )}
     </>
   );
+}
+
+function ViewModeButton({
+  label,
+  isActive,
+  onClick,
+}: {
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-black transition sm:px-4 sm:text-sm ${
+        isActive
+          ? "bg-blue-600 text-white shadow-sm"
+          : "text-slate-500 hover:bg-slate-50"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function PublicMapPanel({
+  lakes,
+  userLocation,
+}: {
+  lakes: LakeWithDistance[];
+  userLocation: UserLocation | null;
+}) {
+  return (
+    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-2 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="font-black text-slate-950">Mapa łowisk</h3>
+          <p className="mt-1 text-xs font-semibold text-slate-500">
+            Mapa jest zawsze widoczna i uwzględnia aktualnie wybrane filtry.
+          </p>
+        </div>
+
+        <span className="w-fit rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+          {lakes.length} {getLakeResultLabel(lakes.length)}
+        </span>
+      </div>
+
+      <div className="h-[280px] sm:h-[330px] lg:h-[380px]">
+        <PublicLakesMap lakes={lakes} userLocation={userLocation} />
+      </div>
+    </section>
+  );
+}
+
+function getLakeResultLabel(count: number) {
+  if (count === 1) return "łowisko";
+
+  const lastTwoDigits = count % 100;
+  const lastDigit = count % 10;
+
+  if (lastTwoDigits >= 12 && lastTwoDigits <= 14) {
+    return "łowisk";
+  }
+
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return "łowiska";
+  }
+
+  return "łowisk";
 }
 
 function Pagination({
