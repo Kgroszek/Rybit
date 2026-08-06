@@ -72,6 +72,7 @@ model Lake {
   ratings           Rating[]
   correctionReports LakeCorrectionReport[]
   catches           FishingCatch[]
+  comments          LakeComment[]
 
   owners      LakeOwner[]
   ownerClaims LakeOwnerClaim[]
@@ -91,6 +92,56 @@ model Lake {
   @@index([ownerType, fishingType])
   @@index([voivodeship, ownerType])
   @@index([voivodeship, fishingType])
+}
+
+model LakeComment {
+  id String @id @default(cuid())
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  userId   String
+  userName String
+
+  content String
+  status  String @default("visible")
+
+  reports LakeCommentReport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([lakeId, status, createdAt])
+}
+
+model LakeCommentReport {
+  id String @id @default(cuid())
+
+  commentId String
+  comment   LakeComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  userId    String
+  userEmail String?
+
+  reason      String
+  description String?
+
+  status    String  @default("pending")
+  adminNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
 }
 
 model LakeCorrectionReport {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import type { LakeDto } from "@/lib/lakes";
+import { LakeCommentsSection } from "@/components/lakes/LakeCommentsSection";
 
 type RecommendedLake = LakeDto & {
   nearbyDistanceInKm?: number;
@@ -510,6 +511,13 @@ export function PublicLakeDetailsPage({
               </p>
             </section>
           </aside>
+        </div>
+
+        <div className="mt-8">
+          <LakeCommentsSection
+            lakeSlug={lake.slug}
+            lakeName={lake.name}
+          />
         </div>
 
         {recommendedLakes.length > 0 && (

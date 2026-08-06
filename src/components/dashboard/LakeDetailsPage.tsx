@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import type { LakeDto } from "@/lib/lakes";
 import { LakeCorrectionReportButton } from "@/components/dashboard/LakeCorrectionReportButton";
 import { CatchReportButton } from "@/components/dashboard/CatchReportButton";
+import { LakeCommentsSection } from "@/components/lakes/LakeCommentsSection";
 import { useToast } from "@/components/ui/ToastProvider";
 import type { ReactNode } from "react";
 
@@ -946,6 +947,13 @@ export function LakeDetailsPage({
             <LakeCorrectionReportButton lakeSlug={lake.slug} />
           </section>
         </aside>
+      </div>
+
+      <div className="mt-6">
+        <LakeCommentsSection
+          lakeSlug={lake.slug}
+          lakeName={lake.name}
+        />
       </div>
 
       {previewImage && previewImageIndex !== null && (

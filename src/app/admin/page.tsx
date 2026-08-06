@@ -272,7 +272,7 @@ export default async function AdminDashboardPage() {
     pendingCatchReportsCount;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pl-10  pr-10 pt-2">
       <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div className="bg-gradient-to-br from-blue-600 via-blue-500 to-emerald-400 p-6 text-white sm:p-8">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -292,14 +292,23 @@ export default async function AdminDashboardPage() {
               </p>
             </div>
 
-            <div className="rounded-3xl bg-white/15 p-5 backdrop-blur">
-              <p className="text-sm font-bold text-white/75">
-                Oczekujące sprawy
-              </p>
+            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
+              <Link
+                href="/dashboard"
+                className="inline-flex items-center justify-center rounded-2xl bg-white px-5 py-3 text-sm font-black text-blue-700 shadow-sm transition hover:bg-blue-50"
+              >
+                ← Wróć do aplikacji
+              </Link>
 
-              <p className="mt-1 text-4xl font-black">
-                {pendingTotal}
-              </p>
+              <div className="rounded-3xl bg-white/15 p-5 backdrop-blur">
+                <p className="text-sm font-bold text-white/75">
+                  Oczekujące sprawy
+                </p>
+
+                <p className="mt-1 text-4xl font-black">
+                  {pendingTotal}
+                </p>
+              </div>
             </div>
           </div>
         </div>
