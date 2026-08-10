@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/components/ui/ToastProvider";
 
 type FishingCatch = {
@@ -60,6 +60,7 @@ type CatchFormState = {
 };
 
 type ViewMode = "grid" | "list";
+type CatchFormMode = "quick" | "full";
 
 const initialFormState: CatchFormState = {
   fishName: "",
@@ -149,6 +150,9 @@ export function CatchesPage({
 
   const initialFormWithTrip: CatchFormState = {
     ...initialFormState,
+    caughtAt: initialTripExists
+      ? toDateTimeLocalValue(new Date().toISOString())
+      : "",
     tripId: initialTripExists ? initialTripId || "" : "",
   };
 
@@ -156,6 +160,9 @@ export function CatchesPage({
   const [form, setForm] = useState<CatchFormState>(initialFormWithTrip);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(initialTripExists);
+  const [formMode, setFormMode] = useState<CatchFormMode>(
+    initialTripExists ? "quick" : "full"
+  );
   const [editingCatchId, setEditingCatchId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -196,11 +203,26 @@ export function CatchesPage({
     localStorage.setItem("rybit-catches-view-mode", nextViewMode);
   }
 
-  function openCreateForm() {
+  function openCreateForm(mode: CatchFormMode = "full") {
     setEditingCatchId(null);
     setSelectedImage(null);
-    setForm(initialFormWithTrip);
+    setForm({
+      ...initialFormState,
+      caughtAt:
+        mode === "quick"
+          ? toDateTimeLocalValue(new Date().toISOString())
+          : "",
+      tripId: initialTripExists ? initialTripId || "" : "",
+    });
+    setFormMode(mode);
     setIsFormOpen(true);
+
+    window.setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    }, 0);
   }
 
   function handleStartEdit(item: FishingCatch) {
@@ -210,6 +232,7 @@ export function CatchesPage({
 
     setEditingCatchId(item.id);
     setSelectedImage(null);
+    setFormMode("full");
 
     setForm({
       fishName: isKnownFish ? item.fishName : "other",
@@ -241,6 +264,7 @@ export function CatchesPage({
     setEditingCatchId(null);
     setSelectedImage(null);
     setForm(initialFormWithTrip);
+    setFormMode("full");
     setIsFormOpen(false);
   }
 
@@ -613,20 +637,23 @@ export function CatchesPage({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            if (isFormOpen) {
-              handleCancelForm();
-              return;
-            }
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => openCreateForm("quick")}
+            className="rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:text-sm"
+          >
+            ⚡ Szybki połów
+          </button>
 
-            openCreateForm();
-          }}
-          className="rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:text-sm"
-        >
-          {isFormOpen ? "Zamknij formularz" : "+ Dodaj połów"}
-        </button>
+          <button
+            type="button"
+            onClick={() => openCreateForm("full")}
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-base font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:text-sm"
+          >
+            + Pełny formularz
+          </button>
+        </div>
       </div>
 
       <section className="mb-6 flex w-full max-w-full gap-3 overflow-x-auto pb-2 md:grid md:grid-cols-2 md:gap-5 md:overflow-visible md:pb-0 xl:grid-cols-4">
@@ -645,19 +672,34 @@ export function CatchesPage({
       {isFormOpen && (
         <>
           <section className="mb-6 hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:block">
-            <CatchForm
-              form={form}
-              editingCatchId={editingCatchId}
-              selectedImage={selectedImage}
-              catches={catches}
-              lakes={lakes}
-              trips={trips}
-              isLoading={isLoading}
-              onSubmit={handleSubmit}
-              onCancel={handleCancelForm}
-              onFieldChange={updateField}
-              onImageChange={setSelectedImage}
-            />
+            {formMode === "quick" && !editingCatchId ? (
+              <QuickCatchForm
+                form={form}
+                selectedImage={selectedImage}
+                lakes={lakes}
+                trips={trips}
+                isLoading={isLoading}
+                onSubmit={handleSubmit}
+                onCancel={handleCancelForm}
+                onSwitchToFull={() => setFormMode("full")}
+                onFieldChange={updateField}
+                onImageChange={setSelectedImage}
+              />
+            ) : (
+              <CatchForm
+                form={form}
+                editingCatchId={editingCatchId}
+                selectedImage={selectedImage}
+                catches={catches}
+                lakes={lakes}
+                trips={trips}
+                isLoading={isLoading}
+                onSubmit={handleSubmit}
+                onCancel={handleCancelForm}
+                onFieldChange={updateField}
+                onImageChange={setSelectedImage}
+              />
+            )}
           </section>
 
           <div
@@ -675,7 +717,11 @@ export function CatchesPage({
                   </p>
 
                   <h2 className="mt-1 text-xl font-black text-slate-950">
-                    {editingCatchId ? "Edytuj połów" : "Dodaj połów"}
+                    {editingCatchId
+                      ? "Edytuj połów"
+                      : formMode === "quick"
+                        ? "Szybki połów"
+                        : "Dodaj połów"}
                   </h2>
                 </div>
 
@@ -691,20 +737,36 @@ export function CatchesPage({
               </div>
 
               <div className="max-h-[calc(88vh-73px)] overflow-y-auto px-5 py-5">
-                <CatchForm
-                  form={form}
-                  editingCatchId={editingCatchId}
-                  selectedImage={selectedImage}
-                  catches={catches}
-                  lakes={lakes}
-                  trips={trips}
-                  isLoading={isLoading}
-                  onSubmit={handleSubmit}
-                  onCancel={handleCancelForm}
-                  onFieldChange={updateField}
-                  onImageChange={setSelectedImage}
-                  isMobile
-                />
+                {formMode === "quick" && !editingCatchId ? (
+                  <QuickCatchForm
+                    form={form}
+                    selectedImage={selectedImage}
+                    lakes={lakes}
+                    trips={trips}
+                    isLoading={isLoading}
+                    onSubmit={handleSubmit}
+                    onCancel={handleCancelForm}
+                    onSwitchToFull={() => setFormMode("full")}
+                    onFieldChange={updateField}
+                    onImageChange={setSelectedImage}
+                    isMobile
+                  />
+                ) : (
+                  <CatchForm
+                    form={form}
+                    editingCatchId={editingCatchId}
+                    selectedImage={selectedImage}
+                    catches={catches}
+                    lakes={lakes}
+                    trips={trips}
+                    isLoading={isLoading}
+                    onSubmit={handleSubmit}
+                    onCancel={handleCancelForm}
+                    onFieldChange={updateField}
+                    onImageChange={setSelectedImage}
+                    isMobile
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -848,7 +910,7 @@ export function CatchesPage({
 
           <button
             type="button"
-            onClick={openCreateForm}
+            onClick={() => openCreateForm("quick")}
             className="mt-6 w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto"
           >
             + Dodaj pierwszy połów
@@ -868,7 +930,7 @@ export function CatchesPage({
 
       <button
         type="button"
-        onClick={openCreateForm}
+        onClick={() => openCreateForm("quick")}
         className="fixed bottom-24 right-4 z-[900] flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-3xl font-light leading-none text-white shadow-xl transition hover:bg-blue-700 md:hidden"
         aria-label="Dodaj połów"
       >
@@ -902,6 +964,213 @@ export function CatchesPage({
         </div>
       )}
     </div>
+  );
+}
+
+
+function QuickCatchForm({
+  form,
+  selectedImage,
+  lakes,
+  trips,
+  isLoading,
+  onSubmit,
+  onCancel,
+  onSwitchToFull,
+  onFieldChange,
+  onImageChange,
+  isMobile = false,
+}: {
+  form: CatchFormState;
+  selectedImage: File | null;
+  lakes: LakeOption[];
+  trips: TripOption[];
+  isLoading: boolean;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onCancel: () => void;
+  onSwitchToFull: () => void;
+  onFieldChange: <K extends keyof CatchFormState>(
+    field: K,
+    value: CatchFormState[K]
+  ) => void;
+  onImageChange: (file: File | null) => void;
+  isMobile?: boolean;
+}) {
+  return (
+    <form onSubmit={onSubmit} className="space-y-6">
+      {!isMobile && (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-blue-600">
+                Szybki zapis
+              </span>
+            </div>
+
+            <h2 className="mt-3 text-xl font-bold text-slate-950">
+              ⚡ Szybki połów
+            </h2>
+
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+              Zapisz najważniejsze dane. Data i godzina zostały ustawione
+              automatycznie na moment rozpoczęcia wpisu.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onSwitchToFull}
+            disabled={isLoading}
+            className="shrink-0 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            Pełny formularz →
+          </button>
+        </div>
+      )}
+
+      {isMobile && (
+        <button
+          type="button"
+          onClick={onSwitchToFull}
+          disabled={isLoading}
+          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+        >
+          Potrzebujesz więcej pól? Otwórz pełny formularz
+        </button>
+      )}
+
+      <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-500">
+          Data połowu
+        </p>
+        <p className="mt-1 text-sm font-black text-blue-950">
+          {form.caughtAt
+            ? formatDateTime(new Date(form.caughtAt).toISOString())
+            : "Teraz"}
+        </p>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Select
+          label="Gatunek ryby"
+          value={form.fishName}
+          onChange={(value) => onFieldChange("fishName", value)}
+          options={[
+            { label: "Wybierz gatunek", value: "" },
+            ...fishSpecies,
+          ]}
+        />
+
+        <Select
+          label="Metoda"
+          value={form.method}
+          onChange={(value) => onFieldChange("method", value)}
+          options={methods}
+        />
+
+        {form.fishName === "other" && (
+          <div className="lg:col-span-2">
+            <Input
+              label="Wpisz gatunek"
+              value={form.customFishName}
+              onChange={(value) => onFieldChange("customFishName", value)}
+              placeholder="np. inny gatunek"
+              required
+            />
+          </div>
+        )}
+
+        <Input
+          label="Waga w kg"
+          value={form.weight}
+          onChange={(value) => onFieldChange("weight", value)}
+          placeholder="np. 3.25"
+          type="number"
+        />
+
+        <Input
+          label="Długość w cm"
+          value={form.length}
+          onChange={(value) => onFieldChange("length", value)}
+          placeholder="np. 72"
+          type="number"
+        />
+      </div>
+
+      <LakeSearchSelect
+        lakes={lakes}
+        value={form.lakeId}
+        onChange={(value) => onFieldChange("lakeId", value)}
+      />
+
+      {trips.length > 0 && (
+        <Select
+          label="Wyprawa (opcjonalnie)"
+          value={form.tripId}
+          onChange={(value) => onFieldChange("tripId", value)}
+          options={[
+            { label: "Bez przypisanej wyprawy", value: "" },
+            ...trips.map((trip) => ({
+              label: `${trip.title} — ${formatShortDate(trip.startsAt)}`,
+              value: trip.id,
+            })),
+          ]}
+        />
+      )}
+
+      <div>
+        <label className="mb-2 block text-sm font-semibold text-slate-700">
+          Zdjęcie połowu (opcjonalnie)
+        </label>
+
+        <input
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={(event) => {
+            const file = event.target.files?.[0] || null;
+            onImageChange(file);
+          }}
+          className="block w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 file:mr-4 file:rounded-xl file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+        />
+
+        {selectedImage && (
+          <p className="mt-2 rounded-xl bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
+            Wybrane zdjęcie: {selectedImage.name}
+          </p>
+        )}
+      </div>
+
+      <p className="rounded-2xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
+        Szybki połów zapisuje wpis prywatnie. Ranking, przynętę, notatkę i
+        dokładną datę możesz uzupełnić później przez „Edytuj”.
+      </p>
+
+      <div
+        className={`flex gap-3 ${
+          isMobile
+            ? "sticky bottom-0 -mx-5 border-t border-slate-100 bg-white px-5 py-4"
+            : "justify-end"
+        }`}
+      >
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isLoading}
+          className="flex-1 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
+        >
+          Anuluj
+        </button>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="flex-1 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
+        >
+          {isLoading ? "Zapisywanie..." : "Zapisz szybki połów"}
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -1022,17 +1291,10 @@ function CatchForm({
 
       <FormGroup title="Miejsce" description="Przypisz łowisko lub wyprawę.">
         <div className="grid gap-5 lg:grid-cols-2">
-          <Select
-            label="Łowisko"
+          <LakeSearchSelect
+            lakes={lakes}
             value={form.lakeId}
             onChange={(value) => onFieldChange("lakeId", value)}
-            options={[
-              { label: "Bez przypisanego łowiska", value: "" },
-              ...lakes.map((lake) => ({
-                label: `${lake.name} — ${lake.city}`,
-                value: lake.id,
-              })),
-            ]}
           />
 
           <Select
@@ -1456,6 +1718,193 @@ function Input({
       />
     </div>
   );
+}
+
+
+function LakeSearchSelect({
+  lakes,
+  value,
+  onChange,
+}: {
+  lakes: LakeOption[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const selectedLake = lakes.find((lake) => lake.id === value) ?? null;
+  const [query, setQuery] = useState(
+    selectedLake ? formatLakeSearchLabel(selectedLake) : ""
+  );
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const currentLake = lakes.find((lake) => lake.id === value) ?? null;
+    setQuery(currentLake ? formatLakeSearchLabel(currentLake) : "");
+  }, [value, lakes]);
+
+  const filteredLakes = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(query);
+
+    if (!normalizedQuery) {
+      return lakes.slice(0, 12);
+    }
+
+    return lakes
+      .filter((lake) => {
+        const searchableText = normalizeSearchText(
+          `${lake.name} ${lake.city} ${lake.voivodeship}`
+        );
+
+        return searchableText.includes(normalizedQuery);
+      })
+      .slice(0, 12);
+  }, [lakes, query]);
+
+  function handleInputChange(nextValue: string) {
+    setQuery(nextValue);
+    setIsOpen(true);
+
+    if (value) {
+      onChange("");
+    }
+  }
+
+  function handleSelect(lake: LakeOption) {
+    onChange(lake.id);
+    setQuery(formatLakeSearchLabel(lake));
+    setIsOpen(false);
+  }
+
+  function handleClear() {
+    onChange("");
+    setQuery("");
+    setIsOpen(false);
+  }
+
+  return (
+    <div className="relative">
+      <label className="mb-2 block text-sm font-semibold text-slate-700">
+        Łowisko
+      </label>
+
+      <div className="relative">
+        <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg text-slate-400">
+          ⌕
+        </span>
+
+        <input
+          type="text"
+          value={query}
+          onChange={(event) => handleInputChange(event.target.value)}
+          onFocus={() => setIsOpen(true)}
+          onBlur={() => {
+            window.setTimeout(() => setIsOpen(false), 150);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setIsOpen(false);
+            }
+          }}
+          placeholder="Wpisz nazwę łowiska, miasto lub województwo..."
+          autoComplete="off"
+          className="h-12 w-full rounded-2xl border border-slate-200 bg-white py-0 pl-11 pr-12 text-sm font-semibold outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+        />
+
+        {(query || value) && (
+          <button
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={handleClear}
+            className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-lg font-bold text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            aria-label="Wyczyść wybrane łowisko"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {isOpen && (
+        <div className="absolute left-0 right-0 top-[76px] z-[1500] max-h-80 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl">
+          <button
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={handleClear}
+            className="w-full rounded-xl px-4 py-3 text-left text-sm font-bold text-slate-500 transition hover:bg-slate-50"
+          >
+            Bez przypisanego łowiska
+          </button>
+
+          <div className="my-2 border-t border-slate-100" />
+
+          {filteredLakes.length > 0 ? (
+            <div className="space-y-1">
+              {filteredLakes.map((lake) => {
+                const isSelected = lake.id === value;
+
+                return (
+                  <button
+                    key={lake.id}
+                    type="button"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleSelect(lake)}
+                    className={`flex w-full items-center justify-between gap-4 rounded-xl px-4 py-3 text-left transition ${
+                      isSelected ? "bg-blue-50" : "hover:bg-slate-50"
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p
+                        className={`truncate text-sm font-black ${
+                          isSelected ? "text-blue-700" : "text-slate-900"
+                        }`}
+                      >
+                        {lake.name}
+                      </p>
+
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        {lake.city}, woj. {lake.voivodeship}
+                      </p>
+                    </div>
+
+                    {isSelected && (
+                      <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-black text-blue-700">
+                        Wybrane
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="px-4 py-6 text-center">
+              <p className="text-sm font-black text-slate-700">
+                Nie znaleziono łowiska
+              </p>
+              <p className="mt-1 text-xs leading-5 text-slate-500">
+                Spróbuj wpisać krótszą nazwę albo nazwę miejscowości.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {selectedLake && (
+        <p className="mt-2 text-xs font-semibold text-blue-600">
+          Wybrano: {selectedLake.name} • {selectedLake.city}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function formatLakeSearchLabel(lake: LakeOption) {
+  return `${lake.name} — ${lake.city}`;
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .toLocaleLowerCase("pl-PL")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
 }
 
 function Select({

@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
+
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { CatchesPage } from "@/components/dashboard/CatchesPage";
-import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 
 type CatchesRoutePageProps = {
   searchParams: Promise<{
@@ -51,7 +52,25 @@ export default async function CatchesRoutePage({
 
     prisma.fishingTrip.findMany({
       where: {
-        userId: user.id,
+        OR: [
+          {
+            userId: user.id,
+          },
+          {
+            members: {
+              some: {
+                userId: user.id,
+                status: "accepted",
+                role: {
+                  in: ["editor", "co_owner"],
+                },
+              },
+            },
+          },
+        ],
+        status: {
+          notIn: ["cancelled", "canceled"],
+        },
       },
       orderBy: {
         startsAt: "desc",
@@ -60,6 +79,10 @@ export default async function CatchesRoutePage({
         id: true,
         title: true,
         startsAt: true,
+        endsAt: true,
+        lakeId: true,
+        tripType: true,
+        status: true,
       },
     }),
   ]);
