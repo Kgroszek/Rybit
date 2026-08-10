@@ -3,16 +3,19 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
-import { calculateDistanceInKm, formatDistanceInKm } from "@/lib/location";
 import { useUserLocation } from "@/hooks/useUserLocation";
-import type { LakeDto } from "@/lib/lakes";
+import {
+  calculateDistanceInKm,
+  formatDistanceInKm,
+} from "@/lib/location";
+import type { LakeListDto } from "@/lib/lakes";
 
-type NearestLake = LakeDto & {
+type NearestLake = LakeListDto & {
   calculatedDistance: number | null;
 };
 
 type NearestLakesProps = {
-  lakes: LakeDto[];
+  lakes: LakeListDto[];
 };
 
 export function NearestLakes({ lakes }: NearestLakesProps) {
@@ -49,7 +52,7 @@ export function NearestLakes({ lakes }: NearestLakesProps) {
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-5 flex items-center justify-between gap-3">
+      <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-slate-950">
             Najbliższe łowiska
@@ -100,7 +103,7 @@ export function NearestLakes({ lakes }: NearestLakesProps) {
             <p className="shrink-0 text-sm font-black text-slate-600">
               {lake.calculatedDistance !== null
                 ? formatDistanceInKm(lake.calculatedDistance)
-                : lake.distance}
+                : "Brak danych"}
             </p>
           </Link>
         ))}
