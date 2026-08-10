@@ -367,8 +367,8 @@ export default async function Home() {
 
           {todayTasks.length > 0 ? (
             <div className="mt-4 grid gap-3 md:grid-cols-3">
-              {todayTasks.map((task) => (
-                <TodayTaskCard key={task.key} {...task} />
+              {todayTasks.map(({ key, ...task }) => (
+                <TodayTaskCard key={key} {...task} />
               ))}
             </div>
           ) : (
@@ -689,7 +689,6 @@ function TodayTaskCard({
   description,
   badge,
 }: {
-  key?: string;
   href: string;
   icon: ReactNode;
   title: string;
