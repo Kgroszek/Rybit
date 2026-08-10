@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import type { LakeDto } from "@/lib/lakes";
+
+import type { LakeListDto } from "@/lib/lakes";
 
 type UserLocation = {
   lat: number;
   lng: number;
 };
 
-type RecommendedLake = LakeDto & {
+type RecommendedLake = LakeListDto & {
   calculatedDistance: number | null;
 };
 
 type RecommendedLakesProps = {
-  lakes: LakeDto[];
+  lakes: LakeListDto[];
 };
 
 function calculateDistanceInKm(
@@ -37,7 +38,11 @@ function calculateDistanceInKm(
       Math.sin(lngDifference / 2);
 
   const centralAngle =
-    2 * Math.atan2(Math.sqrt(haversineValue), Math.sqrt(1 - haversineValue));
+    2 *
+    Math.atan2(
+      Math.sqrt(haversineValue),
+      Math.sqrt(1 - haversineValue)
+    );
 
   return earthRadiusInKm * centralAngle;
 }
@@ -75,39 +80,42 @@ function getFishingTypeLabel(type: string) {
 }
 
 export function RecommendedLakes({ lakes }: RecommendedLakesProps) {
-const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
 
-useEffect(() => {
-  const timeoutId = window.setTimeout(() => {
-    const savedLocation = localStorage.getItem("rybit-user-location");
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      const savedLocation = localStorage.getItem("rybit-user-location");
 
-    if (!savedLocation) {
-      return;
+      if (!savedLocation) {
+        return;
+      }
+
+      try {
+        setUserLocation(JSON.parse(savedLocation) as UserLocation);
+      } catch {
+        setUserLocation(null);
+      }
+    }, 0);
+
+    function handleLocationUpdated(event: Event) {
+      const customEvent = event as CustomEvent<UserLocation>;
+      setUserLocation(customEvent.detail);
     }
 
-    try {
-      setUserLocation(JSON.parse(savedLocation) as UserLocation);
-    } catch {
-      setUserLocation(null);
-    }
-  }, 0);
-
-  function handleLocationUpdated(event: Event) {
-    const customEvent = event as CustomEvent<UserLocation>;
-    setUserLocation(customEvent.detail);
-  }
-
-  window.addEventListener("rybit:user-location-updated", handleLocationUpdated);
-
-  return () => {
-    window.clearTimeout(timeoutId);
-
-    window.removeEventListener(
+    window.addEventListener(
       "rybit:user-location-updated",
       handleLocationUpdated
     );
-  };
-}, []);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+
+      window.removeEventListener(
+        "rybit:user-location-updated",
+        handleLocationUpdated
+      );
+    };
+  }, []);
 
   const recommendedLakes = useMemo<RecommendedLake[]>(() => {
     if (!userLocation) {
@@ -140,9 +148,11 @@ useEffect(() => {
 
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-5 flex items-start justify-between gap-4">
+      <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold">Polecane łowiska dla Ciebie</h2>
+          <h2 className="text-xl font-bold text-slate-950">
+            Polecane łowiska dla Ciebie
+          </h2>
 
           <p className="mt-1 text-sm text-slate-500">
             {userLocation
@@ -165,7 +175,15 @@ useEffect(() => {
             key={lake.id}
             className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:shadow-md"
           >
-            <div className="relative h-32 bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200">
+            <div className="relative h-32 overflow-hidden bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200">
+              {lake.images[0] ? (
+                <img
+                  src={lake.images[0]}
+                  alt={lake.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : null}
+
               <div className="absolute left-3 top-3 flex flex-wrap gap-2">
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-bold ${
@@ -184,7 +202,9 @@ useEffect(() => {
             </div>
 
             <div className="p-4">
-              <h3 className="text-lg font-bold">{lake.name}</h3>
+              <h3 className="text-lg font-bold text-slate-950">
+                {lake.name}
+              </h3>
 
               <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
                 <span>★ {lake.rating}</span>
@@ -192,11 +212,13 @@ useEffect(() => {
                 <span>
                   {lake.calculatedDistance !== null
                     ? `${lake.calculatedDistance.toFixed(1)} km`
-                    : lake.distance}
+                    : "Brak danych"}
                 </span>
               </div>
 
-              <p className="mt-3 text-sm text-slate-500">{lake.fish}</p>
+              <p className="mt-3 line-clamp-2 text-sm text-slate-500">
+                {lake.fish}
+              </p>
 
               <Link
                 href={`/lowiska/${lake.slug}`}
