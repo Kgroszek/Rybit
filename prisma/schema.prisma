@@ -72,6 +72,7 @@ model Lake {
   ratings           Rating[]
   correctionReports LakeCorrectionReport[]
   catches           FishingCatch[]
+  trips             FishingTrip[]
   comments          LakeComment[]
 
   owners      LakeOwner[]
@@ -480,6 +481,8 @@ model FishingGear {
   note          String?
   isDefault     Boolean   @default(false)
 
+  tripItems TripGearItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -501,6 +504,7 @@ model TripChecklist {
   note     String?
 
   items TripChecklistItem[]
+  trips FishingTrip[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -537,31 +541,236 @@ model TripChecklistItem {
 }
 
 model FishingTrip {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
+
+  // Właściciel wyprawy. Tylko on zarządza uczestnikami i może usunąć wyprawę.
   userId String
 
   title    String
   lakeId   String?
   lakeName String?
+  lake     Lake?   @relation(fields: [lakeId], references: [id], onDelete: SetNull)
 
   tripType String   @default("custom")
   status   String   @default("planned")
   startsAt DateTime
-  note     String?
+  endsAt   DateTime?
+
+  peopleCount Int @default(1)
+  note        String?
 
   checklistId String?
+  checklist   TripChecklist? @relation(fields: [checklistId], references: [id], onDelete: SetNull)
+
+  summary        String?
+  summaryRating  Int?
+  weatherSummary String?
+  completedAt    DateTime?
+
+  isSummaryPublic Boolean @default(false)
+  shareToken      String? @unique
+
+  members    TripMember[]
+  notes      TripNote[]
+  costs      TripCost[]
+  gearItems  TripGearItem[]
+  reminders  TripReminder[]
+  activities TripActivity[]
+  media      TripMedia[]
+  catches    FishingCatch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([lakeId])
+  @@index([checklistId])
   @@index([status])
   @@index([startsAt])
+  @@index([endsAt])
   @@index([createdAt])
   @@index([userId, status])
   @@index([userId, startsAt])
   @@index([userId, status, startsAt])
+}
+
+model TripMember {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  userId    String
+  userName  String
+  userEmail String?
+
+  role   String @default("editor")
+  status String @default("pending")
+
+  invitedByUserId String
+
+  acceptedAt  DateTime?
+  declinedAt  DateTime?
+  lastViewedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tripId, userId])
+  @@index([tripId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, status])
+  @@index([tripId, status])
+}
+
+model TripNote {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  authorUserId String
+  authorName   String?
+
+  type     String  @default("general")
+  content  String
+  isPinned Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([authorUserId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([tripId, createdAt])
+}
+
+model TripCost {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  category String
+  label    String
+  amount   Float
+  currency String @default("PLN")
+
+  paidByUserId String
+  paidByName   String?
+  note         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([category])
+  @@index([paidByUserId])
+  @@index([createdAt])
+  @@index([tripId, category])
+}
+
+model TripGearItem {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  gearId String?
+  gear   FishingGear? @relation(fields: [gearId], references: [id], onDelete: SetNull)
+
+  addedByUserId String
+
+  name     String
+  category String
+  quantity Int    @default(1)
+  unit     String?
+  note     String?
+
+  isRequired Boolean @default(false)
+  isPacked   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([gearId])
+  @@index([addedByUserId])
+  @@index([category])
+  @@index([isPacked])
+  @@index([tripId, category])
+}
+
+model TripReminder {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  userId String
+
+  type     String @default("custom")
+  title    String
+  remindAt DateTime
+
+  status String @default("pending")
+  sentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([userId])
+  @@index([status])
+  @@index([remindAt])
+  @@index([userId, status])
+  @@index([status, remindAt])
+}
+
+model TripActivity {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  actorUserId String
+  actorName   String?
+
+  action   String
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([tripId])
+  @@index([actorUserId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([tripId, createdAt])
+}
+
+model TripMedia {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  userId   String
+  userName String?
+
+  url       String
+  imagePath String?
+  caption   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tripId])
+  @@index([userId])
+  @@index([imagePath])
+  @@index([createdAt])
+  @@index([tripId, createdAt])
 }
 
 model FishingCatch {
@@ -583,6 +792,7 @@ model FishingCatch {
 
   tripId    String?
   tripTitle String?
+  trip      FishingTrip? @relation(fields: [tripId], references: [id], onDelete: SetNull)
 
   imageUrl  String?
   imagePath String?
@@ -800,4 +1010,43 @@ model LakeBookingSettings {
 
   @@index([isBookingEnabled])
   @@index([isOnlineBookingEnabled])
+}
+
+model UserChecklistTemplate {
+  id String @id @default(cuid())
+
+  userId      String
+  name        String
+  description String?
+  tripType    String @default("custom")
+
+  items UserChecklistTemplateItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([userId, updatedAt])
+}
+
+model UserChecklistTemplateItem {
+  id String @id @default(cuid())
+
+  templateId String
+  template   UserChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  name        String
+  category    String
+  quantity    Int     @default(1)
+  unit        String?
+  isImportant Boolean @default(false)
+  note        String?
+  position    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([templateId])
+  @@index([templateId, position])
 }
