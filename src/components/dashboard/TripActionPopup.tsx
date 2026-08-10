@@ -1073,7 +1073,7 @@ export function TripActionPopup({
               setItemNote={setItemNote}
               onEnsure={ensureChecklist}
               onAdd={addChecklistItem}
-              onTogglePacked={(item) =>
+              onTogglePacked={(item: ChecklistItem) =>
                 updateChecklistItem(item.id, { isPacked: !item.isPacked })
               }
               onDelete={deleteChecklistItem}
