@@ -10,7 +10,7 @@ import {
   useMap,
 } from "react-leaflet";
 
-import type { LakeDto } from "@/lib/lakes";
+import type { LakeListDto } from "@/lib/lakes";
 
 type UserLocation = {
   lat: number;
@@ -18,12 +18,12 @@ type UserLocation = {
 };
 
 type PublicLakesMapProps = {
-  lakes: LakeDto[];
+  lakes: LakeListDto[];
   userLocation?: UserLocation | null;
 };
 
 type LakePoint = {
-  lake: LakeDto;
+  lake: LakeListDto;
   lat: number;
   lng: number;
 };
@@ -167,7 +167,7 @@ export function PublicLakesMap({
 
   if (points.length === 0) {
     return (
-      <div className="flex h-full w-full items-center justify-center bg-slate-100 p-6 text-center">
+      <div className="flex h-full min-h-[420px] items-center justify-center bg-slate-100 p-6 text-center">
         <div>
           <p className="text-lg font-black text-slate-950">
             Brak łowisk ze współrzędnymi
@@ -183,7 +183,7 @@ export function PublicLakesMap({
   }
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative h-full min-h-[420px] w-full">
       <MapContainer
         center={POLAND_CENTER}
         zoom={6}
@@ -298,7 +298,7 @@ export function PublicLakesMap({
   );
 }
 
-function getLakeCoordinates(lake: LakeDto) {
+function getLakeCoordinates(lake: LakeListDto) {
   const lat = Number(lake.lat);
   const lng = Number(lake.lng);
 

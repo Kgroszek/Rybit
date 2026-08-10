@@ -281,7 +281,6 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
         const searchableText = [
           lake.name,
           lake.fish,
-          lake.description,
           lake.address.city,
           lake.address.voivodeship,
           lake.address.street,
@@ -597,7 +596,7 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Wpisz nazwę, miasto, województwo, opis albo gatunek ryby..."
+                placeholder="Wpisz nazwę, miasto, województwo albo gatunek ryby..."
                 className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500"
               />
             </label>
@@ -1175,10 +1174,6 @@ function LakeListItem({
             ★ {lake.rating}
           </div>
         </div>
-
-        <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-500">
-          {lake.description || "Brak opisu łowiska."}
-        </p>
 
         <p className="mt-4 text-sm text-slate-600">
           <span className="font-bold text-slate-950">Ryby:</span>{" "}

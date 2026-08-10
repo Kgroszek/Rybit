@@ -43,12 +43,27 @@ export type LakeOpeningHoursDto = {
   text: string | null;
 };
 
+/**
+ * Lekki DTO używany wyłącznie na listach, mapach i kartach łowisk.
+ *
+ * Celowo NIE zawiera:
+ * - pełnego opisu,
+ * - cennika,
+ * - regulaminu,
+ * - danych kontaktowych,
+ * - rekordów ryb,
+ * - wymagań sprzętowych,
+ * - godzin otwarcia,
+ * - rankingów połowów,
+ * - pełnej galerii.
+ *
+ * `images` zawiera maksymalnie jedno zdjęcie okładkowe.
+ */
 export type LakeListDto = {
   id: string;
   name: string;
   slug: string;
   rating: string;
-  distance: string;
   fish: string;
   fishSpecies: string[];
   type: "pzw" | "commercial";
@@ -61,12 +76,12 @@ export type LakeListDto = {
     postalCode: string;
     voivodeship: string;
   };
-  description: string;
   amenities: LakeAmenitiesDto;
   images: string[];
 };
 
 export type LakeDto = LakeListDto & {
+  description: string;
   details: {
     area: string;
     averageDepth: string;
@@ -163,7 +178,6 @@ function mapLakeToDto(
     name: lake.name,
     slug: lake.slug,
     rating: Number(lake.rating).toFixed(1),
-    distance: "0 km",
     fish: lake.fish,
     fishSpecies: lake.fishSpecies.map((fish) => fish.name),
     type: lake.ownerType as "pzw" | "commercial",
@@ -239,7 +253,6 @@ function mapLakeToListDto(lake: {
   city: string;
   postalCode: string;
   voivodeship: string;
-  description: string;
   cottages: boolean;
   campfire: boolean;
   noKill: boolean;
@@ -267,7 +280,6 @@ function mapLakeToListDto(lake: {
     name: lake.name,
     slug: lake.slug,
     rating: Number(lake.rating).toFixed(1),
-    distance: "0 km",
     fish: lake.fish,
     fishSpecies: lake.fishSpecies.map((fish) => fish.name),
     type: lake.ownerType as "pzw" | "commercial",
@@ -280,7 +292,6 @@ function mapLakeToListDto(lake: {
       postalCode: lake.postalCode,
       voivodeship: lake.voivodeship,
     },
-    description: lake.description,
     amenities: {
       cottages: lake.cottages,
       campfire: lake.campfire,
@@ -318,8 +329,6 @@ export async function getLakesList() {
       city: true,
       postalCode: true,
       voivodeship: true,
-      description: true,
-
       cottages: true,
       campfire: true,
       noKill: true,
@@ -512,7 +521,6 @@ export async function getLakesDashboard(): Promise<LakeDto[]> {
     name: lake.name,
     slug: lake.slug,
     rating: Number(lake.rating).toFixed(1),
-    distance: "0 km",
     fish: lake.fish,
     fishSpecies: [],
     type: lake.ownerType as "pzw" | "commercial",

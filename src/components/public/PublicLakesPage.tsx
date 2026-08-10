@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { LakeDto } from "@/lib/lakes";
+import type { LakeListDto } from "@/lib/lakes";
 import { getFishKey, normalizeFishList } from "@/lib/fish-names";
 
 const PublicLakesMap = dynamic(
@@ -24,7 +24,7 @@ const PublicLakesMap = dynamic(
 );
 
 type PublicLakesPageProps = {
-  lakes: LakeDto[];
+  lakes: LakeListDto[];
   initialOwnerType?: string;
   initialFishingType?: string;
   initialVoivodeship?: string;
@@ -60,7 +60,7 @@ type UserLocation = {
   lng: number;
 };
 
-type LakeWithDistance = LakeDto & {
+type LakeWithDistance = LakeListDto & {
   displayDistance: string;
   distanceInKm: number | null;
 };
@@ -343,7 +343,6 @@ export function PublicLakesPage({
     const result = lakesWithDistance.filter((lake) => {
       const searchableText = [
         lake.name,
-        lake.description,
         lake.address.street,
         lake.address.city,
         lake.address.voivodeship,
@@ -373,7 +372,7 @@ export function PublicLakesPage({
       const matchesAmenities =
         selectedAmenities.length === 0 ||
         selectedAmenities.every((amenityKey) =>
-          Boolean(lake.amenities[amenityKey as keyof LakeDto["amenities"]])
+          Boolean(lake.amenities[amenityKey as keyof LakeListDto["amenities"]])
         );
 
       return (
@@ -683,7 +682,7 @@ export function PublicLakesPage({
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Wpisz nazwę, miasto, województwo, opis albo gatunek ryby..."
+                placeholder="Wpisz nazwę, miasto, województwo albo gatunek ryby..."
                 className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
               />
             </div>
@@ -1301,10 +1300,6 @@ function LakeListItem({
           {lake.displayDistance}
         </p>
 
-        <p className="mt-4 line-clamp-3 text-sm leading-6 text-slate-500">
-          {lake.description}
-        </p>
-
         <p className="mt-3 text-sm font-bold text-slate-600">
           {lake.fishSpecies.length > 0
             ? normalizeFishList(lake.fishSpecies).join(", ")
@@ -1417,8 +1412,8 @@ function AuthRequiredModal({
   );
 }
 
-function getLakeCoordinates(lake: LakeDto) {
-  const lakeWithCoordinates = lake as LakeDto & {
+function getLakeCoordinates(lake: LakeListDto) {
+  const lakeWithCoordinates = lake as LakeListDto & {
     lat?: number | string | null;
     lng?: number | string | null;
     latitude?: number | string | null;
@@ -1496,10 +1491,10 @@ function getFishingTypeLabel(value: string) {
   return "Ogólne";
 }
 
-function getVisibleAmenities(lake: LakeDto) {
+function getVisibleAmenities(lake: LakeListDto) {
   const amenities = amenityOptions
     .filter((item) =>
-      Boolean(lake.amenities[item.key as keyof LakeDto["amenities"]])
+      Boolean(lake.amenities[item.key as keyof LakeListDto["amenities"]])
     )
     .map((item) => item.label);
 
