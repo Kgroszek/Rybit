@@ -3,7 +3,11 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { LakeListDto } from "@/lib/lakes";
+import type {
+  LakeFilterOptions,
+  LakeListDto,
+  PaginatedLakesResult,
+} from "@/lib/lakes";
 import { getFishKey, normalizeFishList } from "@/lib/fish-names";
 
 const PublicLakesMap = dynamic(
@@ -25,11 +29,15 @@ const PublicLakesMap = dynamic(
 
 type PublicLakesPageProps = {
   lakes: LakeListDto[];
+  initialPagination?: Omit<PaginatedLakesResult, "lakes">;
+  filterOptions?: LakeFilterOptions;
   initialOwnerType?: string;
   initialFishingType?: string;
   initialVoivodeship?: string;
   initialFish?: string;
   initialAmenities?: string[];
+  initialSearch?: string;
+  initialSort?: string;
 };
 
 type ViewMode = "grid" | "list";
@@ -41,6 +49,15 @@ type SortOption =
   | "name-desc";
 
 type AuthModalType = "rating" | "favourite";
+
+function isSortOption(value: string): value is SortOption {
+  return (
+    value === "rating-desc" ||
+    value === "distance-asc" ||
+    value === "name-asc" ||
+    value === "name-desc"
+  );
+}
 
 type ActiveFilter = {
   id: string;
@@ -100,23 +117,60 @@ const fishingTypeFilters = [
 
 export function PublicLakesPage({
   lakes,
+  initialPagination,
+  filterOptions,
   initialOwnerType = "all",
   initialFishingType = "all",
   initialVoivodeship = "all",
   initialFish = "all",
   initialAmenities = [],
+  initialSearch = "",
+  initialSort = "rating-desc",
 }: PublicLakesPageProps) {
-  const [search, setSearch] = useState("");
+  const resolvedPagination =
+    initialPagination ?? {
+      page: 1,
+      pageSize: ITEMS_PER_PAGE,
+      totalCount: lakes.length,
+      totalPages: Math.max(1, Math.ceil(lakes.length / ITEMS_PER_PAGE)),
+    };
+
+  const resolvedFilterOptions =
+    filterOptions ?? {
+      voivodeships: Array.from(
+        new Set(
+          lakes
+            .map((lake) => lake.address.voivodeship)
+            .filter(Boolean)
+        )
+      ).sort((a, b) => a.localeCompare(b, "pl")),
+      fishOptions: normalizeFishList(
+        lakes.flatMap((lake) => lake.fishSpecies)
+      ),
+      allLakesCount: lakes.length,
+    };
+
+  const requestId = useRef(0);
+  const [serverResult, setServerResult] = useState<PaginatedLakesResult>({
+    lakes,
+    ...resolvedPagination,
+  });
+  const [isServerLoading, setIsServerLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
+
+  const [search, setSearch] = useState(initialSearch);
   const [ownerType, setOwnerType] = useState(initialOwnerType);
   const [fishingType, setFishingType] = useState(initialFishingType);
   const [voivodeship, setVoivodeship] = useState(initialVoivodeship);
   const [fish, setFish] = useState(initialFish);
   const [selectedAmenities, setSelectedAmenities] =
     useState<string[]>(initialAmenities);
-  const [sort, setSort] = useState<SortOption>("rating-desc");
+  const [sort, setSort] = useState<SortOption>(
+    isSortOption(initialSort) ? initialSort : "rating-desc"
+  );
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(resolvedPagination.page);
   const [authModalType, setAuthModalType] = useState<AuthModalType | null>(
     null
   );
@@ -194,7 +248,14 @@ export function PublicLakesPage({
       setSort(
         sortParam && validSortOptions.includes(sortParam as SortOption)
           ? (sortParam as SortOption)
-          : "rating-desc"
+          : isSortOption(initialSort)
+            ? initialSort
+            : "rating-desc"
+      );
+
+      const pageParam = Number.parseInt(params.get("page") ?? "1", 10);
+      setCurrentPage(
+        Number.isFinite(pageParam) && pageParam > 0 ? pageParam : 1
       );
     }
 
@@ -253,6 +314,12 @@ export function PublicLakesPage({
       setOrDeleteParam("fish", fish, initialFish);
       setOrDeleteParam("sort", sort, "rating-desc");
 
+      if (currentPage > 1) {
+        params.set("page", String(currentPage));
+      } else {
+        params.delete("page");
+      }
+
       if (selectedAmenitiesKey === initialAmenitiesKey) {
         params.delete("amenities");
       } else if (sortedAmenities.length === 0) {
@@ -290,20 +357,14 @@ export function PublicLakesPage({
     initialVoivodeship,
     initialFish,
     initialAmenitiesKey,
+    currentPage,
   ]);
 
-  const voivodeships = useMemo(() => {
-    return Array.from(
-      new Set(lakes.map((lake) => lake.address.voivodeship).filter(Boolean))
-    ).sort((a, b) => a.localeCompare(b, "pl"));
-  }, [lakes]);
-
-  const fishOptions = useMemo(() => {
-    return normalizeFishList(lakes.flatMap((lake) => lake.fishSpecies));
-  }, [lakes]);
+  const voivodeships = resolvedFilterOptions.voivodeships;
+  const fishOptions = normalizeFishList(resolvedFilterOptions.fishOptions);
 
   const lakesWithDistance = useMemo<LakeWithDistance[]>(() => {
-    return lakes.map((lake) => {
+    return serverResult.lakes.map((lake) => {
       if (!userLocation) {
         return {
           ...lake,
@@ -335,81 +396,95 @@ export function PublicLakesPage({
         distanceInKm,
       };
     });
-  }, [lakes, userLocation]);
+  }, [serverResult.lakes, userLocation]);
 
-  const filteredLakes = useMemo(() => {
-    const searchValue = search.toLowerCase().trim();
+  const filteredLakes = lakesWithDistance;
+  const paginatedLakes = lakesWithDistance;
+  const totalPages = serverResult.totalPages;
 
-    const result = lakesWithDistance.filter((lake) => {
-      const searchableText = [
-        lake.name,
-        lake.address.street,
-        lake.address.city,
-        lake.address.voivodeship,
-        lake.fish,
-        ...lake.fishSpecies,
-      ]
-        .join(" ")
-        .toLowerCase();
+  useEffect(() => {
+    if (!isUrlStateReadyRef.current) {
+      return;
+    }
 
-      const matchesSearch =
-        !searchValue || searchableText.includes(searchValue);
+    const currentRequestId = requestId.current + 1;
+    requestId.current = currentRequestId;
 
-      const matchesOwnerType = ownerType === "all" || lake.type === ownerType;
+    const controller = new AbortController();
 
-      const matchesFishingType =
-        fishingType === "all" || lake.fishingType === fishingType;
+    const timeoutId = window.setTimeout(async () => {
+      setIsServerLoading(true);
+      setServerError("");
 
-      const matchesVoivodeship =
-        voivodeship === "all" || lake.address.voivodeship === voivodeship;
+      try {
+        const response = await fetch("/api/lakes/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            page: currentPage,
+            pageSize: resolvedPagination.pageSize,
+            search: search.trim(),
+            ownerType,
+            fishingType,
+            voivodeship,
+            fish,
+            amenities: selectedAmenities,
+            sort,
+            userLat: userLocation?.lat ?? null,
+            userLng: userLocation?.lng ?? null,
+          }),
+          signal: controller.signal,
+        });
 
-      const selectedFishKey = getFishKey(fish);
+        const data = (await response.json().catch(() => null)) as
+          | PaginatedLakesResult
+          | { message?: string }
+          | null;
 
-      const matchesFish =
-        fish === "all" ||
-        lake.fishSpecies.some((item) => getFishKey(item) === selectedFishKey);
-
-      const matchesAmenities =
-        selectedAmenities.length === 0 ||
-        selectedAmenities.every((amenityKey) =>
-          Boolean(lake.amenities[amenityKey as keyof LakeListDto["amenities"]])
-        );
-
-      return (
-        matchesSearch &&
-        matchesOwnerType &&
-        matchesFishingType &&
-        matchesVoivodeship &&
-        matchesFish &&
-        matchesAmenities
-      );
-    });
-
-    return result.sort((firstLake, secondLake) => {
-      if (sort === "distance-asc") {
-        const firstDistance = firstLake.distanceInKm ?? Number.POSITIVE_INFINITY;
-        const secondDistance =
-          secondLake.distanceInKm ?? Number.POSITIVE_INFINITY;
-
-        if (firstDistance !== secondDistance) {
-          return firstDistance - secondDistance;
+        if (!response.ok || !data || !("lakes" in data)) {
+          throw new Error(
+            data && "message" in data && data.message
+              ? data.message
+              : "Nie udało się pobrać łowisk."
+          );
         }
 
-        return firstLake.name.localeCompare(secondLake.name, "pl");
-      }
+        if (requestId.current !== currentRequestId) {
+          return;
+        }
 
-      if (sort === "name-asc") {
-        return firstLake.name.localeCompare(secondLake.name, "pl");
-      }
+        setServerResult(data);
 
-      if (sort === "name-desc") {
-        return secondLake.name.localeCompare(firstLake.name, "pl");
-      }
+        if (data.page !== currentPage) {
+          setCurrentPage(data.page);
+        }
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
 
-      return Number(secondLake.rating) - Number(firstLake.rating);
-    });
+        setServerError(
+          error instanceof Error
+            ? error.message
+            : "Nie udało się pobrać łowisk."
+        );
+      } finally {
+        if (
+          !controller.signal.aborted &&
+          requestId.current === currentRequestId
+        ) {
+          setIsServerLoading(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [
-    lakesWithDistance,
     search,
     ownerType,
     fishingType,
@@ -417,6 +492,9 @@ export function PublicLakesPage({
     fish,
     selectedAmenities,
     sort,
+    currentPage,
+    userLocation,
+    resolvedPagination.pageSize,
   ]);
 
   useEffect(() => {
@@ -431,18 +509,6 @@ export function PublicLakesPage({
     sort,
     userLocation,
   ]);
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredLakes.length / ITEMS_PER_PAGE)
-  );
-
-  const paginatedLakes = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-
-    return filteredLakes.slice(startIndex, endIndex);
-  }, [filteredLakes, currentPage]);
 
   function handleGetUserLocation() {
     setLocationError("");
@@ -862,8 +928,8 @@ export function PublicLakesPage({
 
         <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <p className="text-sm font-bold text-slate-600">
-            Wyniki: {filteredLakes.length} / {lakes.length}
-            {filteredLakes.length > ITEMS_PER_PAGE && (
+            Wyniki: {serverResult.totalCount} / {resolvedFilterOptions.allLakesCount}
+            {serverResult.totalCount > serverResult.pageSize && (
               <span className="ml-2 text-slate-400">
                 Strona {currentPage} z {totalPages}
               </span>
@@ -885,6 +951,19 @@ export function PublicLakesPage({
           </div>
         </div>
 
+        {serverError && (
+          <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+            {serverError}
+          </div>
+        )}
+
+        {isServerLoading && (
+          <div className="mb-4 text-sm font-bold text-blue-600">
+            Aktualizuję wyniki…
+          </div>
+        )}
+
+        <div className={isServerLoading ? "opacity-70 transition-opacity" : ""}>
         {filteredLakes.length > 0 ? (
           <>
             <PublicMapPanel
@@ -916,7 +995,7 @@ export function PublicLakesPage({
               )}
             </div>
 
-            {filteredLakes.length > ITEMS_PER_PAGE && (
+            {serverResult.totalCount > serverResult.pageSize && (
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -943,6 +1022,7 @@ export function PublicLakesPage({
             </button>
           </div>
         )}
+        </div>
       </section>
 
       {authModalType && (
@@ -992,7 +1072,7 @@ function PublicMapPanel({
         <div>
           <h3 className="font-black text-slate-950">Mapa łowisk</h3>
           <p className="mt-1 text-xs font-semibold text-slate-500">
-            Mapa jest zawsze widoczna i uwzględnia aktualnie wybrane filtry.
+            Mapa pokazuje łowiska z aktualnej strony wyników i uwzględnia wybrane filtry.
           </p>
         </div>
 
@@ -1002,7 +1082,7 @@ function PublicMapPanel({
       </div>
 
       <div className="h-[280px] sm:h-[330px] lg:h-[380px]">
-        <PublicLakesMap lakes={lakes} userLocation={userLocation} />
+        <PublicLakesMap lakes={serverResult.lakes} userLocation={userLocation} />
       </div>
     </section>
   );

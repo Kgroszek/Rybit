@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { MapSection } from "@/components/dashboard/MapSection";
@@ -10,7 +10,12 @@ import {
   getDistanceLabel,
   type UserLocation,
 } from "@/lib/location";
-import type { LakeDto, LakeListDto } from "@/lib/lakes";
+import type {
+  LakeDto,
+  LakeFilterOptions,
+  LakeListDto,
+  PaginatedLakesResult,
+} from "@/lib/lakes";
 
 type OwnerTypeFilter = "all" | "pzw" | "commercial";
 type FishingTypeFilter = "all" | "general" | "spinning" | "carp";
@@ -42,7 +47,18 @@ type AmenityKey =
 
 type LakesPageProps = {
   lakes: LakeListDto[];
-  initialView?: "grid" | "map";
+  initialView?: "grid" | "list" | "map";
+  initialPagination: Omit<PaginatedLakesResult, "lakes">;
+  filterOptions: LakeFilterOptions;
+  initialFilters: {
+    search: string;
+    ownerType: string;
+    fishingType: string;
+    voivodeship: string;
+    fish: string;
+    amenities: string[];
+    sort: string;
+  };
 };
 
 const ITEMS_PER_PAGE = 15;
@@ -76,6 +92,7 @@ const URL_FILTER_KEYS = [
   "fish",
   "amenities",
   "sort",
+  "page",
 ] as const;
 
 function isAmenityKey(value: string): value is AmenityKey {
@@ -157,54 +174,53 @@ function getLakeDistanceLabel(
   });
 }
 
-export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
+export function LakesPage({
+  lakes,
+  initialView = "grid",
+  initialPagination,
+  filterOptions,
+  initialFilters,
+}: LakesPageProps) {
   const { userLocation } = useUserLocation();
 
   const isUrlStateReady = useRef(false);
   const lastUrlQuery = useRef("");
+  const requestId = useRef(0);
 
-  const [search, setSearch] = useState("");
-  const [ownerType, setOwnerType] = useState<OwnerTypeFilter>("all");
-  const [fishingType, setFishingType] = useState<FishingTypeFilter>("all");
-  const [sortType, setSortType] = useState<SortType>("rating");
-  const [voivodeship, setVoivodeship] = useState("all");
-  const [fish, setFish] = useState("all");
-  const [selectedAmenities, setSelectedAmenities] = useState<AmenityKey[]>([]);
+  const [serverResult, setServerResult] = useState<PaginatedLakesResult>({
+    lakes,
+    ...initialPagination,
+  });
+  const [isServerLoading, setIsServerLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
+
+  const [search, setSearch] = useState(initialFilters.search);
+  const [ownerType, setOwnerType] = useState<OwnerTypeFilter>(
+    parseOwnerType(initialFilters.ownerType)
+  );
+  const [fishingType, setFishingType] = useState<FishingTypeFilter>(
+    parseFishingType(initialFilters.fishingType)
+  );
+  const [sortType, setSortType] = useState<SortType>(
+    parseSortType(initialFilters.sort)
+  );
+  const [voivodeship, setVoivodeship] = useState(
+    initialFilters.voivodeship || "all"
+  );
+  const [fish, setFish] = useState(initialFilters.fish || "all");
+  const [selectedAmenities, setSelectedAmenities] = useState<AmenityKey[]>(
+    initialFilters.amenities.filter(isAmenityKey)
+  );
   const [areAdvancedFiltersOpen, setAreAdvancedFiltersOpen] = useState(false);
   const [areMobileFiltersOpen, setAreMobileFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialPagination.page);
 
-  const voivodeships = useMemo(() => {
-    return Array.from(
-      new Set(
-        lakes
-          .map((lake) => lake.address.voivodeship)
-          .filter(Boolean)
-          .sort((a, b) => a.localeCompare(b, "pl"))
-      )
-    );
-  }, [lakes]);
-
-  const fishOptions = useMemo(() => {
-    return Array.from(
-      new Set(
-        lakes
-          .flatMap((lake) => {
-            if (lake.fishSpecies.length > 0) {
-              return lake.fishSpecies;
-            }
-
-            return lake.fish
-              .split(",")
-              .map((item) => item.trim())
-              .filter(Boolean);
-          })
-          .filter(Boolean)
-          .sort((a, b) => a.localeCompare(b, "pl"))
-      )
-    );
-  }, [lakes]);
+  const voivodeships = filterOptions.voivodeships;
+  const fishOptions = filterOptions.fishOptions;
+  const filteredLakes = serverResult.lakes;
+  const paginatedLakes = serverResult.lakes;
+  const totalPages = serverResult.totalPages;
 
   const activeFilterItems: ActiveFilterItem[] = [];
 
@@ -273,90 +289,6 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
 
   const activeFiltersCount = activeFilterItems.length;
 
-  const filteredLakes = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-
-    return lakes
-      .filter((lake) => {
-        const searchableText = [
-          lake.name,
-          lake.fish,
-          lake.address.city,
-          lake.address.voivodeship,
-          lake.address.street,
-          ...lake.fishSpecies,
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        const matchesSearch =
-          !normalizedSearch || searchableText.includes(normalizedSearch);
-
-        const matchesOwnerType =
-          ownerType === "all" || lake.type === ownerType;
-
-        const matchesFishingType =
-          fishingType === "all" || lake.fishingType === fishingType;
-
-        const matchesVoivodeship =
-          voivodeship === "all" || lake.address.voivodeship === voivodeship;
-
-        const matchesFish =
-          fish === "all" ||
-          lake.fishSpecies.some(
-            (fishName) => fishName.toLowerCase() === fish.toLowerCase()
-          ) ||
-          lake.fish.toLowerCase().includes(fish.toLowerCase());
-
-        const matchesAmenities = selectedAmenities.every(
-          (amenity) => lake.amenities[amenity]
-        );
-
-        return (
-          matchesSearch &&
-          matchesOwnerType &&
-          matchesFishingType &&
-          matchesVoivodeship &&
-          matchesFish &&
-          matchesAmenities
-        );
-      })
-      .sort((firstLake, secondLake) => {
-        if (sortType === "name") {
-          return firstLake.name.localeCompare(secondLake.name, "pl");
-        }
-
-        if (sortType === "distance") {
-          if (!userLocation) {
-            return 0;
-          }
-
-          return (
-            calculateDistanceInKm(userLocation, {
-              lat: firstLake.lat,
-              lng: firstLake.lng,
-            }) -
-            calculateDistanceInKm(userLocation, {
-              lat: secondLake.lat,
-              lng: secondLake.lng,
-            })
-          );
-        }
-
-        return Number(secondLake.rating) - Number(firstLake.rating);
-      });
-  }, [
-    lakes,
-    search,
-    ownerType,
-    fishingType,
-    voivodeship,
-    fish,
-    selectedAmenities,
-    sortType,
-    userLocation,
-  ]);
-
   useEffect(() => {
     function restoreFiltersFromUrl() {
       const params = new URLSearchParams(window.location.search);
@@ -368,7 +300,11 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
       setFish(params.get("fish")?.trim() || "all");
       setSelectedAmenities(parseAmenities(params.get("amenities")));
       setSortType(parseSortType(params.get("sort")));
-      setCurrentPage(1);
+
+      const nextPage = Number.parseInt(params.get("page") ?? "1", 10);
+      setCurrentPage(
+        Number.isFinite(nextPage) && nextPage > 0 ? nextPage : 1
+      );
 
       lastUrlQuery.current = params.toString();
     }
@@ -388,7 +324,12 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
+    const currentRequestId = requestId.current + 1;
+    requestId.current = currentRequestId;
+
+    const controller = new AbortController();
+
+    const timeoutId = window.setTimeout(async () => {
       const params = new URLSearchParams(window.location.search);
 
       URL_FILTER_KEYS.forEach((key) => {
@@ -426,23 +367,92 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
         params.set("sort", sortType);
       }
 
-      const nextQuery = params.toString();
-
-      if (nextQuery === lastUrlQuery.current) {
-        return;
+      if (currentPage > 1) {
+        params.set("page", String(currentPage));
       }
 
-      lastUrlQuery.current = nextQuery;
+      const nextQuery = params.toString();
 
-      const nextUrl = `${window.location.pathname}${
-        nextQuery ? `?${nextQuery}` : ""
-      }${window.location.hash}`;
+      if (nextQuery !== lastUrlQuery.current) {
+        lastUrlQuery.current = nextQuery;
 
-      window.history.pushState(null, "", nextUrl);
+        const nextUrl = `${window.location.pathname}${
+          nextQuery ? `?${nextQuery}` : ""
+        }${window.location.hash}`;
+
+        window.history.pushState(null, "", nextUrl);
+      }
+
+      setIsServerLoading(true);
+      setServerError("");
+
+      try {
+        const response = await fetch("/api/lakes/search", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            page: currentPage,
+            pageSize: initialPagination.pageSize,
+            search: search.trim(),
+            ownerType,
+            fishingType,
+            voivodeship,
+            fish,
+            amenities: selectedAmenities,
+            sort: sortType,
+            userLat: userLocation?.lat ?? null,
+            userLng: userLocation?.lng ?? null,
+          }),
+          signal: controller.signal,
+        });
+
+        const data = (await response.json().catch(() => null)) as
+          | PaginatedLakesResult
+          | { message?: string }
+          | null;
+
+        if (!response.ok || !data || !("lakes" in data)) {
+          throw new Error(
+            data && "message" in data && data.message
+              ? data.message
+              : "Nie udało się pobrać łowisk."
+          );
+        }
+
+        if (requestId.current !== currentRequestId) {
+          return;
+        }
+
+        setServerResult(data);
+
+        if (data.page !== currentPage) {
+          setCurrentPage(data.page);
+        }
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setServerError(
+          error instanceof Error
+            ? error.message
+            : "Nie udało się pobrać łowisk."
+        );
+      } finally {
+        if (
+          !controller.signal.aborted &&
+          requestId.current === currentRequestId
+        ) {
+          setIsServerLoading(false);
+        }
+      }
     }, 350);
 
     return () => {
       window.clearTimeout(timeoutId);
+      controller.abort();
     };
   }, [
     search,
@@ -452,6 +462,9 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
     fish,
     selectedAmenities,
     sortType,
+    currentPage,
+    userLocation,
+    initialPagination.pageSize,
   ]);
 
   useEffect(() => {
@@ -467,17 +480,6 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
     viewMode,
   ]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredLakes.length / ITEMS_PER_PAGE)
-  );
-
-  const paginatedLakes = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-
-    return filteredLakes.slice(startIndex, endIndex);
-  }, [filteredLakes, currentPage]);
 
   function toggleAmenity(amenity: AmenityKey) {
     setSelectedAmenities((current) =>
@@ -528,12 +530,12 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
               <p className="text-sm font-semibold text-slate-500">
                 Wyniki:{" "}
                 <strong className="font-bold text-slate-950">
-                  {filteredLakes.length}
+                  {serverResult.totalCount}
                 </strong>{" "}
-                / {lakes.length}
+                / {filterOptions.allLakesCount}
               </p>
 
-              {filteredLakes.length > ITEMS_PER_PAGE && viewMode !== "map" && (
+              {serverResult.totalCount > serverResult.pageSize && viewMode !== "map" && (
                 <p className="mt-1 text-xs font-bold text-slate-400">
                   Strona {currentPage} z {totalPages}
                 </p>
@@ -751,12 +753,12 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
               <span>
                 Wyniki:{" "}
                 <strong className="font-bold text-slate-950">
-                  {filteredLakes.length}
+                  {serverResult.totalCount}
                 </strong>{" "}
-                / {lakes.length}
+                / {filterOptions.allLakesCount}
               </span>
 
-              {filteredLakes.length > ITEMS_PER_PAGE && viewMode !== "map" && (
+              {serverResult.totalCount > serverResult.pageSize && viewMode !== "map" && (
                 <span className="rounded-full bg-slate-50 px-3 py-1 text-xs font-bold text-slate-500">
                   Strona {currentPage} z {totalPages}
                 </span>
@@ -860,7 +862,19 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
         </section>
       )}
 
-      <div>
+      {serverError && (
+        <div className="mb-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+          {serverError}
+        </div>
+      )}
+
+      {isServerLoading && (
+        <div className="mb-4 text-sm font-bold text-blue-600">
+          Aktualizuję wyniki…
+        </div>
+      )}
+
+      <div className={isServerLoading ? "opacity-70 transition-opacity" : ""}>
         {filteredLakes.length > 0 ? (
           viewMode === "map" ? (
             <>
@@ -902,7 +916,7 @@ export function LakesPage({ lakes, initialView = "grid" }: LakesPageProps) {
                 </div>
               )}
 
-              {filteredLakes.length > ITEMS_PER_PAGE && (
+              {serverResult.totalCount > serverResult.pageSize && (
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
