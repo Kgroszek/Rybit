@@ -488,25 +488,23 @@ function normalizeCoordinate(value: unknown) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-export function normalizeLakeListQuery(
-  input: LakeListQuery
-): Required<
-  Pick<
-    LakeListQuery,
-    | "page"
-    | "pageSize"
-    | "search"
-    | "ownerType"
-    | "fishingType"
-    | "voivodeship"
-    | "fish"
-    | "amenities"
-    | "sort"
-  >
-> & {
+type NormalizedLakeListQuery = {
+  page: number;
+  pageSize: number;
+  search: string;
+  ownerType: string;
+  fishingType: string;
+  voivodeship: string;
+  fish: string;
+  amenities: LakeAmenityKey[];
+  sort: LakeListSort;
   userLat: number | null;
   userLng: number | null;
-} {
+};
+
+export function normalizeLakeListQuery(
+  input: LakeListQuery
+): NormalizedLakeListQuery {
   const search = String(input.search ?? "").trim().slice(0, 120);
   const voivodeship =
     String(input.voivodeship ?? "").trim().slice(0, 80) || "all";
