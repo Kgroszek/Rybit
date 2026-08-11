@@ -878,6 +878,7 @@ export async function getLakesList() {
       parking: true,
       pier: true,
       toilet: true,
+      sanitaryFacilities: true,
       shop: true,
       nightFishing: true,
       boatRental: true,
