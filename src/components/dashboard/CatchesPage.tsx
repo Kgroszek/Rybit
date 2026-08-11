@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/components/ui/ToastProvider";
+import { CatchShareDialog } from "@/components/catches/CatchShareDialog";
 
 type FishingCatch = {
   id: string;
@@ -36,6 +37,10 @@ type TripOption = {
   id: string;
   title: string;
   startsAt: string;
+  endsAt: string | null;
+  lakeId: string | null;
+  tripType: string;
+  status: string;
 };
 
 type CatchesPageProps = {
@@ -146,14 +151,42 @@ export function CatchesPage({
 }: CatchesPageProps) {
   const toast = useToast();
 
-  const initialTripExists = trips.some((trip) => trip.id === initialTripId);
+  const initialTrip = trips.find((trip) => trip.id === initialTripId) ?? null;
+  const initialTripExists = Boolean(initialTrip);
+
+  const activeTrip = useMemo(() => {
+    const now = Date.now();
+
+    return (
+      trips.find((trip) => {
+        if (trip.status === "cancelled" || trip.status === "canceled") {
+          return false;
+        }
+
+        const startsAt = new Date(trip.startsAt).getTime();
+
+        if (!Number.isFinite(startsAt)) {
+          return false;
+        }
+
+        const endsAt = trip.endsAt
+          ? new Date(trip.endsAt).getTime()
+          : startsAt + 24 * 60 * 60 * 1000;
+
+        return startsAt <= now && now <= endsAt;
+      }) ?? null
+    );
+  }, [trips]);
 
   const initialFormWithTrip: CatchFormState = {
     ...initialFormState,
     caughtAt: initialTripExists
       ? toDateTimeLocalValue(new Date().toISOString())
       : "",
-    tripId: initialTripExists ? initialTripId || "" : "",
+    tripId: initialTrip?.id ?? "",
+    lakeId: initialTrip?.lakeId ?? "",
+    method:
+      getMethodFromTripType(initialTrip?.tripType) ?? initialFormState.method,
   };
 
   const [catches, setCatches] = useState<FishingCatch[]>(initialCatches);
@@ -185,6 +218,8 @@ export function CatchesPage({
     alt: string;
   } | null>(null);
 
+  const [shareCatch, setShareCatch] = useState<FishingCatch | null>(null);
+
   const activeFiltersCount =
     Number(Boolean(search.trim())) + Number(methodFilter !== "all");
 
@@ -192,6 +227,21 @@ export function CatchesPage({
     field: K,
     value: CatchFormState[K]
   ) {
+    if (field === "tripId") {
+      const nextTripId = String(value ?? "");
+      const selectedTrip = trips.find((trip) => trip.id === nextTripId) ?? null;
+      const tripMethod = getMethodFromTripType(selectedTrip?.tripType);
+
+      setForm((current) => ({
+        ...current,
+        tripId: nextTripId,
+        lakeId: selectedTrip?.lakeId ?? current.lakeId,
+        method: tripMethod ?? current.method,
+      }));
+
+      return;
+    }
+
     setForm((current) => ({
       ...current,
       [field]: value,
@@ -204,6 +254,9 @@ export function CatchesPage({
   }
 
   function openCreateForm(mode: CatchFormMode = "full") {
+    const preferredTrip =
+      initialTrip ?? (mode === "quick" ? activeTrip : null);
+
     setEditingCatchId(null);
     setSelectedImage(null);
     setForm({
@@ -212,7 +265,11 @@ export function CatchesPage({
         mode === "quick"
           ? toDateTimeLocalValue(new Date().toISOString())
           : "",
-      tripId: initialTripExists ? initialTripId || "" : "",
+      tripId: preferredTrip?.id ?? "",
+      lakeId: preferredTrip?.lakeId ?? "",
+      method:
+        getMethodFromTripType(preferredTrip?.tripType) ??
+        initialFormState.method,
     });
     setFormMode(mode);
     setIsFormOpen(true);
@@ -454,6 +511,7 @@ export function CatchesPage({
         const savedCatch = data as FishingCatch;
 
         setCatches((current) => [savedCatch, ...current]);
+        setShareCatch(savedCatch);
         setForm(initialFormWithTrip);
         setSelectedImage(null);
         setEditingCatchId(null);
@@ -678,6 +736,7 @@ export function CatchesPage({
                 selectedImage={selectedImage}
                 lakes={lakes}
                 trips={trips}
+                autoTripId={(initialTrip ?? activeTrip)?.id ?? null}
                 isLoading={isLoading}
                 onSubmit={handleSubmit}
                 onCancel={handleCancelForm}
@@ -743,6 +802,7 @@ export function CatchesPage({
                     selectedImage={selectedImage}
                     lakes={lakes}
                     trips={trips}
+                    autoTripId={(initialTrip ?? activeTrip)?.id ?? null}
                     isLoading={isLoading}
                     onSubmit={handleSubmit}
                     onCancel={handleCancelForm}
@@ -867,6 +927,8 @@ export function CatchesPage({
                     alt: `Zdjęcie połowu: ${item.fishName}`,
                   })
                 }
+                onShare={() => setShareCatch(item)}
+                onShare={() => setShareCatch(item)}
                 onEdit={() => handleStartEdit(item)}
                 onDelete={() => handleDeleteCatch(item.id)}
               />
@@ -937,6 +999,13 @@ export function CatchesPage({
         +
       </button>
 
+      {shareCatch && (
+        <CatchShareDialog
+          fishingCatch={shareCatch}
+          onClose={() => setShareCatch(null)}
+        />
+      )}
+
       {previewImage && (
         <div
           className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/80 p-4"
@@ -973,6 +1042,7 @@ function QuickCatchForm({
   selectedImage,
   lakes,
   trips,
+  autoTripId,
   isLoading,
   onSubmit,
   onCancel,
@@ -985,6 +1055,7 @@ function QuickCatchForm({
   selectedImage: File | null;
   lakes: LakeOption[];
   trips: TripOption[];
+  autoTripId: string | null;
   isLoading: boolean;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
@@ -1096,6 +1167,22 @@ function QuickCatchForm({
           type="number"
         />
       </div>
+
+      {selectedTrip && (
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+          <p className="text-sm font-black text-blue-900">
+            {selectedTrip.id === autoTripId
+              ? "✓ Automatycznie przypisano trwającą wyprawę"
+              : "✓ Połów przypisany do wyprawy"}
+          </p>
+          <p className="mt-1 text-xs leading-5 text-blue-700">
+            {selectedTrip.title}
+            {selectedTrip.lakeId
+              ? " • łowisko oraz metoda zostały uzupełnione z wyprawy"
+              : " • metoda została uzupełniona z wyprawy"}
+          </p>
+        </div>
+      )}
 
       <LakeSearchSelect
         lakes={lakes}
@@ -1430,11 +1517,13 @@ function CatchForm({
 function CatchCard({
   item,
   onPreviewImage,
+  onShare,
   onEdit,
   onDelete,
 }: {
   item: FishingCatch;
   onPreviewImage: () => void;
+  onShare: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -1512,11 +1601,19 @@ function CatchCard({
         </p>
       )}
 
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:flex sm:justify-end">
+      <div className="mt-5 grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={onShare}
+          className="rounded-xl bg-blue-600 px-3 py-3 text-sm font-black text-white transition hover:bg-blue-700 sm:py-2.5"
+        >
+          Karta
+        </button>
+
         <button
           type="button"
           onClick={onEdit}
-          className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 sm:py-2.5"
+          className="rounded-xl bg-slate-100 px-3 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 sm:py-2.5"
         >
           Edytuj
         </button>
@@ -1524,7 +1621,7 @@ function CatchCard({
         <button
           type="button"
           onClick={onDelete}
-          className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 sm:py-2.5"
+          className="rounded-xl bg-red-50 px-3 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 sm:py-2.5"
         >
           Usuń
         </button>
@@ -1536,11 +1633,13 @@ function CatchCard({
 function CatchListItem({
   item,
   onPreviewImage,
+  onShare,
   onEdit,
   onDelete,
 }: {
   item: FishingCatch;
   onPreviewImage: () => void;
+  onShare: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
@@ -1616,7 +1715,15 @@ function CatchListItem({
         )}
       </div>
 
-      <div className="flex items-start justify-end gap-3">
+      <div className="flex flex-wrap items-start justify-end gap-2">
+        <button
+          type="button"
+          onClick={onShare}
+          className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-700"
+        >
+          Karta
+        </button>
+
         <button
           type="button"
           onClick={onEdit}
@@ -1988,6 +2095,34 @@ async function compressImage(file: File): Promise<File> {
   return new File([blob], `${fileNameWithoutExtension}.webp`, {
     type: "image/webp",
   });
+}
+
+function getMethodFromTripType(tripType?: string | null) {
+  if (!tripType) {
+    return null;
+  }
+
+  const normalized = tripType.trim().toLowerCase();
+
+  const aliases: Record<string, string> = {
+    spinning: "spinning",
+    feeder: "feeder",
+    method_feeder: "method_feeder",
+    "method feeder": "method_feeder",
+    method: "method_feeder",
+    carp: "carp",
+    karpiowa: "carp",
+    karpiowka: "carp",
+    "karpiówka": "carp",
+    float: "float",
+    splawik: "float",
+    "spławik": "float",
+    fly: "fly",
+    muchowka: "fly",
+    "muchówka": "fly",
+  };
+
+  return aliases[normalized] ?? null;
 }
 
 function getMethodLabel(value: string) {
