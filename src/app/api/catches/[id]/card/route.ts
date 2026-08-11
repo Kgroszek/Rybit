@@ -27,6 +27,11 @@ export async function GET(request: Request, { params }: RouteProps) {
   const format =
     url.searchParams.get("format") === "story" ? "story" : "post";
 
+  const variant =
+    url.searchParams.get("variant") === "clean"
+      ? "clean"
+      : "collector";
+
   const shouldDownload = url.searchParams.get("download") === "1";
 
   const supabase = await createClient();
@@ -58,6 +63,10 @@ export async function GET(request: Request, { params }: RouteProps) {
       note: true,
       isPublic: true,
       rankingStatus: true,
+      catchScore: true,
+      catchScoreTier: true,
+      catchScoreSource: true,
+      catchScoreVersion: true,
     },
   });
 
@@ -95,14 +104,12 @@ export async function GET(request: Request, { params }: RouteProps) {
     fishingCatch,
     imageUrl,
     format,
+    variant,
   });
 
-  const width = 1080;
-  const height = format === "story" ? 1920 : 1350;
-
   const response = new ImageResponse(image, {
-    width,
-    height,
+    width: 1080,
+    height: format === "story" ? 1920 : 1350,
   });
 
   response.headers.set("Content-Type", "image/png");
@@ -112,7 +119,8 @@ export async function GET(request: Request, { params }: RouteProps) {
       "Content-Disposition",
       `attachment; filename="${getSafeCatchFileName(
         fishingCatch.fishName,
-        format
+        format,
+        variant
       )}"`
     );
   }

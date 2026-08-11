@@ -2,13 +2,25 @@
 
 import { useMemo, useState } from "react";
 
+import {
+  calculateCatchScore,
+  resolveStoredCatchScore,
+} from "@/lib/catch-score";
+
 type ShareCatch = {
   id: string;
   fishName: string;
+  weight: number | null;
+  length: number | null;
   isPublic: boolean;
+  catchScore?: number | null;
+  catchScoreTier?: string | null;
+  catchScoreSource?: string | null;
+  catchScoreVersion?: number | null;
 };
 
 type CatchCardFormat = "post" | "story";
+type CatchCardVariant = "collector" | "clean";
 
 export function CatchShareDialog({
   fishingCatch,
@@ -18,12 +30,25 @@ export function CatchShareDialog({
   onClose: () => void;
 }) {
   const [format, setFormat] = useState<CatchCardFormat>("post");
+  const [variant, setVariant] =
+    useState<CatchCardVariant>("collector");
   const [isWorking, setIsWorking] = useState(false);
   const [message, setMessage] = useState("");
 
+  const score = useMemo(
+    () =>
+      resolveStoredCatchScore({
+        ...fishingCatch,
+        catchScoreVersion:
+          fishingCatch.catchScoreVersion ?? null,
+      }),
+    [fishingCatch]
+  );
+
   const cardUrl = useMemo(
-    () => `/api/catches/${fishingCatch.id}/card?format=${format}`,
-    [fishingCatch.id, format]
+    () =>
+      `/api/catches/${fishingCatch.id}/card?format=${format}&variant=${variant}`,
+    [fishingCatch.id, format, variant]
   );
 
   const publicSharePath = `/polowy/publiczne/${fishingCatch.id}`;
@@ -45,6 +70,7 @@ export function CatchShareDialog({
     }
 
     const blob = await response.blob();
+
     const safeFishName = fishingCatch.fishName
       .toLowerCase()
       .normalize("NFD")
@@ -55,7 +81,7 @@ export function CatchShareDialog({
 
     return new File(
       [blob],
-      `rybio-${safeFishName || "polow"}-${format}.png`,
+      `rybio-${safeFishName || "polow"}-${variant}-${format}.png`,
       {
         type: "image/png",
       }
@@ -111,7 +137,9 @@ export function CatchShareDialog({
         })
       ) {
         await navigator.share({
-          title: `${fishingCatch.fishName} — mój połów w Rybio`,
+          title: `${fishingCatch.fishName} — Rybio Score ${
+            score.score ?? "—"
+          }/100`,
           text: fishingCatch.isPublic
             ? "Zobacz mój połów zapisany w Rybio."
             : "Mój połów zapisany w Rybio.",
@@ -128,7 +156,9 @@ export function CatchShareDialog({
 
       if (fishingCatch.isPublic && navigator.share) {
         await navigator.share({
-          title: `${fishingCatch.fishName} — mój połów w Rybio`,
+          title: `${fishingCatch.fishName} — Rybio Score ${
+            score.score ?? "—"
+          }/100`,
           text: "Zobacz mój połów zapisany w Rybio.",
           url: absolutePublicUrl,
         });
@@ -144,7 +174,7 @@ export function CatchShareDialog({
 
       await handleDownload();
       setMessage(
-        "Twoja przeglądarka nie obsługuje bezpośredniego udostępniania. Karta została pobrana."
+        "Przeglądarka nie obsługuje bezpośredniego udostępniania. Karta została pobrana."
       );
     } catch (error) {
       if (
@@ -169,8 +199,6 @@ export function CatchShareDialog({
       return;
     }
 
-    setMessage("");
-
     try {
       const absolutePublicUrl = new URL(
         publicSharePath,
@@ -190,19 +218,31 @@ export function CatchShareDialog({
       onClick={onClose}
     >
       <div
-        className="max-h-[94vh] w-full max-w-5xl overflow-y-auto rounded-[30px] bg-white shadow-2xl"
+        className="max-h-[94vh] w-full max-w-6xl overflow-y-auto rounded-[30px] bg-white shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white/95 p-5 backdrop-blur sm:p-6">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
-              Karta połowu
+              Rybio Catch Card
             </p>
+
             <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
-              Pochwal się swoim połowem
+              {fishingCatch.fishName}
             </h2>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
-              Pobierz gotową grafikę albo udostępnij ją bezpośrednio z telefonu.
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-slate-950 px-3 py-1.5 text-sm font-black text-white">
+                Rybio Score {score.score ?? "—"}/100
+              </span>
+
+              <span className="rounded-full bg-blue-50 px-3 py-1.5 text-xs font-black text-blue-700">
+                {score.tierLabel}
+              </span>
+            </div>
+
+            <p className="mt-3 max-w-2xl text-xs leading-5 text-slate-500">
+              {score.explanation}
             </p>
           </div>
 
@@ -216,39 +256,67 @@ export function CatchShareDialog({
           </button>
         </div>
 
-        <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_330px]">
+        <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0">
-            <div className="mb-4 flex rounded-2xl bg-slate-100 p-1">
-              <button
-                type="button"
-                onClick={() => setFormat("post")}
-                className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-black transition ${
-                  format === "post"
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-slate-500"
-                }`}
-              >
-                Post 4:5
-              </button>
+            <div className="mb-3 grid gap-2 sm:grid-cols-2">
+              <div className="flex rounded-2xl bg-slate-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => setVariant("collector")}
+                  className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-black transition ${
+                    variant === "collector"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-slate-500"
+                  }`}
+                >
+                  Kolekcjonerska
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setFormat("story")}
-                className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-black transition ${
-                  format === "story"
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-slate-500"
-                }`}
-              >
-                Story 9:16
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setVariant("clean")}
+                  className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-black transition ${
+                    variant === "clean"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-slate-500"
+                  }`}
+                >
+                  Klasyczna
+                </button>
+              </div>
+
+              <div className="flex rounded-2xl bg-slate-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => setFormat("post")}
+                  className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-black transition ${
+                    format === "post"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-slate-500"
+                  }`}
+                >
+                  Post 4:5
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormat("story")}
+                  className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-black transition ${
+                    format === "story"
+                      ? "bg-white text-blue-600 shadow-sm"
+                      : "text-slate-500"
+                  }`}
+                >
+                  Story 9:16
+                </button>
+              </div>
             </div>
 
             <div
               className={`mx-auto overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-sm ${
                 format === "story"
                   ? "max-w-[360px]"
-                  : "max-w-[560px]"
+                  : "max-w-[610px]"
               }`}
             >
               <img
@@ -268,9 +336,24 @@ export function CatchShareDialog({
 
               <p className="mt-2 text-sm leading-6 text-slate-500">
                 {format === "post"
-                  ? "Format 1080 × 1350 px dobrze sprawdzi się jako post na Instagramie i Facebooku."
-                  : "Format 1080 × 1920 px jest przygotowany pod relacje i Stories."}
+                  ? "1080 × 1350 px — format 4:5 do postów."
+                  : "1080 × 1920 px — format 9:16 do relacji i Stories."}
               </p>
+
+              <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.13em] text-blue-500">
+                  Punktacja
+                </p>
+
+                <p className="mt-2 text-3xl font-black text-blue-950">
+                  {score.score ?? "—"}
+                  <span className="text-base text-blue-500"> / 100</span>
+                </p>
+
+                <p className="mt-1 text-sm font-bold text-blue-700">
+                  {score.tierLabel}
+                </p>
+              </div>
 
               <div className="mt-5 space-y-3">
                 <button
@@ -307,9 +390,10 @@ export function CatchShareDialog({
                   <p className="text-sm font-black text-amber-800">
                     Połów jest prywatny
                   </p>
+
                   <p className="mt-1 text-xs leading-5 text-amber-700">
-                    Możesz pobrać lub wysłać samą grafikę. Publiczny link nie
-                    zostanie utworzony, dopóki połów pozostaje prywatny.
+                    Kartę możesz pobrać lub wysłać jako plik, ale publiczny
+                    link działa tylko dla połowów oznaczonych jako publiczne.
                   </p>
                 </div>
               )}

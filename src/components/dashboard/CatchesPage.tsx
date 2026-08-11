@@ -22,6 +22,10 @@ type FishingCatch = {
   note: string | null;
   isPublic: boolean;
   rankingStatus: string;
+  catchScore?: number | null;
+  catchScoreTier?: string | null;
+  catchScoreSource?: string | null;
+  catchScoreVersion?: number | null;
   createdAt: string;
   updatedAt: string;
 };

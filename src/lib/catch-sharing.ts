@@ -25,6 +25,10 @@ export type CatchShareData = {
   note: string | null;
   isPublic: boolean;
   rankingStatus: string;
+  catchScore: number | null;
+  catchScoreTier: string | null;
+  catchScoreSource: string | null;
+  catchScoreVersion: number;
 };
 
 export function canExposeCatchPublicly(
@@ -92,7 +96,8 @@ export function formatCatchDate(date: Date | string) {
 
 export function getSafeCatchFileName(
   fishName: string,
-  format: "post" | "story"
+  format: "post" | "story",
+  variant: "collector" | "clean"
 ) {
   const slug = fishName
     .toLowerCase()
@@ -102,7 +107,7 @@ export function getSafeCatchFileName(
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  return `rybio-${slug || "polow"}-${format}.png`;
+  return `rybio-${slug || "polow"}-${variant}-${format}.png`;
 }
 
 export function getAppBaseUrl() {

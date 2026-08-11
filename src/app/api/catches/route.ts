@@ -2,20 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { checkAndUnlockAchievements } from "@/lib/achievements";
+import { calculateCatchScore } from "@/lib/catch-score";
 
 const CATCH_IMAGES_BUCKET = "catch-images";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const FUTURE_DATE_TOLERANCE_MS = 2 * 60 * 1000;
 
-/**
- * Każdy nowy połów zgłoszony do rankingu musi najpierw
- * oczekiwać na zatwierdzenie przez administratora.
- */
-const INITIAL_RANKING_STATUS = "pending" as const;
-
-type SupabaseServerClient = Awaited<
-  ReturnType<typeof createClient>
->;
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 type SupabaseUserForDisplayName = {
   email?: string | null;
@@ -49,10 +42,7 @@ function sanitizeFileName(fileName: string) {
 }
 
 function isValidImage(file: File) {
-  return (
-    file.type.startsWith("image/") &&
-    file.size <= MAX_FILE_SIZE
-  );
+  return file.type.startsWith("image/") && file.size <= MAX_FILE_SIZE;
 }
 
 function parseCaughtAt(value: string) {
@@ -65,10 +55,7 @@ function parseCaughtAt(value: string) {
     };
   }
 
-  if (
-    caughtAt.getTime() >
-    Date.now() + FUTURE_DATE_TOLERANCE_MS
-  ) {
+  if (caughtAt.getTime() > Date.now() + FUTURE_DATE_TOLERANCE_MS) {
     return {
       date: null,
       error: "Nie możesz dodać połowu z przyszłości.",
@@ -81,23 +68,14 @@ function parseCaughtAt(value: string) {
   };
 }
 
-/**
- * user_metadata jest tutaj używane wyłącznie do wyświetlenia
- * nazwy użytkownika, a nie do sprawdzania uprawnień.
- */
-function getUserDisplayName(
-  user: SupabaseUserForDisplayName
-) {
+function getUserDisplayName(user: SupabaseUserForDisplayName) {
   const metadataName =
     user.user_metadata?.full_name ||
     user.user_metadata?.name ||
     user.user_metadata?.display_name ||
     user.user_metadata?.user_name;
 
-  if (
-    typeof metadataName === "string" &&
-    metadataName.trim()
-  ) {
+  if (metadataName && metadataName.trim()) {
     return metadataName.trim();
   }
 
@@ -106,28 +84,17 @@ function getUserDisplayName(
       .split("@")[0]
       .split(/[._-]/)
       .filter(Boolean)
-      .map(
-        (item) =>
-          item.charAt(0).toUpperCase() +
-          item.slice(1)
-      )
+      .map((item) => item.charAt(0).toUpperCase() + item.slice(1))
       .join(" ");
   }
 
   return "Użytkownik";
 }
 
-function checkAchievementsInBackground(
-  userId: string
-) {
-  void checkAndUnlockAchievements(userId).catch(
-    (error) => {
-      console.error(
-        "[catches] Nie udało się sprawdzić osiągnięć:",
-        error
-      );
-    }
-  );
+function checkAchievementsInBackground(userId: string) {
+  void checkAndUnlockAchievements(userId).catch((error) => {
+    console.error("[catches] Nie udało się sprawdzić osiągnięć:", error);
+  });
 }
 
 export async function GET() {
@@ -135,29 +102,23 @@ export async function GET() {
 
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError || !user) {
+  if (!user) {
     return NextResponse.json(
-      {
-        message: "Musisz być zalogowany.",
-      },
-      {
-        status: 401,
-      }
+      { message: "Musisz być zalogowany." },
+      { status: 401 }
     );
   }
 
-  const catches =
-    await prisma.fishingCatch.findMany({
-      where: {
-        userId: user.id,
-      },
-      orderBy: {
-        caughtAt: "desc",
-      },
-    });
+  const catches = await prisma.fishingCatch.findMany({
+    where: {
+      userId: user.id,
+    },
+    orderBy: {
+      caughtAt: "desc",
+    },
+  });
 
   return NextResponse.json(catches);
 }
@@ -167,41 +128,23 @@ export async function POST(request: Request) {
 
   const {
     data: { user },
-    error: userError,
   } = await supabase.auth.getUser();
 
-  if (userError || !user) {
+  if (!user) {
     return NextResponse.json(
-      {
-        message:
-          "Musisz być zalogowany, aby dodać połów.",
-      },
-      {
-        status: 401,
-      }
+      { message: "Musisz być zalogowany, aby dodać połów." },
+      { status: 401 }
     );
   }
 
   const userName = getUserDisplayName(user);
-  const contentType =
-    request.headers.get("content-type") || "";
+  const contentType = request.headers.get("content-type") || "";
 
-  if (
-    contentType.includes("multipart/form-data")
-  ) {
-    return handleMultipartCatchCreate(
-      request,
-      user.id,
-      userName,
-      supabase
-    );
+  if (contentType.includes("multipart/form-data")) {
+    return handleMultipartCatchCreate(request, user.id, userName, supabase);
   }
 
-  return handleJsonCatchCreate(
-    request,
-    user.id,
-    userName
-  );
+  return handleJsonCatchCreate(request, user.id, userName);
 }
 
 async function handleJsonCatchCreate(
@@ -209,92 +152,45 @@ async function handleJsonCatchCreate(
   userId: string,
   userName: string
 ) {
-  const body = await request.json().catch(() => null);
+  const body = await request.json();
 
-  if (!body || typeof body !== "object") {
-    return NextResponse.json(
-      {
-        message: "Nieprawidłowe dane połowu.",
-      },
-      {
-        status: 400,
-      }
-    );
-  }
-
-  const fishName = String(
-    body.fishName || ""
-  ).trim();
-
-  const method = String(
-    body.method || ""
-  ).trim();
-
-  const caughtAtValue = String(
-    body.caughtAt || ""
-  ).trim();
-
-  const lakeId = String(
-    body.lakeId || ""
-  ).trim();
-
-  const isPublic = body.isPublic === true;
+  const fishName = String(body.fishName || "").trim();
+  const method = String(body.method || "").trim();
+  const caughtAtValue = String(body.caughtAt || "").trim();
+  const lakeId = String(body.lakeId || "").trim();
+  const isPublic = Boolean(body.isPublic);
 
   if (!fishName || !method || !caughtAtValue) {
     return NextResponse.json(
-      {
-        message:
-          "Gatunek ryby, metoda i data połowu są wymagane.",
-      },
-      {
-        status: 400,
-      }
+      { message: "Gatunek ryby, metoda i data połowu są wymagane." },
+      { status: 400 }
     );
   }
 
-  const caughtAtResult =
-    parseCaughtAt(caughtAtValue);
+  const caughtAtResult = parseCaughtAt(caughtAtValue);
 
-  if (
-    caughtAtResult.error ||
-    !caughtAtResult.date
-  ) {
+  if (caughtAtResult.error || !caughtAtResult.date) {
     return NextResponse.json(
-      {
-        message: caughtAtResult.error,
-      },
-      {
-        status: 400,
-      }
+      { message: caughtAtResult.error },
+      { status: 400 }
     );
   }
 
   const caughtAt = caughtAtResult.date;
 
   const weight =
-    body.weight !== undefined &&
-    body.weight !== ""
-      ? Number(body.weight)
-      : null;
+    body.weight !== undefined && body.weight !== "" ? Number(body.weight) : null;
 
   const length =
-    body.length !== undefined &&
-    body.length !== ""
-      ? Number(body.length)
-      : null;
+    body.length !== undefined && body.length !== "" ? Number(body.length) : null;
 
   if (
     weight !== null &&
     (!Number.isFinite(weight) || weight <= 0)
   ) {
     return NextResponse.json(
-      {
-        message:
-          "Waga musi być liczbą większą od zera.",
-      },
-      {
-        status: 400,
-      }
+      { message: "Waga musi być dodatnią liczbą." },
+      { status: 400 }
     );
   }
 
@@ -303,27 +199,22 @@ async function handleJsonCatchCreate(
     (!Number.isFinite(length) || length <= 0)
   ) {
     return NextResponse.json(
-      {
-        message:
-          "Długość musi być liczbą większą od zera.",
-      },
-      {
-        status: 400,
-      }
+      { message: "Długość musi być dodatnią liczbą." },
+      { status: 400 }
     );
   }
 
-  const imageUrl =
-    typeof body.imageUrl === "string" &&
-    body.imageUrl.trim()
-      ? body.imageUrl.trim()
-      : null;
+  // Nie ufamy dowolnemu imageUrl przesłanemu w JSON.
+  // CatchesPage wysyła nowe połowy ze zdjęciem jako multipart/form-data.
+  const rawImagePath =
+    typeof body.imagePath === "string" ? body.imagePath.trim() : "";
 
   const imagePath =
-    typeof body.imagePath === "string" &&
-    body.imagePath.trim()
-      ? body.imagePath.trim()
+    rawImagePath && rawImagePath.startsWith(`${userId}/`)
+      ? rawImagePath
       : null;
+
+  const imageUrl = null;
 
   if (isPublic && !lakeId) {
     return NextResponse.json(
@@ -331,37 +222,27 @@ async function handleJsonCatchCreate(
         message:
           "Aby połów trafił do rankingu łowiska, musisz wybrać łowisko z bazy.",
       },
-      {
-        status: 400,
-      }
+      { status: 400 }
     );
   }
 
-  if (isPublic && !imageUrl) {
+  if (isPublic && !imagePath) {
     return NextResponse.json(
       {
         message:
           "Aby połów trafił do rankingu łowiska, musisz dodać zdjęcie ryby.",
       },
-      {
-        status: 400,
-      }
+      { status: 400 }
     );
   }
 
-  if (
-    isPublic &&
-    weight === null &&
-    length === null
-  ) {
+  if (isPublic && weight === null && length === null) {
     return NextResponse.json(
       {
         message:
           "Aby połów trafił do rankingu łowiska, wpisz wagę lub długość ryby.",
       },
-      {
-        status: 400,
-      }
+      { status: 400 }
     );
   }
 
@@ -381,13 +262,8 @@ async function handleJsonCatchCreate(
 
     if (!lake) {
       return NextResponse.json(
-        {
-          message:
-            "Wybrane łowisko nie istnieje.",
-        },
-        {
-          status: 400,
-        }
+        { message: "Wybrane łowisko nie istnieje." },
+        { status: 400 }
       );
     }
 
@@ -395,58 +271,43 @@ async function handleJsonCatchCreate(
     lakeName = lake.name;
   }
 
-  const { tripId, tripTitle } =
-    await getTripData(body.tripId, userId);
+  const { tripId, tripTitle } = await getTripData(body.tripId, userId);
 
-  const fishingCatch =
-    await prisma.fishingCatch.create({
-      data: {
-        userId,
-        userName,
-        fishName,
-        weight,
-        length,
-        method,
-        bait:
-          typeof body.bait === "string" &&
-          body.bait.trim()
-            ? body.bait.trim()
-            : null,
-        caughtAt,
-        lakeId: finalLakeId,
-        lakeName,
-        tripId,
-        tripTitle,
-        imageUrl,
-        imagePath,
-        note:
-          typeof body.note === "string" &&
-          body.note.trim()
-            ? body.note.trim()
-            : null,
-        isPublic,
+  const score = calculateCatchScore({
+    fishName,
+    weight,
+    length,
+  });
 
-        /**
-         * Publiczny połów nie jest już automatycznie
-         * zatwierdzany. Otrzymuje status oczekujący.
-         *
-         * Prywatny połów zachowuje dotychczasowy status
-         * pending, ale nie jest pokazywany publicznie,
-         * ponieważ isPublic ma wartość false.
-         */
-        rankingStatus:
-          INITIAL_RANKING_STATUS,
-      },
-    });
+  const fishingCatch = await prisma.fishingCatch.create({
+    data: {
+      userId,
+      userName,
+      fishName,
+      weight,
+      length,
+      method,
+      bait: body.bait || null,
+      caughtAt,
+      lakeId: finalLakeId,
+      lakeName,
+      tripId,
+      tripTitle,
+      imageUrl,
+      imagePath,
+      note: body.note || null,
+      isPublic,
+      rankingStatus: "pending",
+      catchScore: score.score,
+      catchScoreTier: score.tier,
+      catchScoreSource: score.source,
+      catchScoreVersion: score.version,
+    },
+  });
 
   checkAchievementsInBackground(userId);
 
-  return NextResponse.json(
-    fishingCatch,
-    {
-      status: 201,
-    }
-  );
+  return NextResponse.json(fishingCatch, { status: 201 });
 }
 
 async function handleMultipartCatchCreate(
@@ -457,97 +318,44 @@ async function handleMultipartCatchCreate(
 ) {
   const formData = await request.formData();
 
-  const fishName = getFormValue(
-    formData,
-    "fishName"
-  );
-
-  const method = getFormValue(
-    formData,
-    "method"
-  );
-
-  const caughtAtValue = getFormValue(
-    formData,
-    "caughtAt"
-  );
-
-  const lakeId = getFormValue(
-    formData,
-    "lakeId"
-  );
-
-  const tripIdFromForm = getFormValue(
-    formData,
-    "tripId"
-  );
-
-  const isPublic = getFormBoolean(
-    formData,
-    "isPublic"
-  );
+  const fishName = getFormValue(formData, "fishName");
+  const method = getFormValue(formData, "method");
+  const caughtAtValue = getFormValue(formData, "caughtAt");
+  const lakeId = getFormValue(formData, "lakeId");
+  const tripIdFromForm = getFormValue(formData, "tripId");
+  const isPublic = getFormBoolean(formData, "isPublic");
 
   if (!fishName || !method || !caughtAtValue) {
     return NextResponse.json(
-      {
-        message:
-          "Gatunek ryby, metoda i data połowu są wymagane.",
-      },
-      {
-        status: 400,
-      }
+      { message: "Gatunek ryby, metoda i data połowu są wymagane." },
+      { status: 400 }
     );
   }
 
-  const caughtAtResult =
-    parseCaughtAt(caughtAtValue);
+  const caughtAtResult = parseCaughtAt(caughtAtValue);
 
-  if (
-    caughtAtResult.error ||
-    !caughtAtResult.date
-  ) {
+  if (caughtAtResult.error || !caughtAtResult.date) {
     return NextResponse.json(
-      {
-        message: caughtAtResult.error,
-      },
-      {
-        status: 400,
-      }
+      { message: caughtAtResult.error },
+      { status: 400 }
     );
   }
 
   const caughtAt = caughtAtResult.date;
 
-  const weightValue = getFormValue(
-    formData,
-    "weight"
-  );
+  const weightValue = getFormValue(formData, "weight");
+  const lengthValue = getFormValue(formData, "length");
 
-  const lengthValue = getFormValue(
-    formData,
-    "length"
-  );
-
-  const weight = weightValue
-    ? Number(weightValue)
-    : null;
-
-  const length = lengthValue
-    ? Number(lengthValue)
-    : null;
+  const weight = weightValue ? Number(weightValue) : null;
+  const length = lengthValue ? Number(lengthValue) : null;
 
   if (
     weight !== null &&
     (!Number.isFinite(weight) || weight <= 0)
   ) {
     return NextResponse.json(
-      {
-        message:
-          "Waga musi być liczbą większą od zera.",
-      },
-      {
-        status: 400,
-      }
+      { message: "Waga musi być dodatnią liczbą." },
+      { status: 400 }
     );
   }
 
@@ -556,37 +364,20 @@ async function handleMultipartCatchCreate(
     (!Number.isFinite(length) || length <= 0)
   ) {
     return NextResponse.json(
-      {
-        message:
-          "Długość musi być liczbą większą od zera.",
-      },
-      {
-        status: 400,
-      }
+      { message: "Długość musi być dodatnią liczbą." },
+      { status: 400 }
     );
   }
 
-  const imageFromForm =
-    formData.get("image");
+  const imageFromForm = formData.get("image");
+  const image = imageFromForm instanceof File ? imageFromForm : null;
 
-  const image =
-    imageFromForm instanceof File
-      ? imageFromForm
-      : null;
-
-  if (
-    image &&
-    image.size > 0 &&
-    !isValidImage(image)
-  ) {
+  if (image && image.size > 0 && !isValidImage(image)) {
     return NextResponse.json(
       {
-        message:
-          "Zdjęcie musi być plikiem graficznym i mieć maksymalnie 5 MB.",
+        message: "Zdjęcie musi być plikiem graficznym i mieć maksymalnie 5 MB.",
       },
-      {
-        status: 400,
-      }
+      { status: 400 }
     );
   }
 
@@ -596,40 +387,27 @@ async function handleMultipartCatchCreate(
         message:
           "Aby połów trafił do rankingu łowiska, musisz wybrać łowisko z bazy.",
       },
-      {
-        status: 400,
-      }
+      { status: 400 }
     );
   }
 
-  if (
-    isPublic &&
-    (!image || image.size === 0)
-  ) {
+  if (isPublic && (!image || image.size === 0)) {
     return NextResponse.json(
       {
         message:
           "Aby połów trafił do rankingu łowiska, musisz dodać zdjęcie ryby.",
       },
-      {
-        status: 400,
-      }
+      { status: 400 }
     );
   }
 
-  if (
-    isPublic &&
-    weight === null &&
-    length === null
-  ) {
+  if (isPublic && weight === null && length === null) {
     return NextResponse.json(
       {
         message:
           "Aby połów trafił do rankingu łowiska, wpisz wagę lub długość ryby.",
       },
-      {
-        status: 400,
-      }
+      { status: 400 }
     );
   }
 
@@ -649,13 +427,8 @@ async function handleMultipartCatchCreate(
 
     if (!lake) {
       return NextResponse.json(
-        {
-          message:
-            "Wybrane łowisko nie istnieje.",
-        },
-        {
-          status: 400,
-        }
+        { message: "Wybrane łowisko nie istnieje." },
+        { status: 400 }
       );
     }
 
@@ -663,109 +436,74 @@ async function handleMultipartCatchCreate(
     lakeName = lake.name;
   }
 
-  const { tripId, tripTitle } =
-    await getTripData(
-      tripIdFromForm,
-      userId
-    );
+  const { tripId, tripTitle } = await getTripData(tripIdFromForm, userId);
+
+  const score = calculateCatchScore({
+    fishName,
+    weight,
+    length,
+  });
 
   let imageUrl: string | null = null;
   let imagePath: string | null = null;
 
   try {
     if (image && image.size > 0) {
-      const sanitizedFileName =
-        sanitizeFileName(image.name);
+      const cleanFileName = sanitizeFileName(image.name);
 
-      const cleanFileName =
-        sanitizedFileName ||
-        `catch-image-${Date.now()}.jpg`;
+      imagePath = `${userId}/${Date.now()}-${cleanFileName}`;
 
-      imagePath =
-        `${userId}/${Date.now()}-${cleanFileName}`;
-
-      const { error: uploadError } =
-        await supabase.storage
-          .from(CATCH_IMAGES_BUCKET)
-          .upload(imagePath, image, {
-            cacheControl: "3600",
-            upsert: false,
-            contentType: image.type,
-          });
+      const { error: uploadError } = await supabase.storage
+        .from(CATCH_IMAGES_BUCKET)
+        .upload(imagePath, image, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: image.type,
+        });
 
       if (uploadError) {
-        throw new Error(
-          uploadError.message
-        );
+        throw new Error(uploadError.message);
       }
 
       const {
         data: { publicUrl },
-      } = supabase.storage
-        .from(CATCH_IMAGES_BUCKET)
-        .getPublicUrl(imagePath);
+      } = supabase.storage.from(CATCH_IMAGES_BUCKET).getPublicUrl(imagePath);
 
       imageUrl = publicUrl;
     }
 
-    const fishingCatch =
-      await prisma.fishingCatch.create({
-        data: {
-          userId,
-          userName,
-          fishName,
-          weight,
-          length,
-          method,
-          bait:
-            getFormValue(
-              formData,
-              "bait"
-            ) || null,
-          caughtAt,
-          lakeId: finalLakeId,
-          lakeName,
-          tripId,
-          tripTitle,
-          imageUrl,
-          imagePath,
-          note:
-            getFormValue(
-              formData,
-              "note"
-            ) || null,
-          isPublic,
-
-          /**
-           * Publiczny połów rozpoczyna proces
-           * moderacji jako oczekujący.
-           */
-          rankingStatus:
-            INITIAL_RANKING_STATUS,
-        },
-      });
+    const fishingCatch = await prisma.fishingCatch.create({
+      data: {
+        userId,
+        userName,
+        fishName,
+        weight,
+        length,
+        method,
+        bait: getFormValue(formData, "bait") || null,
+        caughtAt,
+        lakeId: finalLakeId,
+        lakeName,
+        tripId,
+        tripTitle,
+        imageUrl,
+        imagePath,
+        note: getFormValue(formData, "note") || null,
+        isPublic,
+        rankingStatus: "pending",
+        catchScore: score.score,
+        catchScoreTier: score.tier,
+        catchScoreSource: score.source,
+        catchScoreVersion: score.version,
+      },
+    });
 
     checkAchievementsInBackground(userId);
 
-    return NextResponse.json(
-      fishingCatch,
-      {
-        status: 201,
-      }
-    );
+    return NextResponse.json(fishingCatch, { status: 201 });
   } catch (error) {
     if (imagePath) {
-      const { error: removeError } =
-        await supabase.storage
-          .from(CATCH_IMAGES_BUCKET)
-          .remove([imagePath]);
-
-      if (removeError) {
-        console.error(
-          "[catches] Nie udało się usunąć zdjęcia po błędzie zapisu:",
-          removeError.message
-        );
-      }
+      await supabase.storage.from(CATCH_IMAGES_BUCKET).remove([imagePath]);
     }
 
     return NextResponse.json(
@@ -775,20 +513,13 @@ async function handleMultipartCatchCreate(
             ? error.message
             : "Nie udało się zapisać połowu.",
       },
-      {
-        status: 500,
-      }
+      { status: 500 }
     );
   }
 }
 
-async function getTripData(
-  tripIdValue: unknown,
-  userId: string
-) {
-  const selectedTripId = String(
-    tripIdValue || ""
-  ).trim();
+async function getTripData(tripIdValue: unknown, userId: string) {
+  const selectedTripId = String(tripIdValue || "").trim();
 
   if (!selectedTripId) {
     return {
@@ -797,19 +528,33 @@ async function getTripData(
     };
   }
 
-  const trip =
-    await prisma.fishingTrip.findUnique({
-      where: {
-        id: selectedTripId,
-      },
-      select: {
-        id: true,
-        title: true,
-        userId: true,
-      },
-    });
+  const trip = await prisma.fishingTrip.findFirst({
+    where: {
+      id: selectedTripId,
+      OR: [
+        {
+          userId,
+        },
+        {
+          members: {
+            some: {
+              userId,
+              status: "accepted",
+              role: {
+                in: ["editor", "co_owner"],
+              },
+            },
+          },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      title: true,
+    },
+  });
 
-  if (!trip || trip.userId !== userId) {
+  if (!trip) {
     return {
       tripId: null,
       tripTitle: null,

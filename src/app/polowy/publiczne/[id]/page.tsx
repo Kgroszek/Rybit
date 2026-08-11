@@ -9,6 +9,7 @@ import {
   getCatchImageForSharing,
   getMethodLabel,
 } from "@/lib/catch-sharing";
+import { resolveStoredCatchScore } from "@/lib/catch-score";
 import { prisma } from "@/lib/prisma";
 
 type PublicCatchPageProps = {
@@ -41,6 +42,10 @@ async function getPublicCatch(id: string) {
       note: true,
       isPublic: true,
       rankingStatus: true,
+      catchScore: true,
+      catchScoreTier: true,
+      catchScoreSource: true,
+      catchScoreVersion: true,
       lake: {
         select: {
           slug: true,
@@ -68,28 +73,19 @@ export async function generateMetadata({
     };
   }
 
+  const score = resolveStoredCatchScore(fishingCatch);
   const baseUrl = getAppBaseUrl();
-  const weightLabel =
-    fishingCatch.weight !== null
-      ? `${fishingCatch.weight.toFixed(2)} kg`
-      : null;
-  const lengthLabel =
-    fishingCatch.length !== null
-      ? `${fishingCatch.length.toFixed(0)} cm`
-      : null;
 
-  const result = [weightLabel, lengthLabel].filter(Boolean).join(" • ");
-
-  const title = `${fishingCatch.fishName}${
-    result ? ` — ${result}` : ""
-  } | Rybio`;
+  const title = `${fishingCatch.fishName} — Rybio Score ${
+    score.score ?? "—"
+  }/100 | Rybio`;
 
   const description = fishingCatch.lakeName
-    ? `Połów użytkownika Rybio na łowisku ${fishingCatch.lakeName}.`
-    : "Połów zapisany w dzienniku Rybio.";
+    ? `${score.tierLabel}. Połów na łowisku ${fishingCatch.lakeName}.`
+    : `${score.tierLabel}. Połów zapisany w Rybio.`;
 
   const pageUrl = `${baseUrl}/polowy/publiczne/${fishingCatch.id}`;
-  const cardUrl = `${baseUrl}/api/catches/${fishingCatch.id}/card?format=post`;
+  const cardUrl = `${baseUrl}/api/catches/${fishingCatch.id}/card?format=post&variant=collector`;
 
   return {
     title,
@@ -132,6 +128,7 @@ export default async function PublicCatchPage({
   }
 
   const imageUrl = await getCatchImageForSharing(fishingCatch);
+  const score = resolveStoredCatchScore(fishingCatch);
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
@@ -171,14 +168,9 @@ export default async function PublicCatchPage({
                   className="h-full min-h-[420px] w-full object-cover lg:min-h-[680px]"
                 />
               ) : (
-                <div className="flex h-full min-h-[420px] items-center justify-center px-8 text-center lg:min-h-[680px]">
-                  <div>
-                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-white text-3xl font-black text-blue-600 shadow-sm">
-                      R
-                    </div>
-                    <p className="mt-5 text-xl font-black text-slate-800">
-                      Połów zapisany w Rybio
-                    </p>
+                <div className="flex h-full min-h-[420px] items-center justify-center lg:min-h-[680px]">
+                  <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-white text-4xl font-black text-blue-600 shadow-sm">
+                    R
                   </div>
                 </div>
               )}
@@ -189,11 +181,21 @@ export default async function PublicCatchPage({
                 Publiczny połów
               </p>
 
-              <h1 className="mt-3 text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
-                {fishingCatch.fishName}
-              </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl">
+                  {fishingCatch.fishName}
+                </h1>
 
-              <p className="mt-3 text-sm font-semibold text-slate-500">
+                <span className="rounded-2xl bg-slate-950 px-4 py-2 text-lg font-black text-white">
+                  {score.score ?? "—"}/100
+                </span>
+              </div>
+
+              <p className="mt-3 text-sm font-bold text-blue-600">
+                {score.tierLabel}
+              </p>
+
+              <p className="mt-2 text-sm font-semibold text-slate-500">
                 {formatCatchDate(fishingCatch.caughtAt)}
               </p>
 
@@ -246,6 +248,7 @@ export default async function PublicCatchPage({
                   <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">
                     Notatka
                   </p>
+
                   <p className="mt-2 whitespace-pre-line text-sm leading-7 text-slate-700">
                     {fishingCatch.note}
                   </p>
@@ -268,28 +271,24 @@ export default async function PublicCatchPage({
                     Znajdź łowisko w Rybio
                   </Link>
                 )}
-
-                <p className="mt-4 text-center text-xs leading-5 text-slate-400">
-                  Zapisuj własne połowy, wyprawy i łowiska w Rybio.
-                </p>
               </div>
             </div>
           </div>
         </article>
 
-        <div className="mt-6 flex flex-col items-center justify-center gap-3 text-center sm:flex-row">
-          <Link
-            href="/register"
+        <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <a
+            href={`/api/catches/${fishingCatch.id}/card?format=post&variant=collector&download=1`}
             className="rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
           >
-            Załóż darmowe konto
-          </Link>
+            Pobierz kartę PNG
+          </a>
 
           <Link
-            href="/lowiska-w-polsce"
+            href="/register"
             className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
           >
-            Przeglądaj łowiska
+            Załóż konto Rybio
           </Link>
         </div>
       </div>

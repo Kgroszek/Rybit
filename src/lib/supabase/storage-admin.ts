@@ -1,11 +1,11 @@
 "server-only";
 
-import { createClient } from "@supabase/supabase-js";
+import {
+  createClient,
+  type SupabaseClient,
+} from "@supabase/supabase-js";
 
-let storageAdminClient:
-  | ReturnType<typeof createClient>
-  | null
-  | undefined;
+let storageAdminClient: SupabaseClient | null | undefined;
 
 export function getStorageAdminClient() {
   if (storageAdminClient !== undefined) {

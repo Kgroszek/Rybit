@@ -810,6 +810,13 @@ model FishingCatch {
   isPublic      Boolean @default(false)
   rankingStatus String  @default("pending")
 
+  // Punktacja Rybio 1-100 zależna od gatunku i parametrów ryby.
+  // Progi są wersjonowane w src/lib/catch-score.ts.
+  catchScore        Int?
+  catchScoreTier    String?
+  catchScoreSource  String?
+  catchScoreVersion Int     @default(1)
+
   reports FishingCatchReport[]
 
   createdAt DateTime @default(now())
