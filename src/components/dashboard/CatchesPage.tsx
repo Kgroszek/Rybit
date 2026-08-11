@@ -1067,6 +1067,9 @@ function QuickCatchForm({
   onImageChange: (file: File | null) => void;
   isMobile?: boolean;
 }) {
+  const selectedTrip =
+    trips.find((trip) => trip.id === form.tripId) ?? null;
+
   return (
     <form onSubmit={onSubmit} className="space-y-6">
       {!isMobile && (
