@@ -5,6 +5,7 @@ import { LakeEditForm } from "@/components/dashboard/LakeEditForm";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { isAdminUser } from "@/lib/auth";
+import { normalizeFishingMethods } from "@/lib/fishing-methods";
 
 type EditLakePageProps = {
   params: Promise<{
@@ -167,7 +168,7 @@ export default async function EditLakePage({
             description: lake.description,
             ownerType: lake.ownerType,
             fishingType: lake.fishingType,
-            fishingMethods: lake.fishingMethods,
+            fishingMethods: normalizeFishingMethods(lake.fishingMethods),
             fish: lake.fish,
 
             lat: String(lake.lat),
