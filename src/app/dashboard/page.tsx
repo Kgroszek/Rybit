@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardDesktopMap } from "@/components/dashboard/DashboardDesktopMap";
@@ -8,7 +8,6 @@ import { DashboardLocationInitializer } from "@/components/dashboard/DashboardLo
 import { NearestLakes } from "@/components/dashboard/NearestLakes";
 import { RecentCatches } from "@/components/dashboard/RecentCatches";
 import { RecommendedLakes } from "@/components/dashboard/RecommendedLakes";
-import { WeatherCard } from "@/components/dashboard/WeatherCard";
 
 import { getLakesDashboard } from "@/lib/lakes";
 import { prisma } from "@/lib/prisma";
@@ -123,7 +122,9 @@ export default async function Home() {
     prisma.fishingTrip.count({
       where: {
         userId: user.id,
-        status: "finished",
+        status: {
+          in: ["finished", "completed"],
+        },
       },
     }),
 
@@ -192,7 +193,7 @@ export default async function Home() {
       where: {
         ...tripAccessWhere,
         status: {
-          not: "cancelled",
+          notIn: ["cancelled", "canceled"],
         },
         startsAt: {
           gte: thirtyDaysAgo,
@@ -241,7 +242,9 @@ export default async function Home() {
     prisma.fishingTrip.findFirst({
       where: {
         userId: user.id,
-        status: "finished",
+        status: {
+          in: ["finished", "completed"],
+        },
         summary: null,
         OR: [
           {
@@ -292,7 +295,7 @@ export default async function Home() {
   const upcomingTrip =
     tripCandidates.find(
       (trip) =>
-        trip.status !== "finished" &&
+        !["finished", "completed"].includes(trip.status) &&
         new Date(trip.startsAt).getTime() > now.getTime()
     ) ?? null;
 
@@ -337,119 +340,44 @@ export default async function Home() {
   return (
     <DashboardLayout>
       <DashboardLocationInitializer />
+      <DashboardMotionStyles />
 
-      <div className="space-y-6 pb-6">
-        <header className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-bold text-slate-400">
-              {formatDashboardDate(now)}
-            </p>
-
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-              Cześć, {firstName}
-            </h1>
-
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              Najważniejsze informacje i kolejne kroki związane z Twoimi
-              wyprawami masz w jednym miejscu.
-            </p>
-          </div>
+      <div className="pb-8">
+        <header
+          className="dashboard-reveal mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
+          style={motionDelay(0)}
+        >
+          
         </header>
 
-        <PriorityCard card={priorityCard} />
+        <section
+          className="dashboard-reveal relative overflow-hidden rounded-[34px] border border-blue-100 bg-gradient-to-br from-[#eef5ff] via-white to-[#eefbf8] p-5 sm:p-6 lg:p-7"
+          style={motionDelay(70)}
+        >
+          <div className="pointer-events-none absolute -right-28 -top-28 h-72 w-72 rounded-full bg-blue-200/25 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-32 left-[32%] h-64 w-64 rounded-full bg-emerald-200/20 blur-3xl" />
 
-        <section>
-          <SectionHeading
-            eyebrow="Na dziś"
-            title="Rzeczy, które wymagają Twojej uwagi"
-            description="Pokazujemy tylko najważniejsze działania, zamiast kolejnej listy statystyk."
-          />
-
-          {todayTasks.length > 0 ? (
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              {todayTasks.map(({ key, ...task }) => (
-                <TodayTaskCard key={key} {...task} />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-4 flex items-center gap-4 rounded-3xl border border-emerald-100 bg-emerald-50 p-5">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-600 shadow-sm">
-                <CheckIcon />
-              </div>
-
-              <div>
-                <p className="font-black text-emerald-950">Wszystko gotowe</p>
-                <p className="mt-1 text-sm leading-6 text-emerald-700">
-                  Nie masz teraz żadnych pilnych rzeczy do zrobienia w Rybio.
-                </p>
-              </div>
-            </div>
-          )}
-        </section>
-
-        <section>
-          <SectionHeading
-            eyebrow="Szybkie akcje"
-            title="Najczęściej używane funkcje"
-          />
-
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <QuickActionCard
-              href="/wyprawy"
-              label="Zaplanuj wyprawę"
-              description="Termin, łowisko i przygotowanie"
-              icon={<TripIcon />}
-            />
-
-            <QuickActionCard
-              href={quickCatchHref}
-              label="Szybki połów"
-              description={
-                activeTrip
-                  ? "Dodaj połów do trwającej wyprawy"
-                  : "Zapisz rybę w dzienniku"
-              }
-              icon={<FishIcon />}
-              emphasized={Boolean(activeTrip)}
-            />
-
-            <QuickActionCard
-              href="/lowiska?view=map"
-              label="Znajdź łowisko"
-              description="Otwórz bazę i mapę łowisk"
-              icon={<MapIcon />}
-            />
-
-            <QuickActionCard
-              href="/ekwipunek"
-              label="Mój ekwipunek"
-              description="Sprawdź i uporządkuj sprzęt"
-              icon={<BackpackIcon />}
-            />
-          </div>
-        </section>
-
-        <section>
+          <div className="relative">
           <SectionHeading
             eyebrow="Odkryj łowiska"
             title="Znajdź miejsce na kolejny wyjazd"
-            description="Mapa i najbliższe łowiska są wysoko, bo znalezienie miejsca na ryby jest jednym z głównych powodów korzystania z Rybio."
+            description="Przeglądaj łowiska, zawężaj wyniki według rodzaju i typu łowiska oraz sprawdzaj miejsca najbliżej Twojej lokalizacji."
           />
 
-          <div className="mt-4 hidden gap-6 lg:grid xl:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="min-w-0">
+          <div className="mt-4 hidden gap-6 lg:grid xl:grid-cols-[minmax(0,1fr)_380px]">
+            <div className="dashboard-map-shell min-w-0">
               <DashboardDesktopMap lakes={lakes} />
             </div>
 
-            <aside>
-              <NearestLakes lakes={lakes} />
+            <aside className="dashboard-side-fade flex min-h-0 flex-col pt-[96px] pb-[52px]">
+              <NearestLakes lakes={lakes} limit={5} fullHeight />
             </aside>
           </div>
 
           <div className="mt-4 space-y-4 lg:hidden">
-            <NearestLakes lakes={lakes} />
+            <NearestLakes lakes={lakes} limit={4} />
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="dashboard-map-cta rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
@@ -461,12 +389,12 @@ export default async function Home() {
                   </h3>
 
                   <p className="mt-2 text-sm leading-6 text-slate-500">
-                    Na telefonie pełna mapa działa jako osobny widok, żeby nie
-                    przejmowała przewijania dashboardu.
+                    Otwórz pełną mapę, aby przeglądać łowiska, korzystać
+                    z filtrów i sprawdzać szczegóły miejsc.
                   </p>
                 </div>
 
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <div className="dashboard-map-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
                   <MapIcon />
                 </div>
               </div>
@@ -479,40 +407,136 @@ export default async function Home() {
               </Link>
             </div>
           </div>
+          </div>
+        </section>
+
+        <div
+          className="dashboard-reveal mt-7"
+          style={motionDelay(140)}
+        >
+          <PriorityCard card={priorityCard} />
+        </div>
+
+        <section
+          className="dashboard-reveal relative mt-7 overflow-hidden rounded-[34px] bg-slate-950 p-5 text-white shadow-[0_24px_70px_-46px_rgba(15,23,42,0.7)] sm:p-6 lg:p-7"
+          style={motionDelay(210)}
+        >
+          <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-600/15 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 left-1/3 h-52 w-52 rounded-full bg-cyan-500/10 blur-3xl" />
+
+          <div className="relative grid gap-7 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+            <div className="min-w-0">
+              <DarkSectionHeading
+                eyebrow="Na dziś"
+                title="Rzeczy, które wymagają Twojej uwagi"
+                description="Najważniejsze zadania związane z wyprawami, checklistą i sprzętem."
+              />
+
+              {todayTasks.length > 0 ? (
+                <div className="mt-5 grid gap-3 md:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+                  {todayTasks.map(({ key, ...task }, index) => (
+                    <div
+                      key={key}
+                      className="dashboard-stagger"
+                      style={motionDelay(250 + index * 70)}
+                    >
+                      <TodayTaskCard {...task} />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5 flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300">
+                    <CheckIcon />
+                  </div>
+
+                  <div>
+                    <p className="font-black text-white">Wszystko gotowe</p>
+                    <p className="mt-1 text-sm leading-6 text-slate-400">
+                      Nie masz teraz żadnych pilnych rzeczy do zrobienia w Rybio.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-white/10 pt-7 xl:border-l xl:border-t-0 xl:pl-7 xl:pt-0">
+              <DarkSectionHeading
+                eyebrow="Szybkie akcje"
+                title="Przejdź od razu"
+                description="Najczęściej używane funkcje zawsze pod ręką."
+              />
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <QuickActionCard
+                  href="/wyprawy"
+                  label="Zaplanuj wyprawę"
+                  description="Termin i przygotowanie"
+                  icon={<TripIcon />}
+                  dark
+                />
+
+                <QuickActionCard
+                  href={quickCatchHref}
+                  label="Szybki połów"
+                  description={
+                    activeTrip
+                      ? "Dodaj do trwającej wyprawy"
+                      : "Zapisz rybę w dzienniku"
+                  }
+                  icon={<FishIcon />}
+                  emphasized={Boolean(activeTrip)}
+                  dark
+                />
+
+                <QuickActionCard
+                  href="/lowiska?view=map"
+                  label="Znajdź łowisko"
+                  description="Mapa i baza miejsc"
+                  icon={<MapIcon />}
+                  dark
+                />
+
+                <QuickActionCard
+                  href="/ekwipunek"
+                  label="Mój ekwipunek"
+                  description="Sprzęt i przygotowanie"
+                  icon={<BackpackIcon />}
+                  dark
+                />
+              </div>
+            </div>
+          </div>
         </section>
 
         {shouldShowSecondaryTrip && (
+          <div
+            className="dashboard-reveal mt-7"
+            style={motionDelay(350)}
+          >
           <UpcomingTripCard
             trip={upcomingTrip}
             preparation={getPreparationSummary(upcomingTrip)}
             now={now}
           />
+          </div>
         )}
 
-        <section className="grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]">
+        <section
+          className="dashboard-reveal mt-10 grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(300px,0.65fr)]"
+          style={motionDelay(420)}
+        >
           <div className="min-w-0">
-            <div className="mb-4 flex items-end justify-between gap-4">
-              <SectionHeading
-                eyebrow="Dziennik"
-                title="Ostatnie połowy"
-                description="Najnowsze wpisy z Twojej historii nad wodą."
-              />
-
-              <Link
-                href="/polowy"
-                className="hidden shrink-0 text-sm font-black text-blue-600 transition hover:text-blue-700 sm:block"
-              >
-                Zobacz wszystkie →
-              </Link>
-            </div>
-
             <RecentCatches catches={serializedRecentCatches} />
           </div>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <SectionHeading
+          <section className="relative h-full overflow-hidden rounded-[30px] border border-slate-800 bg-slate-950 p-5 text-white shadow-[0_22px_60px_-42px_rgba(15,23,42,0.75)] sm:p-6">
+            <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-blue-600/20 blur-3xl" />
+            <div className="relative">
+            <DarkSectionHeading
               eyebrow="Twoje Rybio"
               title="Krótko o Twojej aktywności"
+              description="Podsumowanie Twoich połowów, wypraw i zapisanych łowisk."
             />
 
             <div className="mt-5 grid grid-cols-2 gap-3">
@@ -533,24 +557,19 @@ export default async function Home() {
                 href="/lowiska"
               />
             </div>
+            </div>
           </section>
         </section>
 
-        <section>
-          <SectionHeading
-            eyebrow="Inspiracje"
-            title="Polecane miejsca i warunki"
-            description="To już warstwa eksploracyjna — przydatna, ale mniej pilna niż aktualne zadania i szybkie znalezienie łowiska."
-          />
+        <section
+          className="dashboard-reveal relative mt-10 overflow-hidden rounded-[34px] border border-slate-200 bg-[#f5f8fc] p-5 sm:p-6 lg:p-7"
+          style={motionDelay(490)}
+        >
+          <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-blue-200/20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-24 right-10 h-56 w-56 rounded-full bg-emerald-200/20 blur-3xl" />
 
-          <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="min-w-0">
-              <RecommendedLakes lakes={lakes} />
-            </div>
-
-            <aside>
-              <WeatherCard />
-            </aside>
+          <div className="relative">
+            <RecommendedLakes lakes={lakes} />
           </div>
         </section>
 
@@ -564,10 +583,10 @@ function PriorityCard({ card }: { card: PriorityCardData }) {
 
   return (
     <section
-      className={`relative overflow-hidden rounded-[2rem] border p-5 shadow-sm sm:p-7 lg:p-8 ${tone.wrapper}`}
+      className={`group relative overflow-hidden rounded-[2rem] border p-5 shadow-sm transition-all duration-500 hover:-translate-y-0.5 hover:shadow-xl sm:p-7 lg:p-8 ${tone.wrapper}`}
     >
-      <div className={`absolute -right-20 -top-24 h-64 w-64 rounded-full ${tone.blob}`} />
-      <div className={`absolute -bottom-32 right-36 h-56 w-56 rounded-full ${tone.blobSecondary}`} />
+      <div className={`dashboard-float-slow absolute -right-20 -top-24 h-64 w-64 rounded-full ${tone.blob}`} />
+      <div className={`dashboard-float-reverse absolute -bottom-32 right-36 h-56 w-56 rounded-full ${tone.blobSecondary}`} />
 
       <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="max-w-4xl">
@@ -612,7 +631,7 @@ function PriorityCard({ card }: { card: PriorityCardData }) {
         <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
           <Link
             href={card.href}
-            className={`inline-flex min-h-12 items-center justify-center rounded-2xl px-5 py-3 text-sm font-black shadow-sm transition ${tone.primaryButton}`}
+            className={`inline-flex min-h-12 items-center justify-center rounded-2xl px-5 py-3 text-sm font-black shadow-sm transition duration-300 hover:-translate-y-0.5 ${tone.primaryButton}`}
           >
             {card.cta}
           </Link>
@@ -620,7 +639,7 @@ function PriorityCard({ card }: { card: PriorityCardData }) {
           {card.secondaryHref && card.secondaryCta && (
             <Link
               href={card.secondaryHref}
-              className={`inline-flex min-h-12 items-center justify-center rounded-2xl px-5 py-3 text-sm font-black transition ${tone.secondaryButton}`}
+              className={`inline-flex min-h-12 items-center justify-center rounded-2xl px-5 py-3 text-sm font-black transition duration-300 hover:-translate-y-0.5 ${tone.secondaryButton}`}
             >
               {card.secondaryCta}
             </Link>
@@ -655,8 +674,12 @@ function PreparationBlock({
 
       <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
         <div
-          className="h-full rounded-full bg-blue-600 transition-all"
-          style={{ width: `${preparation.percent}%` }}
+          className="dashboard-progress h-full rounded-full bg-blue-600"
+          style={
+            {
+              "--dashboard-progress": `${preparation.percent}%`,
+            } as CSSProperties
+          }
         />
       </div>
 
@@ -698,10 +721,10 @@ function TodayTaskCard({
   return (
     <Link
       href={href}
-      className="group flex min-h-[150px] flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+      className="group flex min-h-[150px] flex-col rounded-3xl border border-white/10 bg-white/[0.07] p-5 text-white shadow-none backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.11]"
     >
       <div className="flex items-start justify-between gap-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 transition group-hover:bg-blue-600 group-hover:text-white">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08] text-blue-300 transition-all duration-300 group-hover:-rotate-3 group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white">
           {icon}
         </div>
 
@@ -712,10 +735,10 @@ function TodayTaskCard({
         )}
       </div>
 
-      <p className="mt-4 font-black text-slate-950">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+      <p className="mt-4 font-black text-white">{title}</p>
+      <p className="mt-1 text-sm leading-6 text-slate-400">{description}</p>
 
-      <span className="mt-auto pt-4 text-xs font-black text-blue-600">
+      <span className="mt-auto pt-4 text-xs font-black text-blue-300">
         Przejdź →
       </span>
     </Link>
@@ -728,27 +751,33 @@ function QuickActionCard({
   description,
   icon,
   emphasized = false,
+  dark = false,
 }: {
   href: string;
   label: string;
   description: string;
   icon: ReactNode;
   emphasized?: boolean;
+  dark?: boolean;
 }) {
   return (
     <Link
       href={href}
-      className={`group rounded-3xl border p-4 transition sm:p-5 ${
+      className={`group rounded-3xl border p-4 transition-all duration-300 sm:p-5 ${
         emphasized
-          ? "border-blue-200 bg-blue-600 text-white shadow-md hover:bg-blue-700"
-          : "border-slate-200 bg-white text-slate-950 shadow-sm hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+          ? "border-blue-500 bg-blue-600 text-white shadow-md hover:-translate-y-1 hover:bg-blue-500 hover:shadow-lg"
+          : dark
+            ? "border-white/10 bg-white/[0.06] text-white shadow-none hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.1]"
+            : "border-slate-200 bg-white text-slate-950 shadow-sm hover:-translate-y-1 hover:border-blue-200 hover:shadow-lg"
       }`}
     >
       <div
         className={`flex h-11 w-11 items-center justify-center rounded-2xl transition ${
           emphasized
             ? "bg-white/15 text-white"
-            : "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white"
+            : dark
+              ? "bg-white/[0.08] text-blue-300 transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-3 group-hover:bg-white/[0.14] group-hover:text-white"
+              : "bg-blue-50 text-blue-600 transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-3 group-hover:bg-blue-600 group-hover:text-white"
         }`}
       >
         {icon}
@@ -758,7 +787,11 @@ function QuickActionCard({
 
       <p
         className={`mt-1 text-xs leading-5 ${
-          emphasized ? "text-blue-100" : "text-slate-500"
+          emphasized
+            ? "text-blue-100"
+            : dark
+              ? "text-slate-400"
+              : "text-slate-500"
         }`}
       >
         {description}
@@ -839,17 +872,27 @@ function MiniStat({
   label,
   value,
   href,
+  dark = true,
 }: {
   label: string;
   value: string;
   href?: string;
+  dark?: boolean;
 }) {
   const content = (
     <>
-      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+      <p
+        className={`text-xs font-black uppercase tracking-[0.14em] ${
+          dark ? "text-slate-500" : "text-slate-400"
+        }`}
+      >
         {label}
       </p>
-      <p className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+      <p
+        className={`mt-2 text-2xl font-black tracking-tight ${
+          dark ? "text-white" : "text-slate-950"
+        }`}
+      >
         {value}
       </p>
     </>
@@ -859,14 +902,26 @@ function MiniStat({
     return (
       <Link
         href={href}
-        className="rounded-2xl bg-slate-50 p-4 transition hover:bg-blue-50"
+        className={`rounded-2xl p-4 transition-all duration-300 hover:-translate-y-0.5 ${
+          dark
+            ? "border border-white/10 bg-white/[0.06] hover:bg-white/[0.1]"
+            : "bg-slate-50 hover:bg-blue-50"
+        }`}
       >
         {content}
       </Link>
     );
   }
 
-  return <div className="rounded-2xl bg-slate-50 p-4">{content}</div>;
+  return (
+    <div
+      className={`rounded-2xl p-4 ${
+        dark ? "border border-white/10 bg-white/[0.06]" : "bg-slate-50"
+      }`}
+    >
+      {content}
+    </div>
+  );
 }
 
 function SmallProgress({ label, value }: { label: string; value: string }) {
@@ -874,6 +929,32 @@ function SmallProgress({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl bg-slate-50 px-4 py-3">
       <p className="text-xs font-bold text-slate-400">{label}</p>
       <p className="mt-1 text-sm font-black text-slate-800">{value}</p>
+    </div>
+  );
+}
+
+function DarkSectionHeading({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-300">
+        {eyebrow}
+      </p>
+      <h2 className="mt-2 text-xl font-black tracking-tight text-white sm:text-2xl">
+        {title}
+      </h2>
+      {description && (
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-400">
+          {description}
+        </p>
+      )}
     </div>
   );
 }
@@ -1353,7 +1434,9 @@ function getPreparationSummary(trip: DashboardTrip): PreparationSummary {
 }
 
 function isTripActive(trip: DashboardTrip, now: Date) {
-  if (trip.status === "finished" || trip.status === "cancelled") {
+  if (
+    ["finished", "completed", "cancelled", "canceled"].includes(trip.status)
+  ) {
     return false;
   }
 
@@ -1526,6 +1609,126 @@ function getUserDisplayName(user: {
   }
 
   return "Wędkarzu";
+}
+
+
+function motionDelay(delay: number): CSSProperties {
+  return {
+    animationDelay: `${delay}ms`,
+  };
+}
+
+function DashboardMotionStyles() {
+  return (
+    <style>{`
+      @keyframes dashboardReveal {
+        0% {
+          opacity: 0;
+          transform: translateY(18px);
+          filter: blur(4px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+          filter: blur(0);
+        }
+      }
+
+      @keyframes dashboardFloatSlow {
+        0%, 100% {
+          transform: translate3d(0, 0, 0);
+        }
+        50% {
+          transform: translate3d(-8px, 10px, 0);
+        }
+      }
+
+      @keyframes dashboardFloatReverse {
+        0%, 100% {
+          transform: translate3d(0, 0, 0);
+        }
+        50% {
+          transform: translate3d(10px, -8px, 0);
+        }
+      }
+
+      @keyframes dashboardProgress {
+        from {
+          width: 0%;
+        }
+        to {
+          width: var(--dashboard-progress);
+        }
+      }
+
+      @keyframes dashboardMapIcon {
+        0%, 100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-4px);
+        }
+      }
+
+      .dashboard-reveal {
+        opacity: 0;
+        animation: dashboardReveal 650ms cubic-bezier(.22,.85,.31,1) forwards;
+      }
+
+      .dashboard-float-slow {
+        animation: dashboardFloatSlow 9s ease-in-out infinite;
+      }
+
+      .dashboard-float-reverse {
+        animation: dashboardFloatReverse 11s ease-in-out infinite;
+      }
+
+      .dashboard-progress {
+        width: 0%;
+        animation: dashboardProgress 950ms cubic-bezier(.22,.85,.31,1) 280ms forwards;
+      }
+
+      .dashboard-map-icon {
+        animation: dashboardMapIcon 3.8s ease-in-out infinite;
+      }
+
+      .dashboard-map-shell {
+        transform: translateZ(0);
+      }
+
+      .dashboard-map-shell:hover {
+        transform: translateY(-2px) translateZ(0);
+      }
+
+      .dashboard-side-fade {
+        animation: dashboardReveal 700ms cubic-bezier(.22,.85,.31,1) 180ms both;
+      }
+
+      .dashboard-stagger {
+        opacity: 0;
+        animation: dashboardReveal 560ms cubic-bezier(.22,.85,.31,1) forwards;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .dashboard-reveal,
+        .dashboard-float-slow,
+        .dashboard-float-reverse,
+        .dashboard-progress,
+        .dashboard-map-icon,
+        .dashboard-side-fade,
+        .dashboard-stagger {
+          animation: none !important;
+          opacity: 1 !important;
+          transform: none !important;
+          filter: none !important;
+        }
+
+        .dashboard-progress {
+          width: var(--dashboard-progress);
+        }
+      }
+    `}</style>
+  );
 }
 
 function IconBase({ children }: { children: ReactNode }) {

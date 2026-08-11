@@ -1,49 +1,30 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
 
-import type { LakeDto } from "@/lib/lakes";
+import type { LakeListDto } from "@/lib/lakes";
 
-const MapSection = dynamic(
+const DashboardMapExplorer = dynamic(
   () =>
-    import("@/components/dashboard/MapSection").then(
-      (module) => module.MapSection
+    import("@/components/dashboard/DashboardMapExplorer").then(
+      (module) => module.DashboardMapExplorer
     ),
   {
     ssr: false,
     loading: () => (
-      <div className="h-[520px] rounded-3xl border border-slate-200 bg-slate-100 shadow-sm" />
+      <div className="space-y-4">
+        <div className="h-20 animate-pulse rounded-2xl border border-slate-200 bg-white/70" />
+        <div className="h-[520px] animate-pulse rounded-[26px] bg-slate-200" />
+        <div className="h-9 animate-pulse rounded-xl bg-white/60" />
+      </div>
     ),
   }
 );
 
-type DashboardDesktopMapProps = {
-  lakes: LakeDto[];
-};
-
-export function DashboardDesktopMap({ lakes }: DashboardDesktopMapProps) {
-  const [isDesktop, setIsDesktop] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 1024px)");
-
-    function updateIsDesktop() {
-      setIsDesktop(mediaQuery.matches);
-    }
-
-    updateIsDesktop();
-
-    mediaQuery.addEventListener("change", updateIsDesktop);
-
-    return () => {
-      mediaQuery.removeEventListener("change", updateIsDesktop);
-    };
-  }, []);
-
-  if (!isDesktop) {
-    return null;
-  }
-
-  return <MapSection lakes={lakes} />;
+export function DashboardDesktopMap({
+  lakes,
+}: {
+  lakes: LakeListDto[];
+}) {
+  return <DashboardMapExplorer lakes={lakes} />;
 }
