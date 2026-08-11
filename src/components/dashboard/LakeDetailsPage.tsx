@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { LakeDto } from "@/lib/lakes";
+import { FISHING_METHOD_OPTIONS } from "@/lib/fishing-methods";
 import { LakeCorrectionReportButton } from "@/components/dashboard/LakeCorrectionReportButton";
 import { CatchReportButton } from "@/components/dashboard/CatchReportButton";
 import { LakeCommentsSection } from "@/components/lakes/LakeCommentsSection";
@@ -47,8 +48,13 @@ const amenitiesLabels = [
   },
   {
     key: "toilet",
-    label: "Toaleta",
+    label: "Toalety",
     icon: "🚻",
+  },
+  {
+    key: "sanitaryFacilities",
+    label: "Sanitariaty",
+    icon: "🚿",
   },
   {
     key: "shop",
@@ -64,6 +70,16 @@ const amenitiesLabels = [
     key: "boatRental",
     label: "Wypożyczalnia łodzi",
     icon: "🚤",
+  },
+  {
+    key: "camperCaravan",
+    label: "Wjazd kamperem / przyczepą",
+    icon: "🚐",
+  },
+  {
+    key: "electricityHookup",
+    label: "Przyłącze z prądem",
+    icon: "⚡",
   },
   {
     key: "gearRental",
@@ -180,6 +196,13 @@ export function LakeDetailsPage({
   const hasGearRequirements = lake.gearRequirements.length > 0;
   const hasOpeningHours =
     lake.openingHours.isOpenAllDay || Boolean(lake.openingHours.text?.trim());
+  const availableAmenities = amenitiesLabels.filter(
+    (amenity) => lake.amenities[amenity.key]
+  );
+  const hasAmenities = availableAmenities.length > 0;
+  const fishingMethods = FISHING_METHOD_OPTIONS.filter((method) =>
+    lake.fishingMethods.includes(method.value)
+  );
 
   function openPreview(index: number) {
     setPreviewImageIndex(index);
@@ -651,26 +674,43 @@ export function LakeDetailsPage({
             }
           />
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-950">Udogodnienia</h2>
+          {fishingMethods.length > 0 && (
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-950">Metody łowienia</h2>
+
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                Metody, którymi można wędkować na tym łowisku.
+              </p>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {fishingMethods.map((method) => (
+                  <div
+                    key={method.value}
+                    className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4"
+                  >
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-xl shadow-sm">
+                      {method.icon}
+                    </div>
+                    <p className="font-bold text-slate-950">{method.label}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {hasAmenities && (
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-slate-950">Udogodnienia</h2>
 
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              {amenitiesLabels.map((amenity) => {
-                const isAvailable = lake.amenities[amenity.key];
-
+              {availableAmenities.map((amenity) => {
                 return (
                   <div
                     key={amenity.key}
-                    className={`flex items-center gap-3 rounded-2xl border p-4 ${
-                      isAvailable
-                        ? "border-emerald-100 bg-emerald-50"
-                        : "border-slate-200 bg-slate-50 opacity-60"
-                    }`}
+                    className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-4"
                   >
                     <div
-                      className={`flex h-11 w-11 items-center justify-center rounded-xl text-xl ${
-                        isAvailable ? "bg-white" : "bg-slate-100"
-                      }`}
+                      className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-xl"
                     >
                       {amenity.icon}
                     </div>
@@ -680,19 +720,16 @@ export function LakeDetailsPage({
                         {amenity.label}
                       </p>
 
-                      <p
-                        className={`text-sm ${
-                          isAvailable ? "text-emerald-700" : "text-slate-500"
-                        }`}
-                      >
-                        {isAvailable ? "Dostępne" : "Niedostępne"}
+                      <p className="text-sm font-semibold text-emerald-700">
+                        Dostępne
                       </p>
                     </div>
                   </div>
                 );
               })}
-            </div>
-          </section>
+              </div>
+            </section>
+          )}
 
           <section className="min-w-0 overflow-hidden rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

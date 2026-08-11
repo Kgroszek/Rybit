@@ -3,12 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/ToastProvider";
+import { FISHING_METHOD_OPTIONS, type FishingMethod } from "@/lib/fishing-methods";
 
 type FormState = {
   name: string;
   description: string;
   ownerType: string;
   fishingType: string;
+  fishingMethods: FishingMethod[];
   fish: string;
   lat: string;
   lng: string;
@@ -33,9 +35,12 @@ type FormState = {
   parking: boolean;
   pier: boolean;
   toilet: boolean;
+  sanitaryFacilities: boolean;
   shop: boolean;
   nightFishing: boolean;
   boatRental: boolean;
+  camperCaravan: boolean;
+  electricityHookup: boolean;
   gearRental: boolean;
   shelter: boolean;
   coveredSpots: boolean;
@@ -123,6 +128,7 @@ const initialFormState: FormState = {
   description: "",
   ownerType: "pzw",
   fishingType: "general",
+  fishingMethods: [],
   fish: "",
   lat: "",
   lng: "",
@@ -147,9 +153,12 @@ const initialFormState: FormState = {
   parking: false,
   pier: false,
   toilet: false,
+  sanitaryFacilities: false,
   shop: false,
   nightFishing: false,
   boatRental: false,
+  camperCaravan: false,
+  electricityHookup: false,
   gearRental: false,
   shelter: false,
   coveredSpots: false,
@@ -208,7 +217,14 @@ const FISH_RECORD_OPTIONS = [
 ];
 
 const STEP_FIELDS: Record<StepKey, (keyof FormState)[]> = {
-  basic: ["name", "fish", "description", "ownerType", "fishingType"],
+  basic: [
+    "name",
+    "fish",
+    "description",
+    "ownerType",
+    "fishingType",
+    "fishingMethods",
+  ],
   location: ["street", "city", "postalCode", "voivodeship", "lat", "lng"],
   details: [
     "area",
@@ -230,9 +246,12 @@ const STEP_FIELDS: Record<StepKey, (keyof FormState)[]> = {
     "parking",
     "pier",
     "toilet",
+    "sanitaryFacilities",
     "shop",
     "nightFishing",
     "boatRental",
+    "camperCaravan",
+    "electricityHookup",
     "gearRental",
     "shelter",
     "coveredSpots",
@@ -478,6 +497,15 @@ export function LakeSubmissionForm() {
     if (message) {
       setMessage("");
     }
+  }
+
+  function toggleFishingMethod(method: FishingMethod, checked: boolean) {
+    setForm((current) => ({
+      ...current,
+      fishingMethods: checked
+        ? Array.from(new Set([...current.fishingMethods, method]))
+        : current.fishingMethods.filter((item) => item !== method),
+    }));
   }
 
   function addFishRecord() {
@@ -880,7 +908,10 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
       const formData = new FormData();
 
       Object.entries(form).forEach(([key, value]) => {
-        formData.append(key, String(value));
+        formData.append(
+          key,
+          Array.isArray(value) ? value.join(",") : String(value)
+        );
       });
 
       const normalizedFishRecords = fishRecords
@@ -1096,6 +1127,28 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
                   { label: "Karpiowe", value: "carp" },
                 ]}
               />
+
+              <div className="lg:col-span-2">
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                  <p className="text-sm font-bold text-slate-800">Metody łowienia</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Zaznacz wszystkie metody, którymi można łowić na tym łowisku.
+                  </p>
+
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {FISHING_METHOD_OPTIONS.map((method) => (
+                      <Checkbox
+                        key={method.value}
+                        label={method.label}
+                        checked={form.fishingMethods.includes(method.value)}
+                        onChange={(checked) =>
+                          toggleFishingMethod(method.value, checked)
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
 
               <div className="lg:col-span-2">
                 <Textarea
@@ -1424,9 +1477,17 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
                 onChange={(value) => updateField("pier", value)}
               />
               <Checkbox
-                label="Toaleta"
+                label="Toalety"
                 checked={form.toilet}
                 onChange={(value) => updateField("toilet", value)}
+              />
+
+              <Checkbox
+                label="Sanitariaty"
+                checked={form.sanitaryFacilities}
+                onChange={(value) =>
+                  updateField("sanitaryFacilities", value)
+                }
               />
               <Checkbox
                 label="Sklep"
@@ -1442,6 +1503,16 @@ async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
                 label="Wypożyczalnia łodzi"
                 checked={form.boatRental}
                 onChange={(value) => updateField("boatRental", value)}
+              />
+              <Checkbox
+                label="Kamper / przyczepa"
+                checked={form.camperCaravan}
+                onChange={(value) => updateField("camperCaravan", value)}
+              />
+              <Checkbox
+                label="Przyłącze z prądem"
+                checked={form.electricityHookup}
+                onChange={(value) => updateField("electricityHookup", value)}
               />
               <Checkbox
                 label="Wypożyczalnia sprzętu"

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { FISHING_METHOD_OPTIONS, type FishingMethod } from "@/lib/fishing-methods";
 
 const FISH_OPTIONS = [
   "Karp",
@@ -57,6 +58,7 @@ type LakeEditFormLake = {
   description: string;
   ownerType: string;
   fishingType: string;
+  fishingMethods: FishingMethod[];
   fish: string;
   lat: string;
   lng: string;
@@ -86,9 +88,12 @@ type LakeEditFormLake = {
   parking: boolean;
   pier: boolean;
   toilet: boolean;
+  sanitaryFacilities: boolean;
   shop: boolean;
   nightFishing: boolean;
   boatRental: boolean;
+  camperCaravan: boolean;
+  electricityHookup: boolean;
 
   gearRental: boolean;
   shelter: boolean;
@@ -197,6 +202,15 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
     setForm((current) => ({
       ...current,
       [field]: value,
+    }));
+  }
+
+  function toggleFishingMethod(method: FishingMethod, checked: boolean) {
+    setForm((current) => ({
+      ...current,
+      fishingMethods: checked
+        ? Array.from(new Set([...current.fishingMethods, method]))
+        : current.fishingMethods.filter((item) => item !== method),
     }));
   }
 
@@ -444,6 +458,26 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
             rows={5}
             required
           />
+        </div>
+      </section>
+
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-bold text-slate-950">Metody łowienia</h2>
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          Zaznacz wszystkie metody, którymi można łowić na tym łowisku.
+        </p>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {FISHING_METHOD_OPTIONS.map((method) => (
+            <Checkbox
+              key={method.value}
+              label={method.label}
+              checked={form.fishingMethods.includes(method.value)}
+              onChange={(checked) =>
+                toggleFishingMethod(method.value, checked)
+              }
+            />
+          ))}
         </div>
       </section>
 
@@ -757,9 +791,15 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
           />
 
           <Checkbox
-            label="Toaleta"
+            label="Toalety"
             checked={form.toilet}
             onChange={(value) => updateField("toilet", value)}
+          />
+
+          <Checkbox
+            label="Sanitariaty"
+            checked={form.sanitaryFacilities}
+            onChange={(value) => updateField("sanitaryFacilities", value)}
           />
 
           <Checkbox
@@ -778,6 +818,18 @@ export function LakeEditForm({ lake }: LakeEditFormProps) {
             label="Wypożyczalnia łodzi"
             checked={form.boatRental}
             onChange={(value) => updateField("boatRental", value)}
+          />
+
+          <Checkbox
+            label="Kamper / przyczepa"
+            checked={form.camperCaravan}
+            onChange={(value) => updateField("camperCaravan", value)}
+          />
+
+          <Checkbox
+            label="Przyłącze z prądem"
+            checked={form.electricityHookup}
+            onChange={(value) => updateField("electricityHookup", value)}
           />
 
           <Checkbox

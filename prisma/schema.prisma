@@ -15,9 +15,10 @@ model Lake {
   description String
   rating      Float  @default(0)
 
-  ownerType   String
-  fishingType String
-  fish        String
+  ownerType      String
+  fishingType    String
+  fishingMethods String[] @default([])
+  fish           String
 
   lat Float
   lng Float
@@ -39,9 +40,12 @@ model Lake {
   parking      Boolean @default(false)
   pier         Boolean @default(false)
   toilet       Boolean @default(false)
+  sanitaryFacilities Boolean @default(false)
   shop         Boolean @default(false)
-  nightFishing Boolean @default(false)
-  boatRental   Boolean @default(false)
+  nightFishing      Boolean @default(false)
+  boatRental        Boolean @default(false)
+  camperCaravan     Boolean @default(false)
+  electricityHookup Boolean @default(false)
 
   gearRental   Boolean @default(false)
   shelter      Boolean @default(false)
@@ -341,9 +345,10 @@ model LakeSubmission {
   slug        String
   description String
 
-  ownerType   String
-  fishingType String
-  fish        String
+  ownerType      String
+  fishingType    String
+  fishingMethods String[] @default([])
+  fish           String
 
   lat Float
   lng Float
@@ -365,9 +370,12 @@ model LakeSubmission {
   parking      Boolean @default(false)
   pier         Boolean @default(false)
   toilet       Boolean @default(false)
+  sanitaryFacilities Boolean @default(false)
   shop         Boolean @default(false)
-  nightFishing Boolean @default(false)
-  boatRental   Boolean @default(false)
+  nightFishing      Boolean @default(false)
+  boatRental        Boolean @default(false)
+  camperCaravan     Boolean @default(false)
+  electricityHookup Boolean @default(false)
 
   gearRental   Boolean @default(false)
   shelter      Boolean @default(false)

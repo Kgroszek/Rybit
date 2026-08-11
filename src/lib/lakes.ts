@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { normalizeFishingMethods, type FishingMethod } from "@/lib/fishing-methods";
 
 export type CatchRankingItem = {
   id: string;
@@ -23,9 +24,12 @@ export type LakeAmenitiesDto = {
   parking: boolean;
   pier: boolean;
   toilet: boolean;
+  sanitaryFacilities: boolean;
   shop: boolean;
   nightFishing: boolean;
   boatRental: boolean;
+  camperCaravan: boolean;
+  electricityHookup: boolean;
   gearRental: boolean;
   shelter: boolean;
   coveredSpots: boolean;
@@ -82,6 +86,7 @@ export type LakeListDto = {
 };
 
 export type LakeDto = LakeListDto & {
+  fishingMethods: FishingMethod[];
   description: string;
   details: {
     area: string;
@@ -183,6 +188,7 @@ function mapLakeToDto(
     fishSpecies: lake.fishSpecies.map((fish) => fish.name),
     type: lake.ownerType as "pzw" | "commercial",
     fishingType: lake.fishingType as "general" | "spinning" | "carp",
+    fishingMethods: normalizeFishingMethods(lake.fishingMethods),
     lat: lake.lat,
     lng: lake.lng,
     address: {
@@ -200,9 +206,12 @@ function mapLakeToDto(
       parking: lake.parking,
       pier: lake.pier,
       toilet: lake.toilet,
+      sanitaryFacilities: lake.sanitaryFacilities,
       shop: lake.shop,
       nightFishing: lake.nightFishing,
       boatRental: lake.boatRental,
+      camperCaravan: lake.camperCaravan,
+      electricityHookup: lake.electricityHookup,
       gearRental: lake.gearRental,
       shelter: lake.shelter,
       coveredSpots: lake.coveredSpots,
@@ -261,9 +270,12 @@ function mapLakeToListDto(lake: {
   parking: boolean;
   pier: boolean;
   toilet: boolean;
+  sanitaryFacilities: boolean;
   shop: boolean;
   nightFishing: boolean;
   boatRental: boolean;
+  camperCaravan: boolean;
+  electricityHookup: boolean;
   gearRental: boolean;
   shelter: boolean;
   coveredSpots: boolean;
@@ -301,9 +313,12 @@ function mapLakeToListDto(lake: {
       parking: lake.parking,
       pier: lake.pier,
       toilet: lake.toilet,
+      sanitaryFacilities: lake.sanitaryFacilities,
       shop: lake.shop,
       nightFishing: lake.nightFishing,
       boatRental: lake.boatRental,
+      camperCaravan: lake.camperCaravan,
+      electricityHookup: lake.electricityHookup,
       gearRental: lake.gearRental,
       shelter: lake.shelter,
       coveredSpots: lake.coveredSpots,
@@ -361,9 +376,12 @@ const lakeAmenityKeys: LakeAmenityKey[] = [
   "parking",
   "pier",
   "toilet",
+  "sanitaryFacilities",
   "shop",
   "nightFishing",
   "boatRental",
+  "camperCaravan",
+  "electricityHookup",
   "gearRental",
   "shelter",
   "coveredSpots",
@@ -392,9 +410,12 @@ const lakeListSelect = {
   parking: true,
   pier: true,
   toilet: true,
+  sanitaryFacilities: true,
   shop: true,
   nightFishing: true,
   boatRental: true,
+  camperCaravan: true,
+  electricityHookup: true,
   gearRental: true,
   shelter: true,
   coveredSpots: true,
@@ -622,9 +643,12 @@ function buildLakeListWhere(
     parking: { parking: true },
     pier: { pier: true },
     toilet: { toilet: true },
+    sanitaryFacilities: { sanitaryFacilities: true },
     shop: { shop: true },
     nightFishing: { nightFishing: true },
     boatRental: { boatRental: true },
+    camperCaravan: { camperCaravan: true },
+    electricityHookup: { electricityHookup: true },
     gearRental: { gearRental: true },
     shelter: { shelter: true },
     coveredSpots: { coveredSpots: true },
@@ -857,6 +881,8 @@ export async function getLakesList() {
       shop: true,
       nightFishing: true,
       boatRental: true,
+      camperCaravan: true,
+      electricityHookup: true,
       gearRental: true,
       shelter: true,
       coveredSpots: true,
@@ -1060,6 +1086,7 @@ export async function getLakesDashboard(): Promise<LakeDto[]> {
       parking: false,
       pier: false,
       toilet: false,
+      sanitaryFacilities: false,
       shop: false,
       nightFishing: false,
       boatRental: false,

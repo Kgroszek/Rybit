@@ -109,6 +109,7 @@ export async function POST(_request: Request, { params }: RouteProps) {
 
         ownerType: submission.ownerType,
         fishingType: submission.fishingType,
+        fishingMethods: submission.fishingMethods,
         fish: submission.fish,
 
         lat: submission.lat,
@@ -131,9 +132,12 @@ export async function POST(_request: Request, { params }: RouteProps) {
         parking: submission.parking,
         pier: submission.pier,
         toilet: submission.toilet,
+        sanitaryFacilities: submission.sanitaryFacilities,
         shop: submission.shop,
         nightFishing: submission.nightFishing,
         boatRental: submission.boatRental,
+        camperCaravan: submission.camperCaravan,
+        electricityHookup: submission.electricityHookup,
 
         gearRental: submission.gearRental,
         shelter: submission.shelter,
