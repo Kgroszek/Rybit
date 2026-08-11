@@ -1082,7 +1082,7 @@ function PublicMapPanel({
       </div>
 
       <div className="h-[280px] sm:h-[330px] lg:h-[380px]">
-        <PublicLakesMap lakes={serverResult.lakes} userLocation={userLocation} />
+        <PublicLakesMap lakes={lakes} userLocation={userLocation} />
       </div>
     </section>
   );
