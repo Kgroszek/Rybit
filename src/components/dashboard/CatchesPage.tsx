@@ -928,7 +928,6 @@ export function CatchesPage({
                   })
                 }
                 onShare={() => setShareCatch(item)}
-                onShare={() => setShareCatch(item)}
                 onEdit={() => handleStartEdit(item)}
                 onDelete={() => handleDeleteCatch(item.id)}
               />
@@ -948,6 +947,7 @@ export function CatchesPage({
                       alt: `Zdjęcie połowu: ${item.fishName}`,
                     })
                   }
+                  onShare={() => setShareCatch(item)}
                   onEdit={() => handleStartEdit(item)}
                   onDelete={() => handleDeleteCatch(item.id)}
                 />
