@@ -275,6 +275,52 @@ export function extractFishNames(value: string) {
   return [];
 }
 
+
+/**
+ * Zachowuje kompatybilność ze starszymi formularzami/API,
+ * które przesyłają listę ryb jako jeden tekst, np.
+ * "karp, SZCZUPAK, okoń".
+ */
+export function normalizeFishName(value: string) {
+  const raw = String(value ?? "").trim();
+
+  if (!raw) {
+    return "";
+  }
+
+  const chunks = raw
+    .split(/[,;\n|]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const normalizedNames = new Map<string, string>();
+
+  for (const chunk of chunks.length > 0 ? chunks : [raw]) {
+    const extracted = extractFishNames(chunk);
+
+    if (extracted.length > 0) {
+      for (const fishName of extracted) {
+        normalizedNames.set(
+          normalizeLookupValue(fishName),
+          fishName
+        );
+      }
+      continue;
+    }
+
+    const fallback = titleCasePolish(chunk);
+
+    if (fallback) {
+      normalizedNames.set(
+        normalizeLookupValue(fallback),
+        fallback
+      );
+    }
+  }
+
+  return Array.from(normalizedNames.values()).join(", ");
+}
+
 export function normalizeFishList(values: string[]) {
   const result = new Map<string, string>();
 
