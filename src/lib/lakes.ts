@@ -1,6 +1,10 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { normalizeFishingMethods, type FishingMethod } from "@/lib/fishing-methods";
+import {
+  getFishSearchTerms,
+  normalizeFishFilterOptions,
+} from "@/lib/fish-names";
 
 export type CatchRankingItem = {
   id: string;
@@ -613,25 +617,27 @@ function buildLakeListWhere(
   }
 
   if (query.fish !== "all") {
+    const fishSearchTerms = getFishSearchTerms(query.fish);
+
     andConditions.push({
-      OR: [
+      OR: fishSearchTerms.flatMap((term) => [
         {
           fish: {
-            contains: query.fish,
-            mode: "insensitive",
+            contains: term,
+            mode: "insensitive" as const,
           },
         },
         {
           fishSpecies: {
             some: {
               name: {
-                equals: query.fish,
-                mode: "insensitive",
+                contains: term,
+                mode: "insensitive" as const,
               },
             },
           },
         },
-      ],
+      ]),
     });
   }
 
@@ -834,23 +840,34 @@ export async function getLakeFilterOptions(): Promise<LakeFilterOptions> {
         voivodeship: "asc",
       },
     }),
-    prisma.fishSpecies.findMany({
-      distinct: ["name"],
+    prisma.lake.findMany({
       select: {
-        name: true,
-      },
-      orderBy: {
-        name: "asc",
+        fish: true,
+        fishSpecies: {
+          select: {
+            name: true,
+          },
+        },
       },
     }),
     prisma.lake.count(),
   ]);
 
+  const rawFishValues = fishRows.flatMap((lake) => [
+    lake.fish,
+    ...lake.fishSpecies.map((fish) => fish.name),
+  ]);
+
   return {
-    voivodeships: voivodeshipRows
-      .map((item) => item.voivodeship.trim())
-      .filter(Boolean),
-    fishOptions: fishRows.map((item) => item.name.trim()).filter(Boolean),
+    voivodeships: Array.from(
+      new Map(
+        voivodeshipRows
+          .map((item) => item.voivodeship.trim())
+          .filter(Boolean)
+          .map((item) => [item.toLocaleLowerCase("pl"), item] as const)
+      ).values()
+    ).sort((a, b) => a.localeCompare(b, "pl", { sensitivity: "base" })),
+    fishOptions: normalizeFishFilterOptions(rawFishValues),
     allLakesCount,
   };
 }

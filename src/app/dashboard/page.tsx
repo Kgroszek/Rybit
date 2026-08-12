@@ -343,26 +343,7 @@ export default async function Home() {
       <DashboardMotionStyles />
 
       <div className="pb-8">
-        <header
-          className="dashboard-reveal mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
-          style={motionDelay(0)}
-        >
-          <div>
-            <p className="text-sm font-bold text-slate-400">
-              {formatDashboardDate(now)}
-            </p>
-
-            <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
-              Cześć, {firstName}
-            </h1>
-
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              Twój plan wypraw, aktywność i najważniejsze informacje
-              w jednym miejscu.
-            </p>
-          </div>
-        </header>
-
+        
         <section
           className="dashboard-reveal relative overflow-hidden rounded-[34px] border border-blue-100 bg-gradient-to-br from-[#eef5ff] via-white to-[#eefbf8] p-5 sm:p-6 lg:p-7"
           style={motionDelay(70)}
