@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   LakeFilterOptions,
@@ -1238,104 +1239,142 @@ function LakeCard({
   lake: LakeWithDistance;
   onRequireAuth: (type: AuthModalType) => void;
 }) {
+  const router = useRouter();
   const imageUrl = lake.images?.[0];
-  const hasRating = Number(lake.rating || 0) > 0;
+  const rating = Number(lake.rating || 0);
+  const hasRating = rating > 0;
+
+  const fishList =
+    lake.fishSpecies.length > 0
+      ? normalizeFishList(lake.fishSpecies).slice(0, 5).join(" · ")
+      : lake.fish
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .slice(0, 5)
+          .join(" · ");
+  const visibleAmenities = getVisibleAmenities(lake).slice(0, 4);
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-      <div className="relative h-44 bg-cyan-50">
+    <article
+      role="link"
+      tabIndex={0}
+      aria-label={`Zobacz łowisko ${lake.name}`}
+      onClick={() => router.push(`/lowiska-w-polsce/${lake.slug}`)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          router.push(`/lowiska-w-polsce/${lake.slug}`);
+        }
+      }}
+      className="group relative min-h-[340px] cursor-pointer overflow-hidden rounded-[24px] bg-slate-100 shadow-sm outline-none transition-shadow duration-300 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-blue-200"
+    >
+      <div className="absolute inset-0">
         {imageUrl ? (
           <img
             src={imageUrl}
             alt={`${lake.name} – łowisko w ${lake.address.city}`}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.035]"
           />
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center bg-cyan-50 text-center">
-            <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white text-2xl text-blue-600 shadow-sm">
-              ♒
-            </div>
-            <p className="text-sm font-black text-slate-700">
-              Brak zdjęcia łowiska
-            </p>
-            <p className="mt-1 text-xs text-slate-500">
-              Szczegóły łowiska znajdziesz po kliknięciu w kartę.
-            </p>
-          </div>
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,.28),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,.18),transparent_36%),linear-gradient(145deg,#dbeafe,#bfdbfe_46%,#c7f9e9)]" />
         )}
-
-        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-          <Badge>{lake.type === "commercial" ? "Komercyjne" : "PZW"}</Badge>
-          <Badge>{getFishingTypeLabel(lake.fishingType)}</Badge>
-        </div>
       </div>
 
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h3 className="break-words text-xl font-black text-slate-950">
-              {lake.name}
-            </h3>
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/88 via-slate-900/28 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/8 via-transparent to-transparent" />
 
-            <p className="mt-1 text-sm font-semibold text-slate-500">
-              {lake.address.city}, woj. {lake.address.voivodeship}
-            </p>
+      <div className="relative z-10 flex min-h-[340px] flex-col p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <span
+              className={`rounded-full px-3 py-1.5 text-[11px] font-black shadow-sm backdrop-blur ${
+                lake.type === "commercial"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-blue-600 text-white"
+              }`}
+            >
+              {lake.type === "commercial" ? "Komercyjne" : "PZW"}
+            </span>
+
+            <span className="rounded-full border border-white/20 bg-white/90 px-3 py-1.5 text-[11px] font-black text-slate-700 shadow-sm backdrop-blur">
+              {getFishingTypeLabel(lake.fishingType)}
+            </span>
           </div>
 
           <button
             type="button"
-            onClick={() => onRequireAuth("rating")}
-            className="shrink-0 rounded-2xl bg-blue-50 px-3 py-2 text-sm font-black text-blue-700"
+            onClick={(event) => {
+              event.stopPropagation();
+              onRequireAuth("favourite");
+            }}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/16 text-lg text-white backdrop-blur transition-colors hover:bg-white hover:text-slate-950"
+            aria-label="Dodaj do ulubionych"
           >
-            {hasRating ? `★ ${Number(lake.rating).toFixed(1)}` : "Brak ocen"}
+            ♡
           </button>
         </div>
 
-        <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-500">
-          {lake.fishSpecies.length > 0
-            ? normalizeFishList(lake.fishSpecies).join(", ")
-            : lake.fish}
-        </p>
-
-        <div className="mt-5 flex flex-wrap gap-2">
-          {getVisibleAmenities(lake).map((item) => (
-            <span
-              key={item}
-              className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600"
-            >
-              {item}
-            </span>
-          ))}
-        </div>
-
-        <div className="mt-6 flex items-center justify-between gap-3">
-          <p className="text-sm font-black text-slate-500">
-            {lake.displayDistance}
-          </p>
-
-          <div className="flex items-center gap-2">
+        <div className="mt-auto">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-black text-white/82">
             <button
               type="button"
-              onClick={() => onRequireAuth("favourite")}
-              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50"
-              aria-label="Dodaj do ulubionych"
+              onClick={(event) => {
+                event.stopPropagation();
+                onRequireAuth("rating");
+              }}
+              className="transition-colors hover:text-blue-200"
             >
-              ♡
+              {hasRating ? `★ ${rating.toFixed(1)}` : "Brak ocen"}
             </button>
 
-            <Link
-              href={`/lowiska-w-polsce/${lake.slug}`}
-              className="inline-flex h-11 items-center justify-center rounded-2xl bg-blue-600 px-5 text-sm font-black text-white transition hover:bg-blue-700"
-            >
-              Zobacz szczegóły
-            </Link>
+            <span className="h-1 w-1 rounded-full bg-white/45" />
+            <span>{lake.displayDistance}</span>
+          </div>
+
+          <h3 className="line-clamp-2 text-xl font-black tracking-tight text-white sm:text-[22px]">
+            {lake.name}
+          </h3>
+
+          <p className="mt-1 line-clamp-1 text-sm font-semibold text-white/65">
+            {lake.address.city}, woj. {lake.address.voivodeship}
+          </p>
+
+          <p className="mt-2 line-clamp-2 min-h-[40px] text-sm leading-5 text-white/70">
+            {fishList || "Brak informacji o rybach"}
+          </p>
+
+          <div className="flex min-h-[32px] flex-wrap gap-2 items-center">
+            {visibleAmenities.length > 0 ? (
+              visibleAmenities.map((amenity) => (
+                <span
+                  key={amenity}
+                  className="rounded-full border border-white/15 bg-white/12 px-2.5 py-1 text-[11px] font-black text-white/90 backdrop-blur"
+                >
+                  {amenity}
+                </span>
+              ))
+            ) : (
+              <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white/70 backdrop-blur">
+                Brak udogodnień
+              </span>
+            )}
+          </div>
+
+          <div className="mt-5 flex items-center justify-between border-t border-white/15 pt-4">
+            <span className="text-sm font-black text-white transition-colors group-hover:text-blue-200">
+              Zobacz łowisko
+            </span>
+
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/16 text-lg font-black text-white backdrop-blur transition-colors group-hover:bg-white group-hover:text-slate-950">
+              →
+            </span>
           </div>
         </div>
       </div>
     </article>
   );
 }
-
 function LakeListItem({
   lake,
   onRequireAuth,
@@ -1343,11 +1382,24 @@ function LakeListItem({
   lake: LakeWithDistance;
   onRequireAuth: (type: AuthModalType) => void;
 }) {
+  const router = useRouter();
   const imageUrl = lake.images?.[0];
   const hasRating = Number(lake.rating || 0) > 0;
 
   return (
-    <article className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[220px_1fr_auto]">
+    <article
+      role="link"
+      tabIndex={0}
+      aria-label={`Zobacz łowisko ${lake.name}`}
+      onClick={() => router.push(`/lowiska-w-polsce/${lake.slug}`)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          router.push(`/lowiska-w-polsce/${lake.slug}`);
+        }
+      }}
+      className="grid cursor-pointer gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm outline-none transition-shadow hover:shadow-md focus-visible:ring-4 focus-visible:ring-blue-200 md:grid-cols-[220px_1fr_auto]"
+    >
       <div className="h-44 overflow-hidden rounded-2xl bg-cyan-50 md:h-full">
         {imageUrl ? (
           <img
@@ -1390,7 +1442,10 @@ function LakeListItem({
       <div className="flex flex-col gap-3 md:min-w-[190px] md:items-end md:justify-between">
         <button
           type="button"
-          onClick={() => onRequireAuth("rating")}
+          onClick={(event) => {
+            event.stopPropagation();
+            onRequireAuth("rating");
+          }}
           className="rounded-2xl bg-blue-50 px-4 py-3 text-sm font-black text-blue-700"
         >
           {hasRating ? `★ ${Number(lake.rating).toFixed(1)}` : "Brak ocen"}
@@ -1399,18 +1454,18 @@ function LakeListItem({
         <div className="flex gap-2 md:flex-col">
           <button
             type="button"
-            onClick={() => onRequireAuth("favourite")}
+            onClick={(event) => {
+              event.stopPropagation();
+              onRequireAuth("favourite");
+            }}
             className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-600 transition hover:bg-slate-50"
           >
             Ulubione
           </button>
 
-          <Link
-            href={`/lowiska-w-polsce/${lake.slug}`}
-            className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
-          >
+          <span className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black text-white transition group-hover:bg-blue-700">
             Zobacz szczegóły
-          </Link>
+          </span>
         </div>
       </div>
     </article>

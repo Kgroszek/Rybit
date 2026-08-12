@@ -83,6 +83,18 @@ const amenityFilters: {
   { key: "cardPayment", label: "Płatność kartą" },
 ];
 
+const cardAmenityOptions = [
+  { key: "noKill", label: "No Kill" },
+  { key: "parking", label: "Parking" },
+  { key: "cottages", label: "Domki" },
+  { key: "pier", label: "Pomost" },
+  { key: "toilet", label: "Toaleta" },
+  { key: "nightFishing", label: "Nocka" },
+  { key: "campfire", label: "Ognisko" },
+  { key: "boatRental", label: "Łodzie" },
+  { key: "gearRental", label: "Sprzęt" },
+] as const;
+
 
 const URL_FILTER_KEYS = [
   "q",
@@ -172,6 +184,13 @@ function getLakeDistanceLabel(
     lat: lake.lat,
     lng: lake.lng,
   });
+}
+
+function getVisibleCardAmenities(lake: LakeListDto) {
+  return cardAmenityOptions
+    .filter((item) => Boolean(lake.amenities[item.key]))
+    .map((item) => item.label)
+    .slice(0, 4);
 }
 
 export function LakesPage({
@@ -1059,87 +1078,103 @@ function LakeGridCard({
   userLocation: UserLocation | null;
 }) {
   const image = lake.images[0];
+  const rating = Number(lake.rating || 0);
+  const hasRating = rating > 0;
+
+  const fishList = lake.fish
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 5)
+    .join(" · ");
+  const visibleAmenities = getVisibleCardAmenities(lake);
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-      <div className="relative h-44 shrink-0 overflow-hidden bg-slate-100">
-        <LakeImagePreview image={image} lakeName={lake.name} />
-
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/20 via-transparent to-transparent" />
-
-        <div className="absolute left-4 top-4 flex flex-wrap gap-2">
-          <span
-            className={`rounded-full px-3 py-1 text-xs font-bold ${
-              lake.type === "commercial"
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-blue-50 text-blue-700"
-            }`}
-          >
-            {getOwnerTypeLabel(lake.type)}
-          </span>
-
-          <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
-            {getFishingTypeLabel(lake.fishingType)}
-          </span>
-        </div>
+    <Link
+      href={`/lowiska/${lake.slug}`}
+      aria-label={`Zobacz łowisko ${lake.name}`}
+      className="group relative block min-h-[340px] cursor-pointer overflow-hidden rounded-[24px] bg-slate-100 shadow-sm transition-shadow duration-300 hover:shadow-lg"
+    >
+      <div className="absolute inset-0">
+        {image ? (
+          <LakeImagePreview image={image} lakeName={lake.name} />
+        ) : (
+          <div className="h-full w-full bg-[radial-gradient(circle_at_top_left,rgba(59,130,246,.28),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,.18),transparent_36%),linear-gradient(145deg,#dbeafe,#bfdbfe_46%,#c7f9e9)]" />
+        )}
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="line-clamp-2 break-words text-xl font-bold text-slate-950">
-              {lake.name}
-            </h2>
+      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/88 via-slate-900/28 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-slate-950/8 via-transparent to-transparent" />
 
-            <p className="mt-1 line-clamp-1 text-sm font-medium text-slate-500">
-              {lake.address.city}, woj. {lake.address.voivodeship}
-            </p>
-          </div>
+      <div className="relative z-10 flex min-h-[340px] flex-col p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <span
+              className={`rounded-full px-3 py-1.5 text-[11px] font-black shadow-sm backdrop-blur ${
+                lake.type === "commercial"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-blue-600 text-white"
+              }`}
+            >
+              {getOwnerTypeLabel(lake.type)}
+            </span>
 
-          <div className="shrink-0 rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
-            ★ {lake.rating}
+            <span className="rounded-full border border-white/20 bg-white/90 px-3 py-1.5 text-[11px] font-black text-slate-700 shadow-sm backdrop-blur">
+              {getFishingTypeLabel(lake.fishingType)}
+            </span>
           </div>
         </div>
 
-        <div className="min-h-[44px]">
-          <p className="line-clamp-2 text-sm leading-6 text-slate-500">
-            {lake.fish || "Brak informacji"}
+        <div className="mt-auto">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-black text-white/82">
+            <span>{hasRating ? `★ ${rating.toFixed(1)}` : "Brak ocen"}</span>
+            <span className="h-1 w-1 rounded-full bg-white/45" />
+            <span>{getLakeDistanceLabel(userLocation, lake)}</span>
+          </div>
+
+          <h2 className="line-clamp-2 text-xl font-black tracking-tight text-white sm:text-[22px]">
+            {lake.name}
+          </h2>
+
+          <p className="mt-1 line-clamp-1 text-sm font-semibold text-white/65">
+            {lake.address.city}, woj. {lake.address.voivodeship}
           </p>
-        </div>
 
-        <div className="mt-4 flex min-h-[26px] flex-wrap gap-2">
-          {lake.amenities.noKill && <SmallBadge label="No Kill" />}
-          {lake.amenities.parking && <SmallBadge label="Parking" />}
-          {lake.amenities.nightFishing && <SmallBadge label="Nocka" />}
-          {lake.amenities.cottages && <SmallBadge label="Domki" />}
-          {lake.amenities.cardPayment && <SmallBadge label="Karta" />}
+          <p className="mt-2 line-clamp-2 min-h-[40px] text-sm leading-5 text-white/70">
+            {fishList || "Brak informacji o rybach"}
+          </p>
 
-          {!lake.amenities.noKill &&
-            !lake.amenities.parking &&
-            !lake.amenities.nightFishing &&
-            !lake.amenities.cottages &&
-            !lake.amenities.cardPayment && (
-              <SmallBadge label="Brak informacji" />
+          <div className="flex min-h-[32px] flex-wrap gap-2 items-center">
+            {visibleAmenities.length > 0 ? (
+              visibleAmenities.map((amenity) => (
+                <span
+                  key={amenity}
+                  className="rounded-full border border-white/15 bg-white/12 px-2.5 py-1 text-[11px] font-black text-white/90 backdrop-blur"
+                >
+                  {amenity}
+                </span>
+              ))
+            ) : (
+              <span className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white/70 backdrop-blur">
+                Brak udogodnień
+              </span>
             )}
-        </div>
+          </div>
 
-        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-4">
-          <p className="text-sm font-semibold text-slate-500">
-            {getLakeDistanceLabel(userLocation, lake)}
-          </p>
+          <div className="mt-5 flex items-center justify-between border-t border-white/15 pt-4">
+            <span className="text-sm font-black text-white transition-colors group-hover:text-blue-200">
+              Zobacz łowisko
+            </span>
 
-          <Link
-            href={`/lowiska/${lake.slug}`}
-            className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-          >
-            Zobacz szczegóły
-          </Link>
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/16 text-lg font-black text-white backdrop-blur transition-colors group-hover:bg-white group-hover:text-slate-950">
+              →
+            </span>
+          </div>
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
-
 function LakeListItem({
   lake,
   userLocation,

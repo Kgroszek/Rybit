@@ -347,7 +347,20 @@ export default async function Home() {
           className="dashboard-reveal mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
           style={motionDelay(0)}
         >
-          
+          <div>
+            <p className="text-sm font-bold text-slate-400">
+              {formatDashboardDate(now)}
+            </p>
+
+            <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+              Cześć, {firstName}
+            </h1>
+
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Twój plan wypraw, aktywność i najważniejsze informacje
+              w jednym miejscu.
+            </p>
+          </div>
         </header>
 
         <section
@@ -377,7 +390,7 @@ export default async function Home() {
           <div className="mt-4 space-y-4 lg:hidden">
             <NearestLakes lakes={lakes} limit={4} />
 
-            <div className="dashboard-map-cta rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md">
+            <div className="dashboard-map-cta rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-colors duration-300 hover:border-blue-200">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
@@ -1692,12 +1705,9 @@ function DashboardMotionStyles() {
         animation: dashboardMapIcon 3.8s ease-in-out infinite;
       }
 
-      .dashboard-map-shell {
-        transform: translateZ(0);
-      }
-
+      .dashboard-map-shell,
       .dashboard-map-shell:hover {
-        transform: translateY(-2px) translateZ(0);
+        transform: none;
       }
 
       .dashboard-side-fade {

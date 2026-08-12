@@ -105,7 +105,7 @@ function MapLocationButton({
       type="button"
       onClick={handleLocate}
       disabled={isLoading}
-      className="absolute left-12 top-4 z-[1000] rounded-xl border border-slate-200 bg-white/95 px-3.5 py-2.5 text-xs font-black text-slate-700 shadow-lg backdrop-blur transition hover:bg-white disabled:cursor-wait disabled:opacity-70"
+      className="absolute left-12 top-4 z-[1000] rounded-xl border border-slate-200 bg-white/95 px-3.5 py-2.5 text-xs font-black text-slate-700 shadow-lg backdrop-blur transition-colors hover:bg-white disabled:cursor-wait disabled:opacity-70"
     >
       {isLoading ? "Ustalam lokalizację…" : "Moja lokalizacja"}
     </button>
@@ -125,7 +125,7 @@ function FilterButton({
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-xl px-3 py-2 text-xs font-black transition ${
+      className={`whitespace-nowrap rounded-xl px-3 py-2 text-xs font-black transition-colors ${
         active
           ? "bg-blue-600 text-white shadow-sm"
           : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -166,76 +166,81 @@ export function DashboardMapExplorer({
 
   return (
     <div>
-      <div className="mb-4 flex min-h-[80px] flex-wrap items-center gap-x-5 gap-y-3 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
-            Rodzaj
-          </span>
+      <div className="mb-4 min-h-[80px] rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
+        <div className="grid min-h-[54px] items-center gap-x-4 gap-y-3 lg:grid-cols-2 xl:grid-cols-[max-content_minmax(0,1fr)_160px]">
+          <div className="flex min-w-0 flex-nowrap items-center gap-2">
+            <span className="mr-1 shrink-0 whitespace-nowrap text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+              Rodzaj
+            </span>
 
-          <FilterButton
-            label="Wszystkie"
-            active={ownerType === "all"}
-            onClick={() => setOwnerType("all")}
-          />
-          <FilterButton
-            label="PZW"
-            active={ownerType === "pzw"}
-            onClick={() => setOwnerType("pzw")}
-          />
-          <FilterButton
-            label="Komercyjne"
-            active={ownerType === "commercial"}
-            onClick={() => setOwnerType("commercial")}
-          />
-        </div>
+            <FilterButton
+              label="Wszystkie"
+              active={ownerType === "all"}
+              onClick={() => setOwnerType("all")}
+            />
+            <FilterButton
+              label="PZW"
+              active={ownerType === "pzw"}
+              onClick={() => setOwnerType("pzw")}
+            />
+            <FilterButton
+              label="Komercyjne"
+              active={ownerType === "commercial"}
+              onClick={() => setOwnerType("commercial")}
+            />
+          </div>
 
-        <div className="hidden h-8 w-px bg-slate-200 xl:block" />
+          <div className="flex min-w-0 flex-nowrap items-center gap-2 xl:border-l xl:border-slate-200 xl:pl-4">
+            <span className="mr-1 shrink-0 whitespace-nowrap text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+              Typ łowiska
+            </span>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
-            Typ łowiska
-          </span>
+            <FilterButton
+              label="Wszystkie"
+              active={fishingType === "all"}
+              onClick={() => setFishingType("all")}
+            />
+            <FilterButton
+              label="Ogólne"
+              active={fishingType === "general"}
+              onClick={() => setFishingType("general")}
+            />
+            <FilterButton
+              label="Spinningowe"
+              active={fishingType === "spinning"}
+              onClick={() => setFishingType("spinning")}
+            />
+            <FilterButton
+              label="Karpiowe"
+              active={fishingType === "carp"}
+              onClick={() => setFishingType("carp")}
+            />
+          </div>
 
-          <FilterButton
-            label="Wszystkie"
-            active={fishingType === "all"}
-            onClick={() => setFishingType("all")}
-          />
-          <FilterButton
-            label="Ogólne"
-            active={fishingType === "general"}
-            onClick={() => setFishingType("general")}
-          />
-          <FilterButton
-            label="Spinningowe"
-            active={fishingType === "spinning"}
-            onClick={() => setFishingType("spinning")}
-          />
-          <FilterButton
-            label="Karpiowe"
-            active={fishingType === "carp"}
-            onClick={() => setFishingType("carp")}
-          />
-        </div>
+          <div className="flex min-h-9 items-center justify-end gap-3 lg:col-span-2 xl:col-span-1 xl:w-[160px]">
+            <span className="whitespace-nowrap text-xs font-bold tabular-nums text-slate-500">
+              {filteredLakes.length}{" "}
+              {filteredLakes.length === 1 ? "wynik" : "wyników"}
+            </span>
 
-        <div className="ml-auto flex items-center gap-3">
-          <span className="whitespace-nowrap text-xs font-bold text-slate-500">
-            {filteredLakes.length}{" "}
-            {filteredLakes.length === 1 ? "wynik" : "wyników"}
-          </span>
-
-          {hasFilters && (
             <button
               type="button"
               onClick={() => {
                 setOwnerType("all");
                 setFishingType("all");
               }}
-              className="whitespace-nowrap text-xs font-black text-blue-600 transition hover:text-blue-700"
+              disabled={!hasFilters}
+              aria-hidden={!hasFilters}
+              tabIndex={hasFilters ? 0 : -1}
+              className={`w-[52px] whitespace-nowrap text-left text-xs font-black text-blue-600 transition-colors hover:text-blue-700 ${
+                hasFilters
+                  ? "visible opacity-100"
+                  : "invisible pointer-events-none opacity-0"
+              }`}
             >
               Wyczyść
             </button>
-          )}
+          </div>
         </div>
       </div>
 
