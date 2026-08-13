@@ -9,6 +9,8 @@ import {
   formatDistanceInKm,
 } from "@/lib/location";
 import type { LakeListDto } from "@/lib/lakes";
+import { ArrowSmallRightIcon } from "@/components/icons/ArrowSmallRightIcon";
+import { ArrowRightIcon } from "@/components/icons/ArrowRightIcon";
 
 type NearestLake = LakeListDto & {
   calculatedDistance: number | null;
@@ -59,11 +61,11 @@ export function NearestLakes({
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-600">
+          <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-blue-600">
             W pobliżu
           </p>
 
-          <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">
+          <h2 className="mt-1 text-xl font-extrabold tracking-tight text-slate-950">
             Najbliższe łowiska
           </h2>
 
@@ -76,10 +78,19 @@ export function NearestLakes({
 
         <Link
           href="/lowiska"
-          className="shrink-0 text-xs font-black text-blue-600 transition hover:text-blue-700"
+          className="shrink-0 text-xs font-bold text-blue-600 transition hover:text-blue-700 flex items-center gap-1 mt-[-4px]"
         >
-          Zobacz wszystkie →
+          Zobacz wszystkie 
+          <ArrowSmallRightIcon
+                              className="
+                                h-5 w-5
+                                text-stale-500
+                                transition-colors
+                               
+                              "
+                            />
         </Link>
+        
       </div>
 
       <div
@@ -112,7 +123,7 @@ export function NearestLakes({
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-black text-slate-950 transition group-hover:text-blue-600">
+              <p className="truncate text-sm font-bold text-slate-950 transition group-hover:text-blue-600">
                 {lake.name}
               </p>
 
@@ -125,13 +136,20 @@ export function NearestLakes({
             </div>
 
             <div className="shrink-0 text-right">
-              <p className="text-sm font-black text-slate-700">
+              <p className="text-sm font-extrabold text-slate-700">
                 {lake.calculatedDistance !== null
                   ? formatDistanceInKm(lake.calculatedDistance)
                   : "—"}
               </p>
               <span className="mt-1 inline-block text-xs font-black text-slate-300 transition group-hover:text-blue-600">
-                →
+                <ArrowRightIcon
+                              className="
+                                h-5 w-5
+                                text-stale-500
+                                transition-colors
+                               
+                              "
+                            />
               </span>
             </div>
           </Link>
@@ -142,10 +160,17 @@ export function NearestLakes({
         <div className="mt-auto border-t border-slate-100 pt-3">
           <Link
             href="/lowiska?view=map"
-            className="flex items-center justify-between text-xs font-black text-slate-500 transition hover:text-blue-600"
+            className="flex items-center justify-between text-xs font-extrabold text-slate-500 transition hover:text-blue-600"
           >
             <span>Otwórz pełną mapę łowisk</span>
-            <span>→</span>
+            <ArrowRightIcon
+                              className="
+                                h-5 w-5
+                                text-stale-500
+                                transition-colors
+                               
+                              "
+                            />
           </Link>
         </div>
       )}

@@ -169,7 +169,7 @@ export function DashboardMapExplorer({
       <div className="mb-4 min-h-[80px] rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
         <div className="grid min-h-[54px] items-center gap-x-4 gap-y-3 lg:grid-cols-2 xl:grid-cols-[max-content_minmax(0,1fr)_160px]">
           <div className="flex min-w-0 flex-nowrap items-center gap-2">
-            <span className="mr-1 shrink-0 whitespace-nowrap text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+            <span className="mr-1 shrink-0 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
               Rodzaj
             </span>
 
@@ -191,7 +191,7 @@ export function DashboardMapExplorer({
           </div>
 
           <div className="flex min-w-0 flex-nowrap items-center gap-2 xl:border-l xl:border-slate-200 xl:pl-4">
-            <span className="mr-1 shrink-0 whitespace-nowrap text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+            <span className="mr-1 shrink-0 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
               Typ łowiska
             </span>
 
@@ -347,7 +347,7 @@ export function DashboardMapExplorer({
       </div>
 
       <div className="mt-3 flex h-[36px] flex-wrap items-center gap-x-5 gap-y-2 px-1 text-xs font-bold text-slate-500">
-        <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
+        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
           Legenda
         </span>
 

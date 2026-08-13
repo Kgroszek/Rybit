@@ -131,11 +131,11 @@ export function RecommendedLakes({
     <section>
       <div className="mb-5 flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-blue-600">
             Polecane
           </p>
 
-          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
             Polecane łowiska dla Ciebie
           </h2>
 
@@ -185,7 +185,7 @@ export function RecommendedLakes({
 
               <div className="absolute left-4 right-4 top-4 flex flex-wrap gap-2">
                 <span
-                  className={`rounded-full border border-white/30 px-3 py-1 text-[10px] font-black backdrop-blur ${
+                  className={`rounded-full border border-white/30 px-3 py-1 text-[10px] font-extrabold backdrop-blur ${
                     lake.type === "commercial"
                       ? "bg-emerald-500/90 text-white"
                       : "bg-blue-600/90 text-white"
@@ -194,7 +194,7 @@ export function RecommendedLakes({
                   {getLakeTypeLabel(lake.type)}
                 </span>
 
-                <span className="rounded-full border border-white/30 bg-white/90 px-3 py-1 text-[10px] font-black text-slate-700 backdrop-blur">
+                <span className="rounded-full border border-white/30 bg-white/90 px-3 py-1 text-[10px] font-extrabold text-slate-700 backdrop-blur">
                   {getFishingTypeLabel(lake.fishingType)}
                 </span>
               </div>
@@ -215,7 +215,7 @@ export function RecommendedLakes({
                   )}
                 </div>
 
-                <h3 className="mt-2 text-xl font-black tracking-tight">
+                <h3 className="mt-2 text-xl font-bold tracking-tight">
                   {lake.name}
                 </h3>
 
@@ -233,7 +233,7 @@ export function RecommendedLakes({
                 )}
 
                 <div className="mt-5 flex items-center justify-between border-t border-white/15 pt-4">
-                  <span className="text-sm font-black">
+                  <span className="text-sm font-bold">
                     Zobacz łowisko
                   </span>
 

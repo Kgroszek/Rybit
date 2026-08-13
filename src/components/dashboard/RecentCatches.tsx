@@ -21,11 +21,11 @@ export function RecentCatches({
     <section className="h-full overflow-hidden rounded-[30px] border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-blue-600">
             Dziennik
           </p>
 
-          <h2 className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950">
             Ostatnie połowy
           </h2>
 
@@ -55,7 +55,7 @@ export function RecentCatches({
               </div>
 
               <div className="min-w-0">
-                <p className="truncate font-black text-slate-950 transition group-hover:text-blue-600">
+                <p className="truncate font-extrabold text-slate-950 transition group-hover:text-blue-600">
                   {item.fishName}
                 </p>
 

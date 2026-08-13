@@ -12,6 +12,14 @@ import { RecommendedLakes } from "@/components/dashboard/RecommendedLakes";
 import { getLakesDashboard } from "@/lib/lakes";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { CalendarIcon } from "@/components/icons/CalendarIcon";
+import { MarkerIcon } from "@/components/icons/MarkerIcon";
+import { UsersIcon } from "@/components/icons/UsersIcon";
+import { AlertIcon } from "@/components/icons/AlertIcon";
+import { ArrowSmallRightIcon } from "@/components/icons/ArrowSmallRightIcon";
+import { ArrowRightIcon } from "@/components/icons/ArrowRightIcon";
+import { CheckListIcon } from "@/components/icons/CheckListIcon";
+import { BackpackIcon } from "@/components/icons/BackpackIcon";
 
 type DashboardTrip = {
   id: string;
@@ -374,11 +382,11 @@ export default async function Home() {
             <div className="dashboard-map-cta rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition-colors duration-300 hover:border-blue-200">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
+                  <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-blue-600">
                     Mapa łowisk
                   </p>
 
-                  <h3 className="mt-2 text-xl font-black text-slate-950">
+                  <h3 className="mt-2 text-xl font-extrabold text-slate-950">
                     Zobacz łowiska na mapie
                   </h3>
 
@@ -395,7 +403,7 @@ export default async function Home() {
 
               <Link
                 href="/lowiska?view=map"
-                className="mt-5 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700"
+                className="mt-5 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-blue-700"
               >
                 Otwórz mapę łowisk
               </Link>
@@ -412,7 +420,7 @@ export default async function Home() {
         </div>
 
         <section
-          className="dashboard-reveal relative mt-7 overflow-hidden rounded-[34px] bg-slate-950 p-5 text-white shadow-[0_24px_70px_-46px_rgba(15,23,42,0.7)] sm:p-6 lg:p-7"
+          className="dashboard-reveal relative mt-7 overflow-hidden rounded-[34px] bg-[#988FF7] p-5 text-white shadow-[0_24px_70px_-46px_rgba(15,23,42,0.7)] sm:p-6 lg:p-7"
           style={motionDelay(210)}
         >
           <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-blue-600/15 blur-3xl" />
@@ -440,13 +448,13 @@ export default async function Home() {
                 </div>
               ) : (
                 <div className="mt-5 flex items-center gap-4 rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/50 text-emerald-700">
                     <CheckIcon />
                   </div>
 
                   <div>
-                    <p className="font-black text-white">Wszystko gotowe</p>
-                    <p className="mt-1 text-sm leading-6 text-slate-400">
+                    <p className="font-extrabold text-white">Wszystko gotowe</p>
+                    <p className="mt-1 text-sm leading-6 text-white">
                       Nie masz teraz żadnych pilnych rzeczy do zrobienia w Rybio.
                     </p>
                   </div>
@@ -466,7 +474,7 @@ export default async function Home() {
                   href="/wyprawy"
                   label="Zaplanuj wyprawę"
                   description="Termin i przygotowanie"
-                  icon={<TripIcon />}
+                  icon={<BackpackIcon className="h-5 w-5 text-stale-500 transition-colors"/>}
                   dark
                 />
 
@@ -495,7 +503,7 @@ export default async function Home() {
                   href="/ekwipunek"
                   label="Mój ekwipunek"
                   description="Sprzęt i przygotowanie"
-                  icon={<BackpackIcon />}
+                  icon={<BackpackIcon className="h-5 w-5 text-stale-500 transition-colors"/>}
                   dark
                 />
               </div>
@@ -524,7 +532,7 @@ export default async function Home() {
             <RecentCatches catches={serializedRecentCatches} />
           </div>
 
-          <section className="relative h-full overflow-hidden rounded-[30px] border border-slate-800 bg-slate-950 p-5 text-white shadow-[0_22px_60px_-42px_rgba(15,23,42,0.75)] sm:p-6">
+          <section className="relative h-full overflow-hidden rounded-[30px] bg-[#988FF7] p-5 text-white shadow-[0_22px_60px_-42px_rgba(15,23,42,0.75)] sm:p-6">
             <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-blue-600/20 blur-3xl" />
             <div className="relative">
             <DarkSectionHeading
@@ -556,11 +564,10 @@ export default async function Home() {
         </section>
 
         <section
-          className="dashboard-reveal relative mt-10 overflow-hidden rounded-[34px] border border-slate-200 bg-[#f5f8fc] p-5 sm:p-6 lg:p-7"
+          className="dashboard-reveal relative mt-10 overflow-hidden rounded-[34px] p-5 sm:p-6 lg:p-7"
           style={motionDelay(490)}
         >
-          <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-blue-200/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-24 right-10 h-56 w-56 rounded-full bg-emerald-200/20 blur-3xl" />
+         
 
           <div className="relative">
             <RecommendedLakes lakes={lakes} />
@@ -584,11 +591,11 @@ function PriorityCard({ card }: { card: PriorityCardData }) {
 
       <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="max-w-4xl">
-          <p className={`text-xs font-black uppercase tracking-[0.2em] ${tone.eyebrow}`}>
+          <p className={`text-xs font-medium uppercase tracking-[0.2em] ${tone.eyebrow}`}>
             {card.eyebrow}
           </p>
 
-          <h2 className={`mt-3 text-2xl font-black tracking-tight sm:text-3xl lg:text-4xl ${tone.title}`}>
+          <h2 className={`mt-3 text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl ${tone.title}`}>
             {card.title}
           </h2>
 
@@ -600,18 +607,40 @@ function PriorityCard({ card }: { card: PriorityCardData }) {
             <div className="mt-5 flex flex-wrap gap-2">
               {card.trip.lakeName && (
                 <MetaPill>
-                  <MapPinIcon />
+                  <MarkerIcon
+                    className="
+                      h-5 w-5
+                      text-stale-500
+                      transition-colors
+                     
+                    "
+                  />
                   {card.trip.lakeName}
                 </MetaPill>
+                
               )}
 
               <MetaPill>
-                <CalendarIcon />
+                <CalendarIcon
+                    className="
+                      h-5 w-5
+                      text-stale-500
+                      transition-colors
+                     
+                    "
+                  />
                 {formatTripDateRange(card.trip.startsAt, card.trip.endsAt)}
               </MetaPill>
 
               <MetaPill>
-                <UsersIcon />
+                <UsersIcon
+                    className="
+                      h-5 w-5
+                      text-stale-500
+                      transition-colors
+                     
+                    "
+                  />
                 {card.trip.members.length + 1} os.
               </MetaPill>
             </div>
@@ -625,7 +654,7 @@ function PriorityCard({ card }: { card: PriorityCardData }) {
         <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
           <Link
             href={card.href}
-            className={`inline-flex min-h-12 items-center justify-center rounded-2xl px-5 py-3 text-sm font-black shadow-sm transition duration-300 hover:-translate-y-0.5 ${tone.primaryButton}`}
+            className={`inline-flex min-h-12 items-center justify-center rounded-2xl px-5 py-3 text-sm font-extrabold shadow-sm transition duration-300 hover:-translate-y-0.5 ${tone.primaryButton}`}
           >
             {card.cta}
           </Link>
@@ -633,7 +662,7 @@ function PriorityCard({ card }: { card: PriorityCardData }) {
           {card.secondaryHref && card.secondaryCta && (
             <Link
               href={card.secondaryHref}
-              className={`inline-flex min-h-12 items-center justify-center rounded-2xl px-5 py-3 text-sm font-black transition duration-300 hover:-translate-y-0.5 ${tone.secondaryButton}`}
+              className={`inline-flex min-h-12 items-center justify-center rounded-2xl px-5 py-3 text-sm font-extrabold transition duration-300 hover:-translate-y-0.5 ${tone.secondaryButton}`}
             >
               {card.secondaryCta}
             </Link>
@@ -653,15 +682,15 @@ function PreparationBlock({
     <div className="mt-6 max-w-2xl rounded-2xl bg-white/75 p-4 shadow-sm backdrop-blur">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+          <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-400">
             Przygotowanie
           </p>
-          <p className="mt-1 text-sm font-black text-slate-800">
+          <p className="mt-1 text-sm font-bold text-slate-800">
             {preparation.percent}% gotowe
           </p>
         </div>
 
-        <span className="text-2xl font-black text-blue-700">
+        <span className="text-2xl font-bold text-blue-700">
           {preparation.percent}%
         </span>
       </div>
@@ -684,7 +713,14 @@ function PreparationBlock({
               key={message}
               className="flex items-start gap-2 text-xs font-bold leading-5 text-amber-700"
             >
-              <AlertIcon />
+              <AlertIcon
+                    className="
+                      h-5 w-5
+                      text-stale-500
+                      transition-colors
+                     
+                    "
+                  />
               <span>{message}</span>
             </div>
           ))}
@@ -718,22 +754,23 @@ function TodayTaskCard({
       className="group flex min-h-[150px] flex-col rounded-3xl border border-white/10 bg-white/[0.07] p-5 text-white shadow-none backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.11]"
     >
       <div className="flex items-start justify-between gap-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.08] text-blue-300 transition-all duration-300 group-hover:-rotate-3 group-hover:scale-105 group-hover:bg-blue-600 group-hover:text-white">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/30 text-[#4A25EB] transition-all duration-300 group-hover:-rotate-3 group-hover:scale-105 group-hover:bg-[#4A25EB] group-hover:text-white">
           {icon}
         </div>
 
         {badge && (
-          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-amber-700">
+          <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">
             {badge}
           </span>
         )}
       </div>
 
-      <p className="mt-4 font-black text-white">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-slate-400">{description}</p>
+      <p className="mt-4 font-extrabold text-white">{title}</p>
+      <p className="mt-1 text-sm leading-6 text-white">{description}</p>
 
-      <span className="mt-auto pt-4 text-xs font-black text-blue-300">
-        Przejdź →
+      <span className="mt-auto pt-4 text-xs font-extrabold text-[#4A25EB] flex items-center gap-1">
+        Przejdź 
+        <ArrowSmallRightIcon className="h-4 w-4 text-stale-500 transition-colors" />
       </span>
     </Link>
   );
@@ -770,14 +807,14 @@ function QuickActionCard({
           emphasized
             ? "bg-white/15 text-white"
             : dark
-              ? "bg-white/[0.08] text-blue-300 transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-3 group-hover:bg-white/[0.14] group-hover:text-white"
+              ? "bg-white/30 text-[#4A25EB] transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-3 group-hover:bg-[#4A25EB] group-hover:text-white"
               : "bg-blue-50 text-blue-600 transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-3 group-hover:bg-blue-600 group-hover:text-white"
         }`}
       >
         {icon}
       </div>
 
-      <p className="mt-4 text-sm font-black sm:text-base">{label}</p>
+      <p className="mt-4 text-sm font-extrabold sm:text-base">{label}</p>
 
       <p
         className={`mt-1 text-xs leading-5 ${
@@ -807,11 +844,11 @@ function UpcomingTripCard({
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-blue-600">
             Najbliższa wyprawa
           </p>
 
-          <h2 className="mt-2 text-2xl font-black text-slate-950">
+          <h2 className="mt-2 text-2xl font-extrabold text-slate-950">
             {trip.title}
           </h2>
 
@@ -824,7 +861,14 @@ function UpcomingTripCard({
             )}
 
             <MetaPill>
-              <CalendarIcon />
+               <CalendarIcon
+                    className="
+                      h-5 w-5
+                      text-stale-500
+                      transition-colors
+                     
+                    "
+                  />
               {formatTripDateRange(trip.startsAt, trip.endsAt)}
             </MetaPill>
 
@@ -853,7 +897,7 @@ function UpcomingTripCard({
 
         <Link
           href={`/wyprawy/${trip.id}`}
-          className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800"
+          className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-slate-950 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-slate-800"
         >
           Otwórz wyprawę
         </Link>
@@ -876,14 +920,14 @@ function MiniStat({
   const content = (
     <>
       <p
-        className={`text-xs font-black uppercase tracking-[0.14em] ${
-          dark ? "text-slate-500" : "text-slate-400"
+        className={`text-xs font-extrabold uppercase tracking-[0.14em] ${
+          dark ? "text-white" : "text-slate-400"
         }`}
       >
         {label}
       </p>
       <p
-        className={`mt-2 text-2xl font-black tracking-tight ${
+        className={`mt-2 text-2xl font-extrabold tracking-tight ${
           dark ? "text-white" : "text-slate-950"
         }`}
       >
@@ -922,7 +966,7 @@ function SmallProgress({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 px-4 py-3">
       <p className="text-xs font-bold text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-black text-slate-800">{value}</p>
+      <p className="mt-1 text-sm font-extrabold text-slate-800">{value}</p>
     </div>
   );
 }
@@ -938,14 +982,14 @@ function DarkSectionHeading({
 }) {
   return (
     <div>
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-300">
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#4A25EB]">
         {eyebrow}
       </p>
-      <h2 className="mt-2 text-xl font-black tracking-tight text-white sm:text-2xl">
+      <h2 className="mt-2 text-xl font-extrabold tracking-tight text-white sm:text-2xl">
         {title}
       </h2>
       {description && (
-        <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-400">
+        <p className="mt-1 max-w-2xl text-sm leading-6 text-white">
           {description}
         </p>
       )}
@@ -964,10 +1008,10 @@ function SectionHeading({
 }) {
   return (
     <div>
-      <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-blue-600">
         {eyebrow}
       </p>
-      <h2 className="mt-2 text-xl font-black tracking-tight text-slate-950 sm:text-2xl">
+      <h2 className="mt-2 text-xl font-extrabold tracking-tight text-slate-950 sm:text-2xl">
         {title}
       </h2>
       {description && (
@@ -981,7 +1025,7 @@ function SectionHeading({
 
 function MetaPill({ children }: { children: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/70 px-3 py-1.5 text-xs font-black text-slate-700 shadow-sm backdrop-blur">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/70 bg-white/70 px-3 py-1.5 text-xs font-extrabold text-slate-700 shadow-sm backdrop-blur">
       {children}
     </span>
   );
@@ -1259,7 +1303,7 @@ function buildTodayTasks({
       tasks.push({
         key: "checklist-empty",
         href: `/wyprawy/${preparationTrip.id}?tab=checklista`,
-        icon: <ChecklistIcon />,
+        icon: <CheckListIcon className="h-4 w-4 text-stale-500 transition-colors" />,
         title: "Utwórz checklistę",
         description: "Nie masz jeszcze listy rzeczy na tę wyprawę.",
       });
@@ -1267,7 +1311,7 @@ function buildTodayTasks({
       tasks.push({
         key: "checklist",
         href: `/wyprawy/${preparationTrip.id}?tab=checklista`,
-        icon: <ChecklistIcon />,
+        icon: <CheckListIcon className="h-4 w-4 text-stale-500 transition-colors" />,
         title: `${preparation.checklistRemaining} ${
           preparation.checklistRemaining === 1 ? "rzecz" : "rzeczy"
         } do spakowania`,
@@ -1283,7 +1327,7 @@ function buildTodayTasks({
       tasks.push({
         key: "gear-empty",
         href: `/wyprawy/${preparationTrip.id}?tab=sprzet`,
-        icon: <BackpackIcon />,
+        icon: <BackpackIcon className="h-5 w-5 text-stale-500 transition-colors"/>,
         title: "Dodaj sprzęt do wyprawy",
         description: "Powiąż przygotowanie z Twoim Ekwipunkiem.",
       });
@@ -1291,7 +1335,7 @@ function buildTodayTasks({
       tasks.push({
         key: "gear",
         href: `/wyprawy/${preparationTrip.id}?tab=sprzet`,
-        icon: <BackpackIcon />,
+        icon: <BackpackIcon className="h-5 w-5 text-stale-500 transition-colors"/>,
         title: `${preparation.gearRemaining} ${
           preparation.gearRemaining === 1 ? "element" : "elementy"
         } sprzętu czekają`,
@@ -1311,7 +1355,14 @@ function buildTodayTasks({
     tasks.push({
       key: "departure",
       href: `/wyprawy/${upcomingTrip.id}`,
-      icon: <CalendarIcon />,
+      icon: <CalendarIcon
+                    className="
+                      h-5 w-5
+                      text-stale-500
+                      transition-colors
+                     
+                    "
+                  />,
       title:
         getHoursUntil(upcomingTrip.startsAt, now) <= 12
           ? "Wyprawa rozpoczyna się dzisiaj"
@@ -1779,61 +1830,6 @@ function FishIcon() {
   );
 }
 
-function BackpackIcon() {
-  return (
-    <IconBase>
-      <path d="M8 7V6a4 4 0 0 1 8 0v1" />
-      <rect x="5" y="7" width="14" height="14" rx="3" />
-      <path d="M8 13h8" />
-      <path d="M9 17h6" />
-    </IconBase>
-  );
-}
-
-function ChecklistIcon() {
-  return (
-    <IconBase>
-      <path d="M9 6h11" />
-      <path d="M9 12h11" />
-      <path d="M9 18h11" />
-      <path d="m4 6 1 1 2-2" />
-      <path d="m4 12 1 1 2-2" />
-      <path d="m4 18 1 1 2-2" />
-    </IconBase>
-  );
-}
-
-function CalendarIcon() {
-  return (
-    <IconBase>
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M16 3v4" />
-      <path d="M8 3v4" />
-      <path d="M3 11h18" />
-    </IconBase>
-  );
-}
-
-function UsersIcon() {
-  return (
-    <IconBase>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </IconBase>
-  );
-}
-
-function AlertIcon() {
-  return (
-    <IconBase>
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-      <path d="M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />
-    </IconBase>
-  );
-}
 
 function CheckIcon() {
   return (
