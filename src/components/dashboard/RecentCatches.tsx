@@ -1,5 +1,9 @@
 import Link from "next/link";
 
+import { ArrowSmallRightIcon } from "@/components/icons/ArrowSmallRightIcon";
+import { ArrowRightIcon } from "@/components/icons/ArrowRightIcon";
+
+
 type RecentCatch = {
   id: string;
   fishName: string;
@@ -36,9 +40,10 @@ export function RecentCatches({
 
         <Link
           href="/polowy"
-          className="hidden shrink-0 text-sm font-black text-blue-600 transition hover:text-blue-700 sm:block"
+          className="hidden shrink-0 text-sm font-extrabold text-blue-600 transition hover:text-blue-700 sm:flex items-center gap-1"
         >
-          Zobacz wszystkie →
+          Zobacz wszystkie 
+          <ArrowSmallRightIcon className="h-4 w-4 text-stale-500 transition-colors" />
         </Link>
       </div>
 
@@ -75,7 +80,7 @@ export function RecentCatches({
                   {formatShortDate(item.caughtAt)}
                 </p>
                 <span className="mt-2 inline-block text-sm font-black text-slate-300 transition duration-300 group-hover:translate-x-0.5 group-hover:text-blue-600">
-                  →
+                  <ArrowRightIcon className="h-4 w-4 text-stale-500 transition-colors" />
                 </span>
               </div>
             </Link>

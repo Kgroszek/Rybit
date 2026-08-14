@@ -1,4 +1,6 @@
 "use client";
+import { ArrowSmallRightIcon } from "@/components/icons/ArrowSmallRightIcon";
+import { ArrowRightIcon } from "@/components/icons/ArrowRightIcon";
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -148,9 +150,10 @@ export function RecommendedLakes({
 
         <Link
           href="/lowiska"
-          className="hidden shrink-0 text-sm font-black text-blue-600 transition hover:text-blue-700 sm:block"
+          className="hidden shrink-0 text-sm font-extrabold text-blue-600 transition hover:text-blue-700 sm:flex items-center gap-1"
         >
-          Zobacz wszystkie →
+          Zobacz wszystkie
+          <ArrowSmallRightIcon className="h-4 w-4 text-stale-500 transition-colors" />
         </Link>
       </div>
 
@@ -238,7 +241,7 @@ export function RecommendedLakes({
                   </span>
 
                   <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-lg backdrop-blur transition duration-300 group-hover:-translate-y-0.5 group-hover:bg-white group-hover:text-slate-950">
-                    →
+                    <ArrowRightIcon className="h-4 w-4 text-stale-500 transition-colors" />
                   </span>
                 </div>
               </div>

@@ -20,6 +20,9 @@ import { ArrowSmallRightIcon } from "@/components/icons/ArrowSmallRightIcon";
 import { ArrowRightIcon } from "@/components/icons/ArrowRightIcon";
 import { CheckListIcon } from "@/components/icons/CheckListIcon";
 import { BackpackIcon } from "@/components/icons/BackpackIcon";
+import { FishIcon } from "@/components/icons/FishIcon";
+import { MapIcon } from "@/components/icons/MapIcon";
+import { HookIcon } from "@/components/icons/HookIcon";
 
 type DashboardTrip = {
   id: string;
@@ -486,7 +489,7 @@ export default async function Home() {
                       ? "Dodaj do trwającej wyprawy"
                       : "Zapisz rybę w dzienniku"
                   }
-                  icon={<FishIcon />}
+                  icon={<FishIcon className="h-5 w-5 text-stale-500 transition-colors rotate-310 -scale-x-100"/>}
                   emphasized={Boolean(activeTrip)}
                   dark
                 />
@@ -495,7 +498,7 @@ export default async function Home() {
                   href="/lowiska?view=map"
                   label="Znajdź łowisko"
                   description="Mapa i baza miejsc"
-                  icon={<MapIcon />}
+                  icon={<MapIcon className="h-5 w-5 text-stale-500 transition-colors"/>}
                   dark
                 />
 
@@ -503,7 +506,7 @@ export default async function Home() {
                   href="/ekwipunek"
                   label="Mój ekwipunek"
                   description="Sprzęt i przygotowanie"
-                  icon={<BackpackIcon className="h-5 w-5 text-stale-500 transition-colors"/>}
+                  icon={<HookIcon className="h-5 w-5 text-stale-500 transition-colors"/>}
                   dark
                 />
               </div>
@@ -713,13 +716,7 @@ function PreparationBlock({
               key={message}
               className="flex items-start gap-2 text-xs font-bold leading-5 text-amber-700"
             >
-              <AlertIcon
-                    className="
-                      h-5 w-5
-                      text-stale-500
-                      transition-colors
-                     
-                    "
+              <AlertIcon className="h-5 w-5 text-stale-500 transition-colors"
                   />
               <span>{message}</span>
             </div>
@@ -1790,15 +1787,7 @@ function IconBase({ children }: { children: ReactNode }) {
   );
 }
 
-function MapIcon() {
-  return (
-    <IconBase>
-      <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z" />
-      <path d="M9 3v15" />
-      <path d="M15 6v15" />
-    </IconBase>
-  );
-}
+
 
 function MapPinIcon() {
   return (
@@ -1808,28 +1797,6 @@ function MapPinIcon() {
     </IconBase>
   );
 }
-
-function TripIcon() {
-  return (
-    <IconBase>
-      <path d="M8 7V6a4 4 0 0 1 8 0v1" />
-      <rect x="5" y="7" width="14" height="14" rx="3" />
-      <path d="M8 13h8" />
-      <path d="M9 17h6" />
-    </IconBase>
-  );
-}
-
-function FishIcon() {
-  return (
-    <IconBase>
-      <path d="M16.5 12c0 3-3.5 5.5-7.5 5.5S2 12 2 12s3-5.5 7-5.5 7.5 2.5 7.5 5.5Z" />
-      <path d="M16.5 12 22 8v8l-5.5-4Z" />
-      <circle cx="7.5" cy="11" r="0.7" fill="currentColor" stroke="none" />
-    </IconBase>
-  );
-}
-
 
 function CheckIcon() {
   return (

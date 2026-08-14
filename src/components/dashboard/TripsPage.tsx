@@ -12,6 +12,14 @@ import {
 
 import { useToast } from "@/components/ui/ToastProvider";
 import { TripInvitations } from "@/components/dashboard/TripInvitationActions";
+import { AlertIcon } from "@/components/icons/AlertIcon";
+import { PencilIcon } from "@/components/icons/PencilIcon";
+import { CheckListIcon } from "@/components/icons/CheckListIcon";
+import { FishIcon } from "@/components/icons/FishIcon";
+import { MapIcon } from "@/components/icons/MapIcon";
+import { HookIcon } from "@/components/icons/HookIcon";
+import { TrashIcon } from "@/components/icons/TrashIcon";
+
 
 type TripMemberDto = {
   id: string;
@@ -1000,11 +1008,11 @@ export function TripsPage({
     <div className="w-full max-w-full overflow-x-hidden pb-28 md:pb-0">
       <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.18em] text-blue-600">
+          <p className="text-xs font-medium uppercase tracking-[0.18em] text-blue-600">
             Planowanie i przygotowanie
           </p>
 
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
             Centrum wypraw
           </h1>
 
@@ -1087,11 +1095,11 @@ export function TripsPage({
           >
             <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
+                <p className="text-xs font-medium uppercase tracking-[0.16em] text-blue-600">
                   Centrum wypraw
                 </p>
 
-                <h2 className="mt-1 text-xl font-black text-slate-950 sm:text-2xl">
+                <h2 className="mt-1 text-xl font-extrabold text-slate-950 sm:text-2xl">
                   {editingTripId ? "Edytuj wyprawę" : "Zaplanuj wyprawę"}
                 </h2>
 
@@ -1150,7 +1158,7 @@ export function TripsPage({
                 key={tab.value}
                 type="button"
                 onClick={() => setActiveTab(tab.value)}
-                className={`shrink-0 rounded-2xl px-4 py-2.5 text-sm font-black transition ${
+                className={`shrink-0 rounded-2xl px-4 py-2.5 text-sm font-extrabold transition ${
                   activeTab === tab.value
                     ? "bg-blue-600 text-white"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -1368,11 +1376,11 @@ function NearestTripCard({
   if (!trip) {
     return (
       <section className="rounded-3xl border border-dashed border-blue-200 bg-gradient-to-br from-emerald-50 via-blue-50 to-sky-100 p-6 shadow-sm">
-        <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
+        <p className="text-xs font-mediuem uppercase tracking-[0.16em] text-blue-600">
           Najbliższa wyprawa
         </p>
 
-        <h2 className="mt-3 text-2xl font-black text-slate-950">
+        <h2 className="mt-3 text-2xl font-medium text-slate-950">
           Nie masz zaplanowanej wyprawy
         </h2>
 
@@ -1410,15 +1418,15 @@ function NearestTripCard({
         <div className="flex flex-col p-5 sm:p-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
+              <p className="text-xs font-medium uppercase tracking-[0.16em] text-blue-600">
                 Najbliższa wyprawa
               </p>
 
-              <h2 className="mt-2 break-words text-2xl font-black text-slate-950 sm:text-3xl">
+              <h2 className="mt-2 break-words text-2xl font-extrabold text-slate-950 sm:text-3xl">
                 {trip.title}
               </h2>
 
-              <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+              <p className="mt-2 text-sm font-bold leading-6 text-slate-600">
                 {formatTripDateRange(trip)}
               </p>
 
@@ -1460,10 +1468,10 @@ function NearestTripCard({
 
           {trip.preparationWarnings.length > 0 && (
             <div className="mt-4 rounded-2xl bg-white/70 p-4">
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">Do zrobienia przed wyjazdem</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate-600">Do zrobienia przed wyjazdem</p>
               <div className="mt-2 space-y-1">
                 {trip.preparationWarnings.slice(0, 3).map((warning) => (
-                  <p key={warning} className="text-xs font-bold text-slate-600">⚠ {warning}</p>
+                  <p key={warning} className="text-xs font-bold text-amber-700 flex gap-2 items-center"> <AlertIcon className="h-4 w-4 text-amber-700"/> {warning}</p>
                 ))}
               </div>
             </div>
@@ -1481,8 +1489,9 @@ function NearestTripCard({
               <button
                 type="button"
                 onClick={() => void onChecklist(trip)}
-                className="rounded-2xl bg-white px-5 py-3 text-center text-sm font-black text-blue-700 transition hover:bg-blue-100"
+                className="flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-center text-sm font-black text-blue-700 transition hover:bg-blue-100"
               >
+                <CheckListIcon className="h-4 w-4 transition-colors"/>
                 Checklista
               </button>
             )}
@@ -1491,8 +1500,9 @@ function NearestTripCard({
               <button
                 type="button"
                 onClick={() => onEdit(trip)}
-                className="rounded-2xl border border-blue-100 bg-white/70 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-white"
+                className="flex items-center gap-2 rounded-2xl border border-blue-100 bg-white/70 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-white"
               >
+                <PencilIcon className="h-4 w-4 transition-colors"/>
                 Edytuj
               </button>
             )}
@@ -1665,7 +1675,7 @@ function QuickActions({
         href="/lowiska"
         title="Znajdź łowisko"
         description="Wybierz miejsce kolejnej wyprawy"
-        icon="🗺️"
+        icon={<MapIcon className="h-5 w-5 text-blue-600 transition-colors" />}
       />
 
       <button
@@ -1675,7 +1685,7 @@ function QuickActions({
         className="flex items-center gap-4 rounded-3xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-sm"
       >
         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-2xl">
-          ✅
+          <CheckListIcon className="h-5 w-5 text-blue-600 transition-colors"/>
         </div>
 
         <div className="min-w-0">
@@ -1694,14 +1704,14 @@ function QuickActions({
         href="/ekwipunek"
         title="Ekwipunek"
         description="Sprawdź swój sprzęt"
-        icon="🎒"
+        icon={<HookIcon className="h-5 w-5 text-blue-600 transition-colors" />}
       />
 
       <QuickAction
         href="/polowy"
         title="Dodaj połów"
         description="Uzupełnij dziennik wyprawy"
-        icon="🐟"
+        icon={<FishIcon className="h-5 w-5 text-blue-600 transition-colors" />}
       />
     </section>
   );
@@ -1818,50 +1828,79 @@ function TripCard({
           </p>
         )}
 
-        <div className="mt-auto grid grid-cols-2 gap-2 pt-5">
+       <div className="mt-auto pt-5">
           <Link
             href={`/wyprawy/${trip.id}`}
-            className="col-span-2 rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
+            className="block w-full rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
           >
             Otwórz centrum wyprawy
           </Link>
 
-          {(trip.checklistId || trip.canEdit) && (
-            <button
-              type="button"
-              onClick={() => void onChecklist(trip)}
-              className="rounded-xl bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-100"
-            >
-              Checklista
-            </button>
-          )}
+          <div className="mt-2 flex gap-2">
+  {(trip.checklistId || trip.canEdit) && (
+    <button
+      type="button"
+      onClick={() => void onChecklist(trip)}
+      className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-100"
+    >
+      <CheckListIcon className="h-4 w-4 shrink-0" />
+      <span>Checklista</span>
+    </button>
+  )}
 
-          {trip.canEdit && (
-            <button
-              type="button"
-              onClick={() => onEdit(trip)}
-              className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200"
-            >
-              Edytuj
-            </button>
-          )}
+  {trip.canEdit && (
+    <button
+      type="button"
+      onClick={() => onEdit(trip)}
+      className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200"
+    >
+      <PencilIcon className="h-4 w-4 shrink-0" />
+      <span>Edytuj</span>
+    </button>
+  )}
 
-          {trip.canDelete ? (
-            <button
-              type="button"
-              onClick={() => onDelete(trip)}
-              className="rounded-xl bg-red-50 px-4 py-3 text-sm font-black text-red-600 transition hover:bg-red-100"
-            >
-              Usuń
-            </button>
-          ) : (
-            <Link
-              href={`/wyprawy/${trip.id}?tab=uczestnicy`}
-              className="rounded-xl bg-blue-50 px-4 py-3 text-center text-sm font-black text-blue-700 transition hover:bg-blue-100"
-            >
-              Uczestnicy
-            </Link>
-          )}
+  {trip.canDelete ? (
+    <div className="group relative shrink-0">
+      <button
+        type="button"
+        onClick={() => onDelete(trip)}
+        aria-label="Usuń wyprawę"
+        className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 transition hover:bg-red-100"
+      >
+        <TrashIcon className="h-5 w-5" />
+      </button>
+
+      <div
+        className="
+          pointer-events-none absolute bottom-full left-1/2 z-20 mb-2
+          -translate-x-1/2 whitespace-nowrap
+          rounded-lg bg-slate-950 px-2.5 py-1.5
+          text-[11px] font-bold text-white
+          opacity-0 shadow-lg transition
+          group-hover:opacity-100
+        "
+      >
+        Usuń
+
+        <span
+          className="
+            absolute left-1/2 top-full
+            -translate-x-1/2
+            border-4 border-transparent
+            border-t-slate-950
+          "
+        />
+      </div>
+    </div>
+  ) : (
+    <Link
+      href={`/wyprawy/${trip.id}?tab=uczestnicy`}
+      className="flex flex-1 items-center justify-center rounded-xl bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:bg-blue-100"
+    >
+      Uczestnicy
+    </Link>
+  )}
+</div>
         </div>
       </div>
     </article>

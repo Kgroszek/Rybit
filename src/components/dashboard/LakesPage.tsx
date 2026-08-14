@@ -2,9 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { PlusIcon } from "@/components/icons/PlusIcon";
 
 import { MapSection } from "@/components/dashboard/MapSection";
 import { useUserLocation } from "@/hooks/useUserLocation";
+import { ArrowRightIcon } from "@/components/icons/ArrowRightIcon";
+
 import {
   calculateDistanceInKm,
   getDistanceLabel,
@@ -538,7 +541,8 @@ export function LakesPage({
           href="/lowiska/zglos"
           className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700"
         >
-          + Dodaj łowisko
+           <PlusIcon className="h-5 w-5 text-white" />
+           Dodaj łowisko
         </Link>
       </div>
 
@@ -1167,7 +1171,7 @@ function LakeGridCard({
             </span>
 
             <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/16 text-lg font-black text-white backdrop-blur transition-colors group-hover:bg-white group-hover:text-slate-950">
-              →
+                <ArrowRightIcon className="h-4 w-4  transition-colors" />
             </span>
           </div>
         </div>
