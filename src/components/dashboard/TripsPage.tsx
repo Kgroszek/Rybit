@@ -1726,7 +1726,7 @@ function QuickAction({
   href: string;
   title: string;
   description: string;
-  icon: string;
+  icon: ReactNode;
 }) {
   return (
     <Link
