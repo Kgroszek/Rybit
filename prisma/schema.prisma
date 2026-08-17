@@ -1065,3 +1065,37 @@ model UserChecklistTemplateItem {
   @@index([templateId])
   @@index([templateId, position])
 }
+
+
+model BlogPost {
+  id String @id @default(cuid())
+
+  title   String
+  slug    String @unique
+  excerpt String?
+
+  category String
+  tags     String[] @default([])
+
+  coverImageUrl String?
+  content       Json
+
+  status     String  @default("draft")
+  isFeatured Boolean @default(false)
+
+  seoTitle       String?
+  seoDescription String?
+
+  authorId   String?
+  authorName String?
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([publishedAt])
+  @@index([status, publishedAt])
+  @@index([isFeatured, status])
+}

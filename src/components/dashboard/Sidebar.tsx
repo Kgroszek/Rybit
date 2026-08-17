@@ -42,6 +42,11 @@ const mainMenuItems: MenuItem[] = [
     icon: <MapIcon />,
   },
   {
+    label: "Blog",
+    href: "/blog",
+    icon: <BlogIcon />,
+  },
+  {
     label: "Zgłoś łowisko",
     href: "/lowiska/zglos",
     icon: <AddCircleIcon />,
@@ -97,6 +102,11 @@ export function Sidebar({
       label: "Panel admina",
       href: "/admin",
       icon: <DashboardIcon />,
+    },
+    {
+      label: "Zarządzaj blogiem",
+      href: "/admin/blog",
+      icon: <BlogAdminIcon />,
     },
     {
       label: "Zgłoszenia łowisk",
@@ -189,7 +199,7 @@ export function Sidebar({
 
       <div className="mt-auto pt-6">
         <LogoutButton className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-500 transition hover:bg-red-50">
-          <ExitIcon className="h-5 w-5 transition-colors"/>
+          <ExitIcon className="h-5 w-5 transition-colors" />
           Wyloguj
         </LogoutButton>
       </div>
@@ -239,14 +249,35 @@ function IconBase({ children }: { children: ReactNode }) {
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-hidden="true"
     >
       {children}
     </svg>
   );
 }
 
+function BlogIcon() {
+  return (
+    <IconBase>
+      <path d="M5 4.5h10.5A2.5 2.5 0 0 1 18 7v12.5H7.5A2.5 2.5 0 0 1 5 17V4.5Z" />
+      <path d="M18 7h1a2 2 0 0 1 2 2v10.5h-3" />
+      <path d="M8.5 9h6" />
+      <path d="M8.5 12.5h6" />
+      <path d="M8.5 16h3.5" />
+    </IconBase>
+  );
+}
 
-
+function BlogAdminIcon() {
+  return (
+    <IconBase>
+      <path d="M4 5h11a2 2 0 0 1 2 2v12H6a2 2 0 0 1-2-2V5Z" />
+      <path d="M8 9h5" />
+      <path d="M8 12h5" />
+      <path d="m16.5 15.5 3-3 2 2-3 3-2.5.5.5-2.5Z" />
+    </IconBase>
+  );
+}
 
 function UsersIcon() {
   return (
@@ -286,16 +317,6 @@ function CatchReportsIcon() {
       <path d="M4 19h7" />
       <path d="M17 14l3 3" />
       <path d="M20 14l-3 3" />
-    </IconBase>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <IconBase>
-      <path d="M10 17l5-5-5-5" />
-      <path d="M15 12H3" />
-      <path d="M21 3v18" />
     </IconBase>
   );
 }
