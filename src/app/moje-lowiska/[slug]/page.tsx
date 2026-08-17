@@ -192,10 +192,10 @@ export default async function OwnerLakeDashboardPage({
 
         <header className="mb-6 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-blue-600">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
               {formatLongDate(now)}
             </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
               Dzień dobry — oto dzisiejszy obraz łowiska
             </h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500 sm:text-base">
@@ -206,7 +206,7 @@ export default async function OwnerLakeDashboardPage({
           {ownerLake.canManageReservations && (
             <Link
               href={`/moje-lowiska/${lake.slug}/rezerwacje?new=1`}
-              className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-sm transition hover:bg-blue-700"
+              className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
             >
               + Nowa rezerwacja
             </Link>
@@ -247,17 +247,17 @@ export default async function OwnerLakeDashboardPage({
             <div className="p-5 sm:p-6 xl:border-r xl:border-slate-100">
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                     Najbliższe 7 dni
                   </p>
-                  <h2 className="mt-2 text-2xl font-bold text-slate-950">
+                  <h2 className="mt-2 text-2xl font-extrabold text-slate-950">
                     Nadchodzące rezerwacje
                   </h2>
                 </div>
 
                 <Link
                   href={`/moje-lowiska/${lake.slug}/rezerwacje`}
-                  className="text-sm font-medium text-blue-600 transition hover:text-blue-700"
+                  className="text-sm font-semibold text-blue-600 transition hover:text-blue-700"
                 >
                   Kalendarz →
                 </Link>
@@ -272,7 +272,7 @@ export default async function OwnerLakeDashboardPage({
                       className="group grid gap-3 py-4 first:pt-0 last:pb-0 sm:grid-cols-[94px_minmax(0,1fr)_auto] sm:items-center"
                     >
                       <div>
-                        <p className="text-sm font-black text-slate-950">
+                        <p className="text-sm font-bold text-slate-950">
                           {formatShortDate(reservation.startsAt)}
                         </p>
                         <p className="mt-1 text-xs font-bold text-slate-400">
@@ -283,7 +283,7 @@ export default async function OwnerLakeDashboardPage({
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <StatusDot status={reservation.status} />
-                          <p className="truncate text-sm font-black text-slate-950">
+                          <p className="truncate text-sm font-bold text-slate-950">
                             {getReservationTitle(reservation)}
                           </p>
                         </div>
@@ -314,10 +314,10 @@ export default async function OwnerLakeDashboardPage({
             <div className="border-t border-slate-100 p-5 sm:p-6 xl:border-t-0">
               <div className="flex items-end justify-between gap-4">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
                     Na teraz
                   </p>
-                  <h2 className="mt-2 text-2xl font-bold text-slate-950">
+                  <h2 className="mt-2 text-2xl font-extrabold text-slate-950">
                     Stanowiska
                   </h2>
                 </div>
@@ -325,7 +325,7 @@ export default async function OwnerLakeDashboardPage({
                 {ownerLake.canManageSpots && (
                   <Link
                     href={`/moje-lowiska/${lake.slug}/stanowiska`}
-                    className="text-sm font-medium text-blue-600 transition hover:text-blue-700"
+                    className="text-sm font-semibold text-blue-600 transition hover:text-blue-700"
                   >
                     Zarządzaj →
                   </Link>
@@ -350,7 +350,7 @@ export default async function OwnerLakeDashboardPage({
                         className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
                       >
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-black text-slate-900">
+                          <p className="truncate text-sm font-bold text-slate-900">
                             {spot.name}
                           </p>
                           <p className="mt-1 truncate text-xs font-semibold text-slate-500">
@@ -388,7 +388,7 @@ export default async function OwnerLakeDashboardPage({
 
         <section className="mt-8">
           <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 sm:flex-row sm:flex-wrap sm:items-center">
-            <p className="mr-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+            <p className="mr-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
               Szybkie akcje
             </p>
 
@@ -445,10 +445,10 @@ function StatItem({
     <div className="px-5 py-5 sm:px-6 xl:py-6 [&:not(:last-child)]:border-b [&:not(:last-child)]:border-slate-100 sm:[&:not(:last-child)]:border-b-0 sm:[&:not(:last-child)]:border-r">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
             {label}
           </p>
-          <p className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+          <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
             {value}
           </p>
         </div>
@@ -473,7 +473,7 @@ function QuickAction({
   return (
     <Link
       href={href}
-      className="group inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-black text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-blue-600"
+      className="group inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 hover:text-blue-600"
     >
       <span>{label}</span>
       <span className="text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-blue-600">
@@ -486,7 +486,7 @@ function QuickAction({
 function EmptyBlock({ title, description }: { title: string; description: string }) {
   return (
     <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
-      <p className="text-sm font-black text-slate-900">{title}</p>
+      <p className="text-sm font-bold text-slate-900">{title}</p>
       <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-slate-500">
         {description}
       </p>

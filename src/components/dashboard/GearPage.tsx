@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useToast } from "@/components/ui/ToastProvider";
+import { PencilIcon } from "@/components/icons/PencilIcon";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 
 type FishingGear = {
   id: string;
@@ -421,7 +423,7 @@ export function GearPage({ initialGear }: GearPageProps) {
     <div className="pb-28 md:pb-0">
       <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
             Mój ekwipunek
           </h1>
 
@@ -441,7 +443,7 @@ export function GearPage({ initialGear }: GearPageProps) {
 
             openCreateForm();
           }}
-          className="rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:text-sm xl:w-auto"
+          className="rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-bold text-white shadow-sm transition hover:bg-blue-700 sm:text-sm xl:w-auto"
         >
           {isFormOpen ? "Zamknij formularz" : "+ Dodaj sprzęt"}
         </button>
@@ -483,11 +485,11 @@ export function GearPage({ initialGear }: GearPageProps) {
             >
               <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
                     Ekwipunek
                   </p>
 
-                  <h2 className="mt-1 text-xl font-black text-slate-950">
+                  <h2 className="mt-1 text-xl font-extrabold text-slate-950">
                     {editingGearId ? "Edytuj sprzęt" : "Dodaj sprzęt"}
                   </h2>
                 </div>
@@ -496,7 +498,7 @@ export function GearPage({ initialGear }: GearPageProps) {
                   type="button"
                   onClick={handleCancelForm}
                   disabled={isLoading}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-black text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-semibold text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
                   aria-label="Zamknij formularz"
                 >
                   ×
@@ -592,11 +594,11 @@ export function GearPage({ initialGear }: GearPageProps) {
           {filteredGear.map((item) => (
             <article
               key={item.id}
-              className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
             >
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                     {getCategoryLabel(item.category)}
                   </p>
 
@@ -650,22 +652,43 @@ export function GearPage({ initialGear }: GearPageProps) {
                 </p>
               )}
 
-              <div className="mt-5 grid grid-cols-2 gap-3 sm:flex sm:justify-end">
+              <div className="mt-auto flex justify-end gap-2 pt-5">
                 <button
                   type="button"
                   onClick={() => handleStartEdit(item)}
-                  className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 sm:py-2.5"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
                 >
-                  Edytuj
+                  <PencilIcon className="h-4 w-4 shrink-0" />
+                  <span>Edytuj</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => handleDelete(item.id)}
-                  className="rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 sm:py-2.5"
-                >
-                  Usuń
-                </button>
+                <div className="group relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(item.id)}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-600 transition hover:bg-red-100"
+                    aria-label={`Usuń ${item.name}`}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+
+                  <div
+                    className="
+                      pointer-events-none absolute bottom-full left-1/2 z-30 mb-2
+                      -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950
+                      px-2.5 py-1.5 text-[11px] font-semibold text-white
+                      opacity-0 shadow-lg transition group-hover:opacity-100
+                    "
+                  >
+                    Usuń
+                    <span
+                      className="
+                        absolute left-1/2 top-full -translate-x-1/2
+                        border-4 border-transparent border-t-slate-950
+                      "
+                    />
+                  </div>
+                </div>
               </div>
             </article>
           ))}
@@ -688,7 +711,7 @@ export function GearPage({ initialGear }: GearPageProps) {
           <button
             type="button"
             onClick={openCreateForm}
-            className="mt-6 w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 sm:w-auto"
+            className="mt-6 w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700 sm:w-auto"
           >
             + Dodaj pierwszy sprzęt
           </button>
@@ -741,7 +764,7 @@ function GearForm({
     <form onSubmit={onSubmit} className="space-y-6">
       {!isMobile && (
         <div>
-          <h2 className="text-xl font-bold text-slate-950">
+          <h2 className="text-xl font-extrabold text-slate-950">
             {editingGearId ? "Edytuj sprzęt" : "Dodaj sprzęt"}
           </h2>
 
@@ -885,7 +908,7 @@ function GearForm({
         <button
           type="submit"
           disabled={isLoading}
-          className="flex-1 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
+          className="flex-1 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 sm:flex-none"
         >
           {isLoading
             ? "Zapisywanie..."
@@ -910,7 +933,7 @@ function FormGroup({
   return (
     <section>
       <div className="mb-4">
-        <h3 className="text-base font-black text-slate-950">{title}</h3>
+        <h3 className="text-base font-bold text-slate-950">{title}</h3>
         <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
       </div>
 
@@ -924,7 +947,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
     <div className="min-w-[185px] rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:min-w-0 md:p-5">
       <p className="text-sm font-semibold text-slate-500">{label}</p>
 
-      <p className="mt-3 text-3xl font-bold tracking-tight text-slate-950 md:text-3xl">
+      <p className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950 md:text-3xl">
         {value}
       </p>
     </div>
@@ -1026,7 +1049,7 @@ function FilterSelect({
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-3">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
         {label}
       </p>
 
@@ -1038,7 +1061,7 @@ function InfoTile({ label, value }: { label: string; value: string }) {
 function ConditionBadge({ condition }: { condition: string }) {
   if (condition === "new" || condition === "very_good") {
     return (
-      <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+      <span className="shrink-0 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
         {getConditionLabel(condition)}
       </span>
     );
@@ -1046,7 +1069,7 @@ function ConditionBadge({ condition }: { condition: string }) {
 
   if (condition === "to_check") {
     return (
-      <span className="shrink-0 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
+      <span className="shrink-0 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
         Do sprawdzenia
       </span>
     );
@@ -1054,14 +1077,14 @@ function ConditionBadge({ condition }: { condition: string }) {
 
   if (condition === "damaged") {
     return (
-      <span className="shrink-0 rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-600">
+      <span className="shrink-0 rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">
         Uszkodzony
       </span>
     );
   }
 
   return (
-    <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+    <span className="shrink-0 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
       {getConditionLabel(condition)}
     </span>
   );

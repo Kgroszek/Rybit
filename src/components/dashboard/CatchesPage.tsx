@@ -3,6 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/components/ui/ToastProvider";
 import { CatchShareDialog } from "@/components/catches/CatchShareDialog";
+import { CardsIcon } from "@/components/icons/CardsIcon";
+import { BoltIcon } from "@/components/icons/BoltIcon";
+import { FormIcon } from "@/components/icons/FormIcon";
+import { TrashIcon } from "@/components/icons/TrashIcon";
+import { PencilIcon } from "@/components/icons/PencilIcon";
+
 
 type FishingCatch = {
   id: string;
@@ -690,7 +696,7 @@ export function CatchesPage({
     <div className="w-full max-w-full overflow-x-hidden pb-28 md:pb-0">
       <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
             Moje połowy
           </h1>
 
@@ -703,17 +709,19 @@ export function CatchesPage({
           <button
             type="button"
             onClick={() => openCreateForm("quick")}
-            className="rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:text-sm"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3.5 text-base font-bold text-white shadow-sm transition hover:bg-blue-700 sm:text-sm"
           >
-            ⚡ Szybki połów
+            <BoltIcon className="h-4 w-4 shrink-0" />
+            <span>Szybki połów</span>
           </button>
 
           <button
             type="button"
             onClick={() => openCreateForm("full")}
-            className="rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-base font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:text-sm"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-base font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 sm:text-sm"
           >
-            + Pełny formularz
+            <FormIcon className="h-4 w-4 shrink-0" />
+            <span>Pełny formularz</span>
           </button>
         </div>
       </div>
@@ -775,11 +783,11 @@ export function CatchesPage({
             >
               <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-100 bg-white px-5 py-4">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
                     Dziennik połowów
                   </p>
 
-                  <h2 className="mt-1 text-xl font-black text-slate-950">
+                  <h2 className="mt-1 text-xl font-extrabold text-slate-950">
                     {editingCatchId
                       ? "Edytuj połów"
                       : formMode === "quick"
@@ -792,7 +800,7 @@ export function CatchesPage({
                   type="button"
                   onClick={handleCancelForm}
                   disabled={isLoading}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-black text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-semibold text-slate-600 transition hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-60"
                   aria-label="Zamknij formularz"
                 >
                   ×
@@ -965,7 +973,7 @@ export function CatchesPage({
             🎣
           </div>
 
-          <p className="mt-5 text-xl font-bold text-slate-950">
+          <p className="mt-5 text-xl font-extrabold text-slate-950">
             Brak połowów do wyświetlenia
           </p>
 
@@ -1080,12 +1088,12 @@ function QuickCatchForm({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black uppercase tracking-[0.14em] text-blue-600">
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">
                 Szybki zapis
               </span>
             </div>
 
-            <h2 className="mt-3 text-xl font-bold text-slate-950">
+            <h2 className="mt-3 text-xl font-extrabold text-slate-950">
               ⚡ Szybki połów
             </h2>
 
@@ -1099,9 +1107,10 @@ function QuickCatchForm({
             type="button"
             onClick={onSwitchToFull}
             disabled={isLoading}
-            className="shrink-0 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
           >
-            Pełny formularz →
+            <FormIcon className="h-4 w-4 shrink-0" />
+            <span>Pełny formularz</span>
           </button>
         </div>
       )}
@@ -1111,17 +1120,18 @@ function QuickCatchForm({
           type="button"
           onClick={onSwitchToFull}
           disabled={isLoading}
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
         >
-          Potrzebujesz więcej pól? Otwórz pełny formularz
+          <FormIcon className="h-4 w-4 shrink-0" />
+          <span>Potrzebujesz więcej pól? Otwórz pełny formularz</span>
         </button>
       )}
 
       <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-blue-500">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-500">
           Data połowu
         </p>
-        <p className="mt-1 text-sm font-black text-blue-950">
+        <p className="mt-1 text-sm font-bold text-blue-950">
           {form.caughtAt
             ? formatDateTime(new Date(form.caughtAt).toISOString())
             : "Teraz"}
@@ -1177,7 +1187,7 @@ function QuickCatchForm({
 
       {selectedTrip && (
         <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
-          <p className="text-sm font-black text-blue-900">
+          <p className="text-sm font-bold text-blue-900">
             {selectedTrip.id === autoTripId
               ? "✓ Automatycznie przypisano trwającą wyprawę"
               : "✓ Połów przypisany do wyprawy"}
@@ -1306,7 +1316,7 @@ function CatchForm({
     <form onSubmit={onSubmit} className="space-y-6">
       {!isMobile && (
         <div>
-          <h2 className="text-xl font-bold text-slate-950">
+          <h2 className="text-xl font-extrabold text-slate-950">
             {editingCatchId ? "Edytuj połów" : "Dodaj połów"}
           </h2>
 
@@ -1535,7 +1545,7 @@ function CatchCard({
   onDelete: () => void;
 }) {
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
+    <article className="flex h-full flex-col rounded-3xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
       {item.imageUrl && (
         <button
           type="button"
@@ -1552,7 +1562,7 @@ function CatchCard({
 
       <div className="mb-4 flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
             {getMethodLabel(item.method)}
           </p>
 
@@ -1565,20 +1575,18 @@ function CatchCard({
           </p>
         </div>
 
-        <div className="shrink-0 rounded-2xl bg-blue-50 px-3 py-2 text-sm font-bold text-blue-700">
-          🎣
-        </div>
+        
       </div>
 
       <div className="mb-4 flex flex-wrap gap-2">
         {item.isPublic && (
-          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
             Ranking
           </span>
         )}
 
         {item.rankingStatus === "approved" && item.isPublic && (
-          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+          <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
             Zatwierdzony
           </span>
         )}
@@ -1608,30 +1616,52 @@ function CatchCard({
         </p>
       )}
 
-      <div className="mt-5 grid grid-cols-3 gap-2">
+      <div className="mt-auto flex gap-2 pt-5">
         <button
           type="button"
           onClick={onShare}
-          className="rounded-xl bg-blue-600 px-3 py-3 text-sm font-black text-white transition hover:bg-blue-700 sm:py-2.5"
+          className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-3 text-sm font-bold text-white transition hover:bg-blue-700 sm:py-2.5"
         >
-          Karta
+          <CardsIcon className="h-4 w-4 shrink-0" />
+          <span>Karta</span>
         </button>
 
         <button
           type="button"
           onClick={onEdit}
-          className="rounded-xl bg-slate-100 px-3 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 sm:py-2.5"
+          className="inline-flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200 sm:py-2.5"
         >
-          Edytuj
+          <PencilIcon className="h-4 w-4 shrink-0" />
+          <span>Edytuj</span>
         </button>
 
-        <button
-          type="button"
-          onClick={onDelete}
-          className="rounded-xl bg-red-50 px-3 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 sm:py-2.5"
-        >
-          Usuń
-        </button>
+        <div className="group relative shrink-0">
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-50 text-red-600 transition hover:bg-red-100"
+            aria-label="Usuń połów"
+          >
+            <TrashIcon className="h-5 w-5" />
+          </button>
+
+          <div
+            className="
+              pointer-events-none absolute bottom-full left-1/2 z-30 mb-2
+              -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950
+              px-2.5 py-1.5 text-[11px] font-semibold text-white
+              opacity-0 shadow-lg transition group-hover:opacity-100
+            "
+          >
+            Usuń
+            <span
+              className="
+                absolute left-1/2 top-full -translate-x-1/2
+                border-4 border-transparent border-t-slate-950
+              "
+            />
+          </div>
+        </div>
       </div>
     </article>
   );
@@ -1674,24 +1704,24 @@ function CatchListItem({
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
             {getMethodLabel(item.method)}
           </span>
 
           {item.lakeName && (
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
               {item.lakeName}
             </span>
           )}
 
           {item.tripTitle && (
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
               {item.tripTitle}
             </span>
           )}
 
           {item.isPublic && (
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
               Ranking łowiska
             </span>
           )}
@@ -1726,26 +1756,48 @@ function CatchListItem({
         <button
           type="button"
           onClick={onShare}
-          className="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-black text-white transition hover:bg-blue-700"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-700"
         >
-          Karta
+          <CardsIcon className="h-4 w-4 shrink-0" />
+          <span>Karta</span>
         </button>
 
         <button
           type="button"
           onClick={onEdit}
-          className="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
         >
-          Edytuj
+          <PencilIcon className="h-4 w-4 shrink-0" />
+          <span>Edytuj</span>
         </button>
 
-        <button
-          type="button"
-          onClick={onDelete}
-          className="rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100"
-        >
-          Usuń
-        </button>
+        <div className="group relative shrink-0">
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-600 transition hover:bg-red-100"
+            aria-label="Usuń połów"
+          >
+            <TrashIcon className="h-4 w-4" />
+          </button>
+
+          <div
+            className="
+              pointer-events-none absolute bottom-full left-1/2 z-30 mb-2
+              -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950
+              px-2.5 py-1.5 text-[11px] font-semibold text-white
+              opacity-0 shadow-lg transition group-hover:opacity-100
+            "
+          >
+            Usuń
+            <span
+              className="
+                absolute left-1/2 top-full -translate-x-1/2
+                border-4 border-transparent border-t-slate-950
+              "
+            />
+          </div>
+        </div>
       </div>
     </article>
   );
@@ -1763,7 +1815,7 @@ function FormGroup({
   return (
     <section>
       <div className="mb-4">
-        <h3 className="text-base font-black text-slate-950">{title}</h3>
+        <h3 className="text-base font-bold text-slate-950">{title}</h3>
         <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
       </div>
 
@@ -1779,7 +1831,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
         {label}
       </p>
 
-      <p className="mt-3 break-words text-2xl font-bold tracking-tight text-slate-950 md:text-3xl">
+      <p className="mt-3 break-words text-2xl font-extrabold tracking-tight text-slate-950 md:text-3xl">
         {value}
       </p>
     </div>
@@ -1789,7 +1841,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-3">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
         {label}
       </p>
 
@@ -1966,7 +2018,7 @@ function LakeSearchSelect({
                   >
                     <div className="min-w-0">
                       <p
-                        className={`truncate text-sm font-black ${
+                        className={`truncate text-sm font-bold ${
                           isSelected ? "text-blue-700" : "text-slate-900"
                         }`}
                       >
@@ -1979,7 +2031,7 @@ function LakeSearchSelect({
                     </div>
 
                     {isSelected && (
-                      <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-black text-blue-700">
+                      <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-semibold text-blue-700">
                         Wybrane
                       </span>
                     )}
@@ -1989,7 +2041,7 @@ function LakeSearchSelect({
             </div>
           ) : (
             <div className="px-4 py-6 text-center">
-              <p className="text-sm font-black text-slate-700">
+              <p className="text-sm font-bold text-slate-700">
                 Nie znaleziono łowiska
               </p>
               <p className="mt-1 text-xs leading-5 text-slate-500">

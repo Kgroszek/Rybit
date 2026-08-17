@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "re
 import { useRouter } from "next/navigation";
 
 import { useToast } from "@/components/ui/ToastProvider";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 
 type ActionType =
   | "checklist"
@@ -18,6 +19,7 @@ type TripActionPopupProps = {
   action: ActionType;
   canEdit: boolean;
   label?: string;
+  icon?: ReactNode;
   className?: string;
   tripStartsAt?: string | Date;
   tripEndsAt?: string | Date | null;
@@ -330,6 +332,7 @@ export function TripActionPopup({
   action,
   canEdit,
   label,
+  icon,
   className = "",
   tripStartsAt,
   tripEndsAt,
@@ -1045,10 +1048,13 @@ export function TripActionPopup({
         disabled={!canEdit && action !== "checklist" && action !== "gear"}
         className={
           className ||
-          "rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          "rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         }
       >
-        {label || defaultLabel(action)}
+        <span className="inline-flex items-center justify-center gap-2">
+          {icon}
+          <span>{label || defaultLabel(action)}</span>
+        </span>
       </button>
 
       {open && (
@@ -1346,10 +1352,10 @@ function ChecklistContent({
         <section className="rounded-3xl border border-blue-100 bg-gradient-to-br from-blue-50 to-sky-50 p-4 sm:p-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.15em] text-blue-600">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-blue-600">
                 Podpowiedzi Rybio
               </p>
-              <h3 className="mt-1 text-lg font-black text-blue-950">
+              <h3 className="mt-1 text-lg font-bold text-blue-950">
                 Gotowe szablony checklisty
               </h3>
               <p className="mt-1 text-sm leading-6 text-blue-800">
@@ -1358,7 +1364,7 @@ function ChecklistContent({
                 {tripType ? ` • ${getTripTypeTemplateLabel(tripType)}` : ""}.
               </p>
             </div>
-            <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-black text-blue-700 shadow-sm">
+            <span className="w-fit rounded-full bg-white px-3 py-1 text-xs font-semibold text-blue-700 shadow-sm">
               Możesz dodać kilka szablonów
             </span>
           </div>
@@ -1378,16 +1384,16 @@ function ChecklistContent({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className={`font-black ${template.id === "adaptive" ? "text-white" : "text-slate-950"}`}>{template.label}</p>
+                    <p className={`font-bold ${template.id === "adaptive" ? "text-white" : "text-slate-950"}`}>{template.label}</p>
                     <p className={`mt-1 text-xs leading-5 ${template.id === "adaptive" ? "text-blue-100" : "text-slate-500"}`}>
                       {template.description}
                     </p>
                   </div>
-                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-black ${template.id === "adaptive" ? "bg-white/20 text-white" : "bg-blue-50 text-blue-700"}`}>
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${template.id === "adaptive" ? "bg-white/20 text-white" : "bg-blue-50 text-blue-700"}`}>
                     +{template.items.length}
                   </span>
                 </div>
-                <p className={`mt-3 text-xs font-black ${template.id === "adaptive" ? "text-white" : "text-blue-600"}`}>
+                <p className={`mt-3 text-xs font-bold ${template.id === "adaptive" ? "text-white" : "text-blue-600"}`}>
                   {template.id === "adaptive" ? "Dodaj rekomendowaną checklistę" : "Dodaj do checklisty"}
                 </p>
               </button>
@@ -1404,10 +1410,10 @@ function ChecklistContent({
         <section className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-400">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-400">
                 Prywatne
               </p>
-              <h3 className="mt-1 text-lg font-black text-slate-950">
+              <h3 className="mt-1 text-lg font-bold text-slate-950">
                 Moje szablony
               </h3>
               <p className="mt-1 text-sm leading-6 text-slate-500">
@@ -1416,7 +1422,7 @@ function ChecklistContent({
               </p>
             </div>
 
-            <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+            <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
               {userTemplates.length} {userTemplates.length === 1 ? "szablon" : "szablonów"}
             </span>
           </div>
@@ -1434,7 +1440,7 @@ function ChecklistContent({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="break-words font-black text-slate-950">
+                      <p className="break-words font-bold text-slate-950">
                         {template.name}
                       </p>
                       <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -1442,7 +1448,7 @@ function ChecklistContent({
                       </p>
                     </div>
 
-                    <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-black text-slate-600 shadow-sm">
+                    <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 shadow-sm">
                       {template.items.length} poz.
                     </span>
                   </div>
@@ -1460,7 +1466,7 @@ function ChecklistContent({
                         })
                       }
                       disabled={loading || templateSaving}
-                      className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white transition hover:bg-blue-700 disabled:opacity-50"
+                      className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
                     >
                       Użyj szablonu
                     </button>
@@ -1470,7 +1476,7 @@ function ChecklistContent({
                         type="button"
                         onClick={() => onOverwriteUserTemplate(template)}
                         disabled={templateSaving}
-                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 disabled:opacity-50"
                       >
                         Nadpisz obecną listą
                       </button>
@@ -1480,9 +1486,11 @@ function ChecklistContent({
                       type="button"
                       onClick={() => onDeleteUserTemplate(template)}
                       disabled={templateSaving}
-                      className="rounded-xl px-3 py-2 text-xs font-black text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                      aria-label={`Usuń szablon ${template.name}`}
+                      title="Usuń"
                     >
-                      Usuń
+                      <TrashIcon className="h-4 w-4" />
                     </button>
                   </div>
                 </article>
@@ -1490,7 +1498,7 @@ function ChecklistContent({
             </div>
           ) : (
             <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center">
-              <p className="text-sm font-black text-slate-700">
+              <p className="text-sm font-bold text-slate-700">
                 Nie masz jeszcze własnych szablonów
               </p>
               <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -1505,7 +1513,7 @@ function ChecklistContent({
               className="mt-5 rounded-2xl border border-blue-100 bg-blue-50 p-4"
             >
               <div>
-                <p className="text-sm font-black text-blue-950">
+                <p className="text-sm font-bold text-blue-950">
                   Zapisz obecną checklistę jako szablon
                 </p>
                 <p className="mt-1 text-xs leading-5 text-blue-700">
@@ -1533,7 +1541,7 @@ function ChecklistContent({
               <button
                 type="submit"
                 disabled={templateSaving}
-                className="mt-4 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:opacity-50"
+                className="mt-4 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-blue-700 disabled:opacity-50"
               >
                 {templateSaving ? "Zapisywanie..." : "Zapisz jako mój szablon"}
               </button>
@@ -1547,7 +1555,7 @@ function ChecklistContent({
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl">
             ✅
           </div>
-          <h3 className="mt-4 text-xl font-black text-slate-950">
+          <h3 className="mt-4 text-xl font-bold text-slate-950">
             Brak checklisty
           </h3>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
@@ -1557,7 +1565,7 @@ function ChecklistContent({
             <button
               type="button"
               onClick={onEnsure}
-              className="mt-5 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-50"
+              className="mt-5 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50"
             >
               Utwórz pustą checklistę
             </button>
@@ -1568,7 +1576,7 @@ function ChecklistContent({
           <div className="rounded-3xl bg-blue-50 p-5">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-sm font-black text-blue-950">
+                <p className="text-sm font-bold text-blue-950">
                   Postęp checklisty
                 </p>
                 <p className="mt-1 text-xs text-blue-700">
@@ -1576,7 +1584,7 @@ function ChecklistContent({
                   {checklist.items.length} spakowane
                 </p>
               </div>
-              <span className="text-2xl font-black text-blue-700">
+              <span className="text-2xl font-extrabold text-blue-700">
                 {progress}%
               </span>
             </div>
@@ -1598,10 +1606,10 @@ function ChecklistContent({
                   <details key={group.category} open={remaining > 0} className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
                     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 bg-slate-50 px-4 py-3 [&::-webkit-details-marker]:hidden">
                       <div>
-                        <p className="text-sm font-black text-slate-800">{group.category}</p>
+                        <p className="text-sm font-bold text-slate-800">{group.category}</p>
                         <p className="mt-0.5 text-xs text-slate-500">{packed}/{group.items.length} spakowane</p>
                       </div>
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600 shadow-sm">
+                      <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">
                         {remaining > 0 ? `${remaining} do spakowania` : "Gotowe"}
                       </span>
                     </summary>
@@ -1623,7 +1631,7 @@ function ChecklistContent({
                             className="mt-1 h-5 w-5 accent-blue-600"
                           />
                           <div className="min-w-0 flex-1">
-                            <p className={`font-black ${item.isPacked ? "text-emerald-700 line-through" : "text-slate-800"}`}>
+                            <p className={`font-bold ${item.isPacked ? "text-emerald-700 line-through" : "text-slate-800"}`}>
                               {item.name}
                             </p>
                             <p className="mt-1 text-xs text-slate-500">
@@ -1639,9 +1647,11 @@ function ChecklistContent({
                                 event.stopPropagation();
                                 onDelete(item.id);
                               }}
-                              className="rounded-xl px-2 py-1 text-xs font-black text-red-500 hover:bg-red-50"
+                              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 transition hover:bg-red-100"
+                              aria-label={`Usuń ${item.name}`}
+                              title="Usuń"
                             >
-                              Usuń
+                              <TrashIcon className="h-4 w-4" />
                             </button>
                           )}
                         </label>
@@ -1662,7 +1672,7 @@ function ChecklistContent({
               onSubmit={onAdd}
               className="rounded-3xl border border-slate-200 bg-slate-50 p-4 sm:p-5"
             >
-              <h3 className="font-black text-slate-950">Dodaj własny element</h3>
+              <h3 className="font-bold text-slate-950">Dodaj własny element</h3>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <InputField
                   label="Nazwa"
@@ -1711,7 +1721,7 @@ function ChecklistContent({
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-4 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white hover:bg-blue-700 disabled:opacity-50"
+                className="mt-4 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-50"
               >
                 + Dodaj do checklisty
               </button>
@@ -1805,7 +1815,7 @@ function GearContent({
       <section>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-sm font-black text-slate-950">
+            <h3 className="text-sm font-bold text-slate-950">
               Sprzęt na tej wyprawie
             </h3>
             <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -1814,7 +1824,7 @@ function GearContent({
           </div>
 
           {tripGear.length > 0 && (
-            <label className="flex cursor-pointer items-center gap-2 text-xs font-black text-slate-600">
+            <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
               <input
                 type="checkbox"
                 checked={onlyUnpacked}
@@ -1849,7 +1859,7 @@ function GearContent({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p
-                        className={`break-words font-black ${
+                        className={`break-words font-bold ${
                           item.isPacked
                             ? "text-emerald-700 line-through"
                             : "text-slate-800"
@@ -1859,7 +1869,7 @@ function GearContent({
                       </p>
 
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                           item.gearId
                             ? "bg-blue-50 text-blue-700"
                             : "bg-violet-50 text-violet-700"
@@ -1882,21 +1892,42 @@ function GearContent({
                   </div>
 
                   {canEdit && !item.gearId && (
-                    <button
-                      type="button"
-                      onClick={() => onDeleteCustom(item)}
-                      disabled={loading}
-                      className="shrink-0 rounded-xl px-2.5 py-1.5 text-xs font-black text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                    >
-                      Usuń
-                    </button>
+                    <div className="group relative shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => onDeleteCustom(item)}
+                        disabled={loading}
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                        aria-label={`Usuń ${item.name}`}
+                        title="Usuń"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+
+                      <div
+                        className="
+                          pointer-events-none absolute bottom-full left-1/2 z-30 mb-2
+                          -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950
+                          px-2.5 py-1.5 text-[11px] font-semibold text-white
+                          opacity-0 shadow-lg transition group-hover:opacity-100
+                        "
+                      >
+                        Usuń
+                        <span
+                          className="
+                            absolute left-1/2 top-full -translate-x-1/2
+                            border-4 border-transparent border-t-slate-950
+                          "
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}
             </div>
           ) : (
             <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-5 text-center">
-              <p className="text-sm font-black text-slate-700">
+              <p className="text-sm font-bold text-slate-700">
                 Wszystko jest już spakowane
               </p>
               <p className="mt-1 text-xs text-slate-500">
@@ -1906,7 +1937,7 @@ function GearContent({
           )
         ) : (
           <div className="mt-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center">
-            <p className="text-sm font-black text-slate-700">
+            <p className="text-sm font-bold text-slate-700">
               Nie dodano jeszcze sprzętu
             </p>
             <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -1923,7 +1954,7 @@ function GearContent({
             <button
               type="button"
               onClick={() => setAddTab("owned")}
-              className={`rounded-xl px-3 py-2.5 text-xs font-black transition sm:text-sm ${
+              className={`rounded-xl px-3 py-2.5 text-xs font-bold transition sm:text-sm ${
                 addTab === "owned"
                   ? "bg-white text-blue-700 shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
@@ -1935,7 +1966,7 @@ function GearContent({
             <button
               type="button"
               onClick={() => setAddTab("custom")}
-              className={`rounded-xl px-3 py-2.5 text-xs font-black transition sm:text-sm ${
+              className={`rounded-xl px-3 py-2.5 text-xs font-bold transition sm:text-sm ${
                 addTab === "custom"
                   ? "bg-white text-blue-700 shadow-sm"
                   : "text-slate-500 hover:text-slate-800"
@@ -1948,7 +1979,7 @@ function GearContent({
           {addTab === "owned" ? (
             <div className="mt-5">
               <div>
-                <h3 className="text-sm font-black text-slate-950">
+                <h3 className="text-sm font-bold text-slate-950">
                   Wybierz z Ekwipunku
                 </h3>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -1997,7 +2028,7 @@ function GearContent({
                           />
 
                           <div className="min-w-0">
-                            <p className="break-words font-black text-slate-800">
+                            <p className="break-words font-bold text-slate-800">
                               {gear.name}
                             </p>
                             <p className="mt-1 text-xs text-slate-500">
@@ -2016,7 +2047,7 @@ function GearContent({
                   </div>
                 ) : (
                   <div className="mt-3 rounded-2xl bg-slate-50 p-5 text-center">
-                    <p className="text-sm font-black text-slate-700">
+                    <p className="text-sm font-bold text-slate-700">
                       Brak pasującego sprzętu
                     </p>
                     <p className="mt-1 text-xs text-slate-500">
@@ -2026,7 +2057,7 @@ function GearContent({
                 )
               ) : (
                 <div className="mt-3 rounded-2xl bg-slate-50 p-5 text-center">
-                  <p className="text-sm font-black text-slate-700">
+                  <p className="text-sm font-bold text-slate-700">
                     Twój Ekwipunek jest pusty
                   </p>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -2040,7 +2071,7 @@ function GearContent({
                 type="button"
                 onClick={onSave}
                 disabled={loading}
-                className="mt-4 w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:opacity-50"
+                className="mt-4 w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-blue-700 disabled:opacity-50"
               >
                 {loading ? "Zapisywanie..." : "Zapisz wybór z Ekwipunku"}
               </button>
@@ -2048,7 +2079,7 @@ function GearContent({
           ) : (
             <form onSubmit={submitCustomGear} className="mt-5 space-y-4">
               <div>
-                <h3 className="text-sm font-black text-slate-950">
+                <h3 className="text-sm font-bold text-slate-950">
                   Dodaj jednorazowy element
                 </h3>
                 <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -2128,13 +2159,13 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       >
         <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">Centrum wyprawy</p>
-            <h2 className="mt-1 text-xl font-black text-slate-950 sm:text-2xl">{title}</h2>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Centrum wyprawy</p>
+            <h2 className="mt-1 text-xl font-extrabold text-slate-950 sm:text-2xl">{title}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-black text-slate-600 hover:bg-slate-200"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-semibold text-slate-600 hover:bg-slate-200"
             aria-label="Zamknij"
           >
             ×
@@ -2149,7 +2180,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 function InputField({ label, value, onChange, type = "text", placeholder, required = false, step, min }: any) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-black text-slate-700">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -2167,7 +2198,7 @@ function InputField({ label, value, onChange, type = "text", placeholder, requir
 function TextAreaField({ label, value, onChange, placeholder, required = false }: any) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-black text-slate-700">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span>
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -2183,7 +2214,7 @@ function TextAreaField({ label, value, onChange, placeholder, required = false }
 function SelectField({ label, value, onChange, options }: any) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-black text-slate-700">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -2214,14 +2245,14 @@ function CheckboxField({ checked, onChange, label }: any) {
 function MultiFileField({ label, accept, files, onChange, required = false }: any) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-black text-slate-700">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span>
       <input
         type="file"
         accept={accept}
         multiple
         required={required}
         onChange={(event) => onChange(Array.from(event.target.files ?? []))}
-        className="block w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-black file:text-white"
+        className="block w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-bold file:text-white"
       />
       <p className="mt-2 text-xs text-slate-400">Do 10 zdjęć jednocześnie, maksymalnie 5 MB każde.</p>
       {files.length > 0 && (
@@ -2240,13 +2271,13 @@ function MultiFileField({ label, accept, files, onChange, required = false }: an
 function FileField({ label, accept, onChange, required = false }: any) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-black text-slate-700">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span>
       <input
         type="file"
         accept={accept}
         required={required}
         onChange={(event) => onChange(event.target.files?.[0] ?? null)}
-        className="block w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-black file:text-white"
+        className="block w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm file:mr-4 file:rounded-xl file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:font-bold file:text-white"
       />
       <p className="mt-2 text-xs text-slate-400">Maksymalnie 5 MB.</p>
     </label>
@@ -2258,7 +2289,7 @@ function SubmitButton({ loading, label }: { loading: boolean; label: string }) {
     <button
       type="submit"
       disabled={loading}
-      className="w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white hover:bg-blue-700 disabled:opacity-50"
+      className="w-full rounded-2xl bg-blue-600 px-5 py-3 text-sm font-extrabold text-white hover:bg-blue-700 disabled:opacity-50"
     >
       {loading ? "Zapisywanie..." : label}
     </button>

@@ -1008,7 +1008,7 @@ export function TripsPage({
     <div className="w-full max-w-full overflow-x-hidden pb-28 md:pb-0">
       <header className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <p className="text-xs font-medium uppercase tracking-[0.18em] text-blue-600">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
             Planowanie i przygotowanie
           </p>
 
@@ -1032,7 +1032,7 @@ export function TripsPage({
 
             handleOpenCreateForm();
           }}
-          className="rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white shadow-sm transition hover:bg-blue-700"
+          className="rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
         >
           {isFormOpen ? "Zamknij formularz" : "+ Zaplanuj wyprawę"}
         </button>
@@ -1095,7 +1095,7 @@ export function TripsPage({
           >
             <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
               <div>
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-blue-600">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
                   Centrum wypraw
                 </p>
 
@@ -1112,7 +1112,7 @@ export function TripsPage({
                 type="button"
                 onClick={handleCancelForm}
                 disabled={isLoading}
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-black text-slate-600 transition hover:bg-slate-200 disabled:opacity-60"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-600 transition hover:bg-slate-200 disabled:opacity-60"
                 aria-label="Zamknij formularz"
               >
                 ×
@@ -1158,7 +1158,7 @@ export function TripsPage({
                 key={tab.value}
                 type="button"
                 onClick={() => setActiveTab(tab.value)}
-                className={`shrink-0 rounded-2xl px-4 py-2.5 text-sm font-extrabold transition ${
+                className={`shrink-0 rounded-2xl px-4 py-2.5 text-sm font-bold transition ${
                   activeTab === tab.value
                     ? "bg-blue-600 text-white"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -1194,7 +1194,7 @@ export function TripsPage({
             <button
               type="button"
               onClick={() => setAreMobileFiltersOpen((current) => !current)}
-              className="flex h-12 flex-1 items-center justify-center rounded-2xl bg-slate-100 px-4 text-sm font-black text-slate-700"
+              className="flex h-12 flex-1 items-center justify-center rounded-2xl bg-slate-100 px-4 text-sm font-bold text-slate-700"
             >
               Filtry
               {activeFiltersCount > 0 && (
@@ -1256,7 +1256,7 @@ export function TripsPage({
             type="button"
             onClick={clearFilters}
             disabled={activeFiltersCount === 0}
-            className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-blue-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 lg:ml-auto"
+            className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-blue-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 lg:ml-auto"
           >
             Wyczyść filtry
           </button>
@@ -1264,7 +1264,7 @@ export function TripsPage({
 
         {activeFiltersCount > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4">
-            <span className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+            <span className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
               Aktywne:
             </span>
 
@@ -1376,7 +1376,7 @@ function NearestTripCard({
   if (!trip) {
     return (
       <section className="rounded-3xl border border-dashed border-blue-200 bg-gradient-to-br from-emerald-50 via-blue-50 to-sky-100 p-6 shadow-sm">
-        <p className="text-xs font-mediuem uppercase tracking-[0.16em] text-blue-600">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
           Najbliższa wyprawa
         </p>
 
@@ -1418,7 +1418,7 @@ function NearestTripCard({
         <div className="flex flex-col p-5 sm:p-6">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="min-w-0">
-              <p className="text-xs font-medium uppercase tracking-[0.16em] text-blue-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
                 Najbliższa wyprawa
               </p>
 
@@ -1468,7 +1468,7 @@ function NearestTripCard({
 
           {trip.preparationWarnings.length > 0 && (
             <div className="mt-4 rounded-2xl bg-white/70 p-4">
-              <p className="text-xs font-extrabold uppercase tracking-[0.12em] text-slate-600">Do zrobienia przed wyjazdem</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-600">Do zrobienia przed wyjazdem</p>
               <div className="mt-2 space-y-1">
                 {trip.preparationWarnings.slice(0, 3).map((warning) => (
                   <p key={warning} className="text-xs font-bold text-amber-700 flex gap-2 items-center"> <AlertIcon className="h-4 w-4 text-amber-700"/> {warning}</p>
@@ -1480,7 +1480,7 @@ function NearestTripCard({
           <div className="mt-auto flex flex-col gap-3 pt-5 sm:flex-row sm:flex-wrap">
             <Link
               href={`/wyprawy/${trip.id}`}
-              className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
+              className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-blue-700"
             >
               Otwórz wyprawę
             </Link>
@@ -1489,7 +1489,7 @@ function NearestTripCard({
               <button
                 type="button"
                 onClick={() => void onChecklist(trip)}
-                className="flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-center text-sm font-black text-blue-700 transition hover:bg-blue-100"
+                className="flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-center text-sm font-bold text-blue-700 transition hover:bg-blue-100"
               >
                 <CheckListIcon className="h-4 w-4 transition-colors"/>
                 Checklista
@@ -1500,7 +1500,7 @@ function NearestTripCard({
               <button
                 type="button"
                 onClick={() => onEdit(trip)}
-                className="flex items-center gap-2 rounded-2xl border border-blue-100 bg-white/70 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-white"
+                className="flex items-center gap-2 rounded-2xl border border-blue-100 bg-white/70 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-white"
               >
                 <PencilIcon className="h-4 w-4 transition-colors"/>
                 Edytuj
@@ -1539,11 +1539,11 @@ function TripCalendar({
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
             Kalendarz wypraw
           </p>
 
-          <h2 className="mt-1 capitalize text-xl font-black text-slate-950">
+          <h2 className="mt-1 capitalize text-xl font-extrabold text-slate-950">
             {monthLabel}
           </h2>
         </div>
@@ -1556,7 +1556,7 @@ function TripCalendar({
                 new Date(month.getFullYear(), month.getMonth() - 1, 1)
               )
             }
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-600 transition hover:bg-slate-200"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 font-bold text-slate-600 transition hover:bg-slate-200"
             aria-label="Poprzedni miesiąc"
           >
             ‹
@@ -1569,7 +1569,7 @@ function TripCalendar({
                 new Date(month.getFullYear(), month.getMonth() + 1, 1)
               )
             }
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 font-black text-slate-600 transition hover:bg-slate-200"
+            className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 font-bold text-slate-600 transition hover:bg-slate-200"
             aria-label="Następny miesiąc"
           >
             ›
@@ -1581,7 +1581,7 @@ function TripCalendar({
         {["Pn", "Wt", "Śr", "Cz", "Pt", "So", "Nd"].map((day) => (
           <span
             key={day}
-            className="py-2 text-[11px] font-black uppercase text-slate-400"
+            className="py-2 text-[11px] font-semibold uppercase text-slate-400"
           >
             {day}
           </span>
@@ -1624,7 +1624,7 @@ function TripCalendar({
       </div>
 
       <div className="mt-4 border-t border-slate-100 pt-4">
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
           Wybrany dzień
         </p>
 
@@ -1637,7 +1637,7 @@ function TripCalendar({
                 className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-2.5 transition hover:bg-slate-100"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-black text-slate-800">
+                  <p className="truncate text-sm font-bold text-slate-800">
                     {trip.title}
                   </p>
 
@@ -1646,7 +1646,7 @@ function TripCalendar({
                   </p>
                 </div>
 
-                <span className="shrink-0 text-xs font-black text-blue-600">
+                <span className="shrink-0 text-xs font-semibold text-blue-600">
                   Otwórz
                 </span>
               </Link>
@@ -1689,7 +1689,7 @@ function QuickActions({
         </div>
 
         <div className="min-w-0">
-          <p className="font-black text-slate-950">Checklista wyprawy</p>
+          <p className="font-bold text-slate-950">Checklista wyprawy</p>
           <p className="mt-1 text-xs leading-5 text-slate-500">
             {nearestTrip?.checklistId
               ? "Otwórz checklistę bez zmiany strony"
@@ -1738,7 +1738,7 @@ function QuickAction({
       </div>
 
       <div className="min-w-0">
-        <p className="font-black text-slate-950">{title}</p>
+        <p className="font-bold text-slate-950">{title}</p>
         <p className="mt-1 text-xs leading-5 text-slate-500">{description}</p>
       </div>
     </Link>
@@ -1781,11 +1781,11 @@ function TripCard({
         </div>
 
         <div className="absolute bottom-4 left-4 right-4">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-white/75">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white/75">
             {getTripTypeLabel(trip.tripType)}
           </p>
 
-          <h2 className="mt-1 line-clamp-2 text-xl font-black text-white">
+          <h2 className="mt-1 line-clamp-2 text-xl font-bold text-white">
             {trip.title}
           </h2>
         </div>
@@ -1823,7 +1823,7 @@ function TripCard({
         </div>
 
         {trip.pendingMembersCount > 0 && trip.isOwner && (
-          <p className="mt-4 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-black text-amber-700">
+          <p className="mt-4 rounded-2xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">
             {trip.pendingMembersCount} zaproszeń oczekuje na odpowiedź
           </p>
         )}
@@ -1831,7 +1831,7 @@ function TripCard({
        <div className="mt-auto pt-5">
           <Link
             href={`/wyprawy/${trip.id}`}
-            className="block w-full rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
+            className="block w-full rounded-xl bg-blue-600 px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-blue-700"
           >
             Otwórz centrum wyprawy
           </Link>
@@ -1841,7 +1841,7 @@ function TripCard({
     <button
       type="button"
       onClick={() => void onChecklist(trip)}
-      className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-100"
+      className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100"
     >
       <CheckListIcon className="h-4 w-4 shrink-0" />
       <span>Checklista</span>
@@ -1852,7 +1852,7 @@ function TripCard({
     <button
       type="button"
       onClick={() => onEdit(trip)}
-      className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200"
+      className="flex min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
     >
       <PencilIcon className="h-4 w-4 shrink-0" />
       <span>Edytuj</span>
@@ -1895,7 +1895,7 @@ function TripCard({
   ) : (
     <Link
       href={`/wyprawy/${trip.id}?tab=uczestnicy`}
-      className="flex flex-1 items-center justify-center rounded-xl bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:bg-blue-100"
+      className="flex flex-1 items-center justify-center rounded-xl bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-100"
     >
       Uczestnicy
     </Link>
@@ -1942,11 +1942,11 @@ function TripListItem({
       </div>
 
       <div className="min-w-0 p-5">
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
           {getTripTypeLabel(trip.tripType)}
         </p>
 
-        <h2 className="mt-2 break-words text-2xl font-black text-slate-950">
+        <h2 className="mt-2 break-words text-2xl font-bold text-slate-950">
           {trip.title}
         </h2>
 
@@ -1985,7 +1985,7 @@ function TripListItem({
       <div className="flex min-w-48 flex-col gap-3 border-t border-slate-100 p-5 lg:border-l lg:border-t-0">
         <Link
           href={`/wyprawy/${trip.id}`}
-          className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
+          className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-blue-700"
         >
           Otwórz
         </Link>
@@ -1994,7 +1994,7 @@ function TripListItem({
           <button
             type="button"
             onClick={() => void onChecklist(trip)}
-            className="rounded-2xl bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-700 transition hover:bg-emerald-100"
+            className="rounded-2xl bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100"
           >
             Checklista
           </button>
@@ -2004,7 +2004,7 @@ function TripListItem({
           <button
             type="button"
             onClick={() => onEdit(trip)}
-            className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200"
+            className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200"
           >
             Edytuj
           </button>
@@ -2014,7 +2014,7 @@ function TripListItem({
           <button
             type="button"
             onClick={() => onDelete(trip)}
-            className="rounded-2xl bg-red-50 px-5 py-3 text-sm font-black text-red-600 transition hover:bg-red-100"
+            className="rounded-2xl bg-red-50 px-5 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100"
           >
             Usuń
           </button>
@@ -2022,7 +2022,7 @@ function TripListItem({
 
         <Link
           href={`/wyprawy/${trip.id}?tab=uczestnicy`}
-          className="rounded-2xl bg-blue-50 px-5 py-3 text-center text-sm font-black text-blue-700 transition hover:bg-blue-100"
+          className="rounded-2xl bg-blue-50 px-5 py-3 text-center text-sm font-bold text-blue-700 transition hover:bg-blue-100"
         >
           Uczestnicy
         </Link>
@@ -2138,11 +2138,11 @@ function ChecklistModal({
       >
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-600">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-600">
               Checklista wyprawy
             </p>
 
-            <h2 className="mt-1 break-words text-xl font-black text-slate-950 sm:text-2xl">
+            <h2 className="mt-1 break-words text-xl font-extrabold text-slate-950 sm:text-2xl">
               {trip.title}
             </h2>
 
@@ -2155,7 +2155,7 @@ function ChecklistModal({
             type="button"
             onClick={onClose}
             disabled={isSaving}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-black text-slate-600 transition hover:bg-slate-200 disabled:opacity-60"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-600 transition hover:bg-slate-200 disabled:opacity-60"
             aria-label="Zamknij checklistę"
           >
             ×
@@ -2166,7 +2166,7 @@ function ChecklistModal({
           <section className="rounded-3xl bg-gradient-to-br from-emerald-50 via-blue-50 to-sky-50 p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <p className="text-sm font-black text-slate-950">
+                <p className="text-sm font-bold text-slate-950">
                   Postęp przygotowania checklisty
                 </p>
 
@@ -2175,7 +2175,7 @@ function ChecklistModal({
                 </p>
               </div>
 
-              <span className="text-2xl font-black text-blue-700">
+              <span className="text-2xl font-extrabold text-blue-700">
                 {progress}%
               </span>
             </div>
@@ -2195,7 +2195,7 @@ function ChecklistModal({
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h3 className="font-black text-slate-950">
+                  <h3 className="font-bold text-slate-950">
                     Dodaj element
                   </h3>
                   <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -2269,7 +2269,7 @@ function ChecklistModal({
                 <button
                   type="submit"
                   disabled={isSaving || !name.trim()}
-                  className="h-11 rounded-xl bg-blue-600 px-4 text-sm font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-11 rounded-xl bg-blue-600 px-4 text-sm font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSaving ? "Zapisywanie..." : "+ Dodaj"}
                 </button>
@@ -2282,7 +2282,7 @@ function ChecklistModal({
               {Object.entries(groupedItems).map(([group, groupItems]) => (
                 <section key={group}>
                   <div className="mb-2 flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-black uppercase tracking-[0.12em] text-slate-500">
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-slate-500">
                       {group}
                     </h3>
                     <span className="text-xs font-bold text-slate-400">
@@ -2310,7 +2310,7 @@ function ChecklistModal({
                             onToggle(trip, item.id, !item.isPacked)
                           }
                           disabled={!trip.canEdit || isSaving}
-                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base font-black transition ${
+                          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-base font-semibold transition ${
                             item.isPacked
                               ? "bg-emerald-600 text-white"
                               : "bg-slate-100 text-slate-400 hover:bg-slate-200"
@@ -2327,7 +2327,7 @@ function ChecklistModal({
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
                             <p
-                              className={`break-words font-black ${
+                              className={`break-words font-bold ${
                                 item.isPacked
                                   ? "text-emerald-700 line-through"
                                   : "text-slate-900"
@@ -2337,7 +2337,7 @@ function ChecklistModal({
                             </p>
 
                             {item.isImportant && (
-                              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-700">
+                              <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
                                 Ważne
                               </span>
                             )}
@@ -2367,7 +2367,7 @@ function ChecklistModal({
                               }
                             }}
                             disabled={isSaving}
-                            className="rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                            className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
                           >
                             Usuń
                           </button>
@@ -2380,7 +2380,7 @@ function ChecklistModal({
             </div>
           ) : (
             <div className="mt-5 rounded-3xl bg-slate-50 p-8 text-center">
-              <p className="font-black text-slate-950">Checklista jest pusta</p>
+              <p className="font-bold text-slate-950">Checklista jest pusta</p>
               <p className="mt-2 text-sm text-slate-500">
                 Dodaj pierwszą rzecz do przygotowania przed wyprawą.
               </p>
@@ -2426,7 +2426,7 @@ function TripForm({
     <div>
       {!isMobile && (
         <div className="mb-6">
-          <h2 className="text-2xl font-black text-slate-950">
+          <h2 className="text-2xl font-extrabold text-slate-950">
             {editingTripId ? "Edytuj wyprawę" : "Zaplanuj wyprawę"}
           </h2>
 
@@ -2533,7 +2533,7 @@ function TripForm({
               />
 
               <div>
-                <span className="text-sm font-black text-blue-950">
+                <span className="text-sm font-bold text-blue-950">
                   Utwórz checklistę wyprawy
                 </span>
 
@@ -2545,7 +2545,7 @@ function TripForm({
             </label>
 
             <label className="mt-5 block">
-              <span className="mb-2 block text-sm font-black text-slate-700">
+              <span className="mb-2 block text-sm font-bold text-slate-700">
                 Notatka organizacyjna
               </span>
 
@@ -2580,7 +2580,7 @@ function TripForm({
             type="button"
             onClick={onCancel}
             disabled={isLoading}
-            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
           >
             Anuluj
           </button>
@@ -2590,7 +2590,7 @@ function TripForm({
               type="button"
               onClick={onBack}
               disabled={isLoading}
-              className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-200 disabled:opacity-60"
+              className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200 disabled:opacity-60"
             >
               Wstecz
             </button>
@@ -2602,7 +2602,7 @@ function TripForm({
             type="button"
             onClick={onNext}
             disabled={isLoading}
-            className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:opacity-60"
+            className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:opacity-60"
           >
             Dalej
           </button>
@@ -2611,7 +2611,7 @@ function TripForm({
             type="button"
             onClick={onSubmit}
             disabled={isLoading}
-            className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700 disabled:opacity-60"
+            className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:opacity-60"
           >
             {isLoading
               ? "Zapisywanie..."
@@ -2645,7 +2645,7 @@ function FormSteps({ activeStep }: { activeStep: number }) {
                 : "bg-slate-100 text-slate-400"
           }`}
         >
-          <p className="text-xs font-black">Krok {step.number}</p>
+          <p className="text-xs font-bold">Krok {step.number}</p>
           <p className="mt-1 hidden text-xs font-bold sm:block">{step.label}</p>
         </div>
       ))}
@@ -2664,7 +2664,7 @@ function FormSummary({
 
   return (
     <div className="rounded-3xl bg-slate-50 p-5">
-      <h3 className="font-black text-slate-950">Podsumowanie</h3>
+      <h3 className="font-bold text-slate-950">Podsumowanie</h3>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <SummaryRow label="Nazwa" value={form.title || "Nie podano"} />
@@ -2696,7 +2696,7 @@ function FormSummary({
 function SummaryRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
         {label}
       </p>
       <p className="mt-1 break-words text-sm font-bold text-slate-700">
@@ -2718,7 +2718,7 @@ function FormGroup({
   return (
     <section>
       <div className="mb-4">
-        <h3 className="text-lg font-black text-slate-950">{title}</h3>
+        <h3 className="text-lg font-bold text-slate-950">{title}</h3>
         <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
       </div>
       {children}
@@ -2753,7 +2753,7 @@ function StatCard({
         {label}
       </p>
 
-      <p className="mt-3 text-3xl font-black tracking-tight text-slate-950">
+      <p className="mt-3 text-3xl font-extrabold tracking-tight text-slate-950">
         {value}
       </p>
 
@@ -2771,11 +2771,11 @@ function StatCard({
 function ProgressHeader({ label, value }: { label: string; value: number }) {
   return (
     <div className="mb-2 flex items-center justify-between gap-3">
-      <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-500">
+      <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
         {label}
       </p>
 
-      <span className="text-sm font-black text-blue-700">{value}%</span>
+      <span className="text-sm font-bold text-blue-700">{value}%</span>
     </div>
   );
 }
@@ -2798,10 +2798,10 @@ function ProgressBar({ value }: { value: number }) {
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-white/80 p-3">
-      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
         {label}
       </p>
-      <p className="mt-1 break-words text-sm font-black text-slate-800">
+      <p className="mt-1 break-words text-sm font-bold text-slate-800">
         {value}
       </p>
     </div>
@@ -2819,7 +2819,7 @@ function SmallInfo({ label }: { label: string }) {
 function OwnershipBadge({ trip }: { trip: FishingTrip }) {
   return (
     <span
-      className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs font-black ${
+      className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
         trip.isOwner
           ? "bg-white text-slate-700 shadow-sm"
           : "bg-violet-50 text-violet-700"
@@ -2850,7 +2850,7 @@ function PhaseBadge({
   };
 
   return (
-    <span className={`rounded-full px-3 py-1 text-xs font-black ${styles[phase]}`}>
+    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${styles[phase]}`}>
       {labels[phase]}
     </span>
   );
@@ -2864,7 +2864,7 @@ function FilterChip({
   onRemove: () => void;
 }) {
   return (
-    <span className="inline-flex max-w-full items-center gap-2 rounded-full bg-blue-50 py-1 pl-3 pr-1 text-xs font-black text-blue-700">
+    <span className="inline-flex max-w-full items-center gap-2 rounded-full bg-blue-50 py-1 pl-3 pr-1 text-xs font-semibold text-blue-700">
       <span className="truncate">{label}</span>
 
       <button
@@ -2894,7 +2894,7 @@ function EmptyTripsState({
         🗓️
       </div>
 
-      <p className="mt-5 text-xl font-black text-slate-950">
+      <p className="mt-5 text-xl font-bold text-slate-950">
         {hasFilters
           ? "Brak wypraw spełniających kryteria"
           : "Nie masz jeszcze żadnej wyprawy"}
@@ -2910,7 +2910,7 @@ function EmptyTripsState({
         <button
           type="button"
           onClick={onCreate}
-          className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white transition hover:bg-blue-700"
+          className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
         >
           + Zaplanuj wyprawę
         </button>
@@ -2919,7 +2919,7 @@ function EmptyTripsState({
           <button
             type="button"
             onClick={onClear}
-            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
           >
             Pokaż wszystkie
           </button>
@@ -2950,7 +2950,7 @@ function Input({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-black text-slate-700">
+      <span className="mb-2 block text-sm font-bold text-slate-700">
         {label}
         {required && <span className="ml-1 text-red-500">*</span>}
       </span>
@@ -3032,7 +3032,7 @@ function LakeSearchSelect({
 
   return (
     <div className="relative">
-      <label className="mb-2 block text-sm font-black text-slate-700">
+      <label className="mb-2 block text-sm font-bold text-slate-700">
         Łowisko
       </label>
 
@@ -3090,7 +3090,7 @@ function LakeSearchSelect({
             }`}
           >
             <div>
-              <p className="text-sm font-black">Bez przypisanego łowiska</p>
+              <p className="text-sm font-bold">Bez przypisanego łowiska</p>
               <p className="mt-0.5 text-xs text-slate-400">
                 Wyprawę możesz zaplanować bez wyboru konkretnego miejsca.
               </p>
@@ -3118,7 +3118,7 @@ function LakeSearchSelect({
                   >
                     <div className="min-w-0">
                       <p
-                        className={`truncate text-sm font-black ${
+                        className={`truncate text-sm font-bold ${
                           isSelected ? "text-blue-700" : "text-slate-900"
                         }`}
                       >
@@ -3131,7 +3131,7 @@ function LakeSearchSelect({
                     </div>
 
                     {isSelected && (
-                      <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-black text-blue-700">
+                      <span className="shrink-0 rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-semibold text-blue-700">
                         Wybrane
                       </span>
                     )}
@@ -3141,7 +3141,7 @@ function LakeSearchSelect({
             </div>
           ) : (
             <div className="px-4 py-6 text-center">
-              <p className="text-sm font-black text-slate-700">
+              <p className="text-sm font-bold text-slate-700">
                 Nie znaleziono łowiska
               </p>
 
@@ -3156,7 +3156,7 @@ function LakeSearchSelect({
       {selectedLake && (
         <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
           <div className="min-w-0">
-            <p className="truncate text-sm font-black text-blue-950">
+            <p className="truncate text-sm font-bold text-blue-950">
               {selectedLake.name}
             </p>
 
@@ -3165,7 +3165,7 @@ function LakeSearchSelect({
             </p>
           </div>
 
-          <span className="shrink-0 text-xs font-black text-blue-600">
+          <span className="shrink-0 text-xs font-semibold text-blue-600">
             Wybrane
           </span>
         </div>
@@ -3199,7 +3199,7 @@ function Select({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-sm font-black text-slate-700">
+      <span className="mb-2 block text-sm font-bold text-slate-700">
         {label}
       </span>
 
@@ -3260,7 +3260,7 @@ function ViewModeSwitcher({
       <button
         type="button"
         onClick={() => onChange("grid")}
-        className={`rounded-xl font-black transition ${
+        className={`rounded-xl font-bold transition ${
           compact ? "px-3 py-2.5 text-xs" : "px-3 py-2 text-sm"
         } ${
           viewMode === "grid"
@@ -3274,7 +3274,7 @@ function ViewModeSwitcher({
       <button
         type="button"
         onClick={() => onChange("list")}
-        className={`rounded-xl font-black transition ${
+        className={`rounded-xl font-bold transition ${
           compact ? "px-3 py-2.5 text-xs" : "px-3 py-2 text-sm"
         } ${
           viewMode === "list"

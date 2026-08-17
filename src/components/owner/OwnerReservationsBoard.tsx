@@ -2,6 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { PlusIcon } from "@/components/icons/PlusIcon";
+import { ArrowSmallRightIcon } from "@/components/icons/ArrowSmallRightIcon";
+import { AlertIcon } from "@/components/icons/AlertIcon";
 
 export type OwnerSpotOption = {
   id: string;
@@ -265,9 +268,10 @@ export function OwnerReservationsBoard({
         <button
           type="button"
           onClick={() => openNew()}
-          className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm transition-colors hover:bg-blue-700"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black text-white shadow-sm transition-colors hover:bg-blue-700"
         >
-          + Nowa rezerwacja
+          <PlusIcon className="h-4 w-4" />
+          Nowa rezerwacja
         </button>
       </section>
 
@@ -303,9 +307,10 @@ export function OwnerReservationsBoard({
             <button
               type="button"
               onClick={() => navigate(addDays(from, -days))}
-              className="h-10 rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-700 transition-colors hover:bg-slate-200"
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-700 transition-colors hover:bg-slate-200"
             >
-              ← Poprzednie
+              <ArrowSmallRightIcon className="h-4 w-4 rotate-180" />
+              Poprzednie
             </button>
             <button
               type="button"
@@ -317,9 +322,10 @@ export function OwnerReservationsBoard({
             <button
               type="button"
               onClick={() => navigate(addDays(from, days))}
-              className="h-10 rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-700 transition-colors hover:bg-slate-200"
+              className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-slate-100 px-4 text-sm font-black text-slate-700 transition-colors hover:bg-slate-200"
             >
-              Następne →
+              Następne
+              <ArrowSmallRightIcon className="h-4 w-4" />
             </button>
           </div>
 
@@ -589,8 +595,9 @@ function MobileReservations({
           <p className="font-black text-slate-950">Rezerwacje w okresie</p>
           <p className="mt-1 text-xs font-semibold text-slate-400">Widok zoptymalizowany pod telefon.</p>
         </div>
-        <button type="button" onClick={onOpenNew} className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white">
-          + Dodaj
+        <button type="button" onClick={onOpenNew} className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-3 py-2 text-xs font-black text-white">
+          <PlusIcon className="h-3.5 w-3.5" />
+          Dodaj
         </button>
       </div>
 
@@ -759,7 +766,12 @@ function ReservationDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-          {error && <div className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</div>}
+          {error && (
+            <div className="mb-4 flex items-start gap-2 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+              <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
           <FieldGroup title="Zakres">
             <div className="grid grid-cols-2 gap-2">

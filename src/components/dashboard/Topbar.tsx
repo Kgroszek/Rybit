@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import Link from "next/link";
+import { BellIcon } from "@/components/icons/BellIcon";
+import { BellRingIcon } from "@/components/icons/BellRingIcon";
 
 type TopbarProps = {
   userName?: string | null;
@@ -41,25 +43,74 @@ export function Topbar({
   const initials = getInitials(displayName);
 
   useEffect(() => {
+    let isMounted = true;
+
     async function loadUnreadNotificationsCount() {
-      const response = await fetch("/api/notifications/unread-count");
+      try {
+        const response = await fetch("/api/notifications/unread-count", {
+          cache: "no-store",
+        });
 
-      if (!response.ok) {
-        return;
+        if (!response.ok) {
+          if (isMounted) {
+            setUnreadNotificationsCount(0);
+          }
+          return;
+        }
+
+        const data = (await response.json()) as {
+          count?: number;
+          unreadCount?: number;
+        };
+
+        const nextCount = Number(data.count ?? data.unreadCount ?? 0);
+
+        if (isMounted) {
+          setUnreadNotificationsCount(
+            Number.isFinite(nextCount) ? Math.max(0, nextCount) : 0
+          );
+        }
+      } catch {
+        if (isMounted) {
+          setUnreadNotificationsCount(0);
+        }
       }
-
-      const data = await response.json();
-
-      setUnreadNotificationsCount(Number(data.count || 0));
     }
 
-    loadUnreadNotificationsCount();
+    function handleNotificationsUpdated() {
+      void loadUnreadNotificationsCount();
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        void loadUnreadNotificationsCount();
+      }
+    }
+
+    void loadUnreadNotificationsCount();
+
+    window.addEventListener("focus", handleNotificationsUpdated);
+    window.addEventListener(
+      "notifications:updated",
+      handleNotificationsUpdated
+    );
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener("focus", handleNotificationsUpdated);
+      window.removeEventListener(
+        "notifications:updated",
+        handleNotificationsUpdated
+      );
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   return (
     <header className="mb-6 grid gap-4 lg:mb-8 xl:grid-cols-[1fr_minmax(320px,520px)_auto] xl:items-center">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
           Cześć, {displayName}!
         </h1>
 
@@ -78,21 +129,43 @@ export function Topbar({
       <div className="flex flex-wrap items-center gap-3">
         <Link
           href="/lowiska/zglos"
-          className="order-3 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:order-none sm:w-auto"
+          className="order-3 flex w-full items-center justify-center rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 sm:order-none sm:w-auto"
         >
           + Zgłoś łowisko
         </Link>
 
         <Link
           href="/powiadomienia"
-          className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-950"
-          aria-label="Powiadomienia"
+          className={`relative flex h-12 w-12 items-center justify-center rounded-2xl border shadow-sm transition ${
+            unreadNotificationsCount > 0
+              ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+          }`}
+          aria-label={
+            unreadNotificationsCount > 0
+              ? `Powiadomienia: ${unreadNotificationsCount} nowych`
+              : "Powiadomienia"
+          }
         >
-          <BellIcon />
+          {unreadNotificationsCount > 0 ? (
+            <BellRingIcon className="h-5 w-5" />
+          ) : (
+            <BellIcon className="h-5 w-5" />
+          )}
 
           {unreadNotificationsCount > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-bold text-white ring-2 ring-white">
-              {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
+            <span
+              className="
+                absolute -right-1.5 -top-1.5
+                flex min-h-5 min-w-5 items-center justify-center
+                rounded-full bg-red-500 px-1.5
+                text-[10px] font-bold leading-none text-white
+                shadow-sm ring-2 ring-white
+              "
+            >
+              {unreadNotificationsCount > 99
+                ? "99+"
+                : unreadNotificationsCount}
             </span>
           )}
         </Link>
@@ -200,15 +273,6 @@ function IconBase({ children }: { children: React.ReactNode }) {
     >
       {children}
     </svg>
-  );
-}
-
-function BellIcon() {
-  return (
-    <IconBase>
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
-      <path d="M10 21h4" />
-    </IconBase>
   );
 }
 

@@ -5,6 +5,10 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { OwnerLakeNav } from "@/components/owner/OwnerLakeNav";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { CalendarIcon } from "@/components/icons/CalendarIcon";
+import { CardsIcon } from "@/components/icons/CardsIcon";
+import { SettingsIcon } from "@/components/icons/SettingsIcon";
+import { UserIcon } from "@/components/icons/UserIcon";
 
 export const dynamic = "force-dynamic";
 
@@ -120,10 +124,10 @@ export default async function BookingSettingsPage({ params }: BookingSettingsPag
         />
 
         <div className="mb-6">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-blue-600">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-600">
             Ustawienia rezerwacji
           </p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
             Godziny i zasady
           </h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500 sm:text-base">
@@ -133,14 +137,14 @@ export default async function BookingSettingsPage({ params }: BookingSettingsPag
 
         <form action={saveSettings} className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
           <div className="space-y-5">
-            <SettingsSection title="Domyślna rezerwacja" description="Te godziny zostaną automatycznie ustawione przy dodawaniu nowej rezerwacji z kalendarza.">
+            <SettingsSection icon={<CalendarIcon className="h-5 w-5" />} title="Domyślna rezerwacja" description="Te godziny zostaną automatycznie ustawione przy dodawaniu nowej rezerwacji z kalendarza.">
               <div className="grid gap-4 sm:grid-cols-2">
                 <TimeField name="defaultStartTime" label="Przyjazd" defaultValue={settings?.defaultStartTime ?? "12:00"} />
                 <TimeField name="defaultEndTime" label="Wyjazd" defaultValue={settings?.defaultEndTime ?? "10:00"} />
               </div>
             </SettingsSection>
 
-            <SettingsSection title="Gotowe przedziały" description="Godziny do wykorzystania przy późniejszym szybkim wyborze: doba, dzień lub noc.">
+            <SettingsSection icon={<CardsIcon className="h-5 w-5" />} title="Gotowe przedziały" description="Godziny do wykorzystania przy późniejszym szybkim wyborze: doba, dzień lub noc.">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <TimePair label="Doba" startName="fullDayStartTime" endName="fullDayEndTime" start={settings?.fullDayStartTime ?? "06:00"} end={settings?.fullDayEndTime ?? "07:00"} />
                 <TimePair label="Dzień" startName="dayStartTime" endName="dayEndTime" start={settings?.dayStartTime ?? "08:00"} end={settings?.dayEndTime ?? "16:00"} />
@@ -148,14 +152,14 @@ export default async function BookingSettingsPage({ params }: BookingSettingsPag
               </div>
             </SettingsSection>
 
-            <SettingsSection title="Ograniczenia" description="Opcjonalne zasady pomagające utrzymać porządek przy tworzeniu rezerwacji.">
+            <SettingsSection icon={<SettingsIcon className="h-5 w-5" />} title="Ograniczenia" description="Opcjonalne zasady pomagające utrzymać porządek przy tworzeniu rezerwacji.">
               <div className="grid gap-4 sm:grid-cols-2">
                 <NumberField name="minReservationHours" label="Minimalna liczba godzin" defaultValue={settings?.minReservationHours ?? ""} placeholder="np. 6" />
                 <NumberField name="maxReservationDays" label="Maksymalna liczba dni" defaultValue={settings?.maxReservationDays ?? ""} placeholder="np. 14" />
               </div>
             </SettingsSection>
 
-            <SettingsSection title="Kontakt i informacje" description="Dane pomocnicze dla osób obsługujących rezerwacje.">
+            <SettingsSection icon={<UserIcon className="h-5 w-5" />} title="Kontakt i informacje" description="Dane pomocnicze dla osób obsługujących rezerwacje.">
               <div className="grid gap-4 sm:grid-cols-2">
                 <TextField name="bookingPhone" label="Telefon rezerwacyjny" defaultValue={settings?.bookingPhone ?? ""} />
                 <TextField name="bookingEmail" label="E-mail rezerwacyjny" defaultValue={settings?.bookingEmail ?? ""} type="email" />
@@ -173,21 +177,25 @@ export default async function BookingSettingsPage({ params }: BookingSettingsPag
 
           <aside className="xl:sticky xl:top-6 xl:self-start">
             <div className="rounded-[26px] bg-slate-950 p-5 text-white shadow-xl">
-              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-300">Prosty system</p>
-              <h2 className="mt-2 text-xl font-black">Jak działa ten moduł</h2>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-blue-300">Prosty system</p>
+              <div className="mt-2 flex items-center gap-2">
+                <SettingsIcon className="h-5 w-5 text-blue-300" />
+                <h2 className="text-xl font-bold tracking-tight">Jak działa ten moduł</h2>
+              </div>
               <p className="mt-2 text-sm leading-6 text-slate-300">
                 W panelu zapisujesz termin, klienta, stanowisko i status pobytu. Najważniejsze działania są dostępne bez przechodzenia przez wiele ekranów.
               </p>
 
-              <div className="mt-5 space-y-2 text-xs font-bold text-slate-300">
-                <p>✓ Rezerwacje telefoniczne i ręczne</p>
-                <p>✓ Blokady całego łowiska</p>
-                <p>✓ Zawody i wydarzenia</p>
-                <p>✓ Wykrywanie konfliktów terminów</p>
-                <p>✓ Historia anulowanych rezerwacji</p>
+              <div className="mt-5 space-y-2.5 text-xs font-medium text-slate-300">
+                <p className="flex items-center gap-2"><span className="shrink-0 text-sm font-bold text-emerald-300">✓</span>Rezerwacje telefoniczne i ręczne</p>
+                <p className="flex items-center gap-2"><span className="shrink-0 text-sm font-bold text-emerald-300">✓</span>Blokady całego łowiska</p>
+                <p className="flex items-center gap-2"><span className="shrink-0 text-sm font-bold text-emerald-300">✓</span>Zawody i wydarzenia</p>
+                <p className="flex items-center gap-2"><span className="shrink-0 text-sm font-bold text-emerald-300">✓</span>Wykrywanie konfliktów terminów</p>
+                <p className="flex items-center gap-2"><span className="shrink-0 text-sm font-bold text-emerald-300">✓</span>Historia anulowanych rezerwacji</p>
               </div>
 
-              <button type="submit" className="mt-6 w-full rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-black text-white transition-colors hover:bg-blue-500">
+              <button type="submit" className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-5 py-3.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500">
+                <SettingsIcon className="h-4 w-4" />
                 Zapisz ustawienia
               </button>
             </div>
@@ -218,18 +226,37 @@ export default async function BookingSettingsPage({ params }: BookingSettingsPag
   );
 }
 
-function SettingsSection({ title, description, children }: { title: string; description: string; children: React.ReactNode }) {
+function SettingsSection({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon?: React.ReactNode;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="rounded-[26px] bg-white p-5 shadow-sm ring-1 ring-slate-200/80 sm:p-6">
-      <h2 className="text-lg font-black text-slate-950">{title}</h2>
-      <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+      <div className="flex items-start gap-3">
+        {icon && (
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+            {icon}
+          </div>
+        )}
+        <div className="min-w-0">
+          <h2 className="text-lg font-bold tracking-tight text-slate-950">{title}</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
+        </div>
+      </div>
       <div className="mt-5">{children}</div>
     </section>
   );
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <span className="text-xs font-black text-slate-600">{children}</span>;
+  return <span className="text-xs font-semibold text-slate-600">{children}</span>;
 }
 
 function TimeField({ name, label, defaultValue }: { name: string; label: string; defaultValue: string }) {
@@ -244,7 +271,7 @@ function TimeField({ name, label, defaultValue }: { name: string; label: string;
 function TimePair({ label, startName, endName, start, end }: { label: string; startName: string; endName: string; start: string; end: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="mb-3 text-sm font-black text-slate-950">{label}</p>
+      <p className="mb-3 text-sm font-semibold text-slate-900">{label}</p>
       <div className="grid grid-cols-2 gap-2">
         <TimeField name={startName} label="Od" defaultValue={start} />
         <TimeField name={endName} label="Do" defaultValue={end} />

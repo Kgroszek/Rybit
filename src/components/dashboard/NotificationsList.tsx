@@ -101,6 +101,7 @@ export function NotificationsList({
       setMessage("Zaznaczone powiadomienia zostały oznaczone jako przeczytane.");
       setIsSuccess(true);
       setSelectedIds([]);
+      window.dispatchEvent(new Event("notifications:updated"));
       router.refresh();
     } catch {
       setMessage("Wystąpił błąd połączenia. Spróbuj ponownie.");
@@ -138,6 +139,7 @@ export function NotificationsList({
       setMessage("Wszystkie powiadomienia zostały oznaczone jako przeczytane.");
       setIsSuccess(true);
       setSelectedIds([]);
+      window.dispatchEvent(new Event("notifications:updated"));
       router.refresh();
     } catch {
       setMessage("Wystąpił błąd połączenia. Spróbuj ponownie.");
@@ -151,7 +153,7 @@ export function NotificationsList({
     <div>
       <div className="mb-8 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-950">
+          <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
             Powiadomienia
           </h1>
 
@@ -162,7 +164,7 @@ export function NotificationsList({
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="rounded-2xl bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">
+          <div className="rounded-2xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
             Nieprzeczytane: {unreadCount}
           </div>
 
@@ -182,7 +184,7 @@ export function NotificationsList({
       {notifications.length > 0 && (
         <section className="mb-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <label className="flex cursor-pointer items-center gap-3 text-sm font-bold text-slate-700">
+            <label className="flex cursor-pointer items-center gap-3 text-sm font-semibold text-slate-700">
               <input
                 type="checkbox"
                 checked={areAllSelected}
@@ -202,7 +204,7 @@ export function NotificationsList({
                 type="button"
                 onClick={markSelectedAsRead}
                 disabled={isLoading || selectedUnreadIds.length === 0}
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Oznacz zaznaczone jako przeczytane
               </button>
@@ -249,7 +251,7 @@ export function NotificationsList({
                   <div className="min-w-0 flex-1">
                     <div className="mb-3 flex flex-wrap gap-2">
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-bold ${
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
                           notification.isRead
                             ? "bg-slate-100 text-slate-500"
                             : "bg-blue-600 text-white"
@@ -258,7 +260,7 @@ export function NotificationsList({
                         {notification.isRead ? "Przeczytane" : "Nowe"}
                       </span>
 
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                         {getNotificationTypeLabel(notification.type)}
                       </span>
                     </div>
@@ -281,7 +283,7 @@ export function NotificationsList({
                   {notification.href && (
                     <Link
                       href={notification.href}
-                      className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-semibold text-white transition hover:bg-blue-700"
+                      className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-blue-700"
                     >
                       Zobacz szczegóły
                     </Link>

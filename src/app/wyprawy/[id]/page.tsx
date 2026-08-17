@@ -15,6 +15,13 @@ import {
 import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { CheckListIcon } from "@/components/icons/CheckListIcon";
+import { FishIcon } from "@/components/icons/FishIcon";
+import { HookIcon } from "@/components/icons/HookIcon";
+import { PencilIcon } from "@/components/icons/PencilIcon";
+
+
+
 
 type TripDetailsPageProps = {
   params: Promise<{ id: string }>;
@@ -300,7 +307,7 @@ export default async function TripDetailsPage({
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <Link
             href="/wyprawy"
-            className="text-sm font-bold text-blue-600 transition hover:text-blue-700"
+            className="text-sm font-semibold text-blue-600 transition hover:text-blue-700"
           >
             ← Wróć do Centrum wypraw
           </Link>
@@ -337,7 +344,7 @@ export default async function TripDetailsPage({
 
               <div className="absolute left-5 top-5 flex flex-wrap gap-2">
                 <PhaseBadge phase={phase} />
-                <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-black text-slate-700 shadow-sm">
+                <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
                   {getTripTypeLabel(trip.tripType)}
                 </span>
               </div>
@@ -352,11 +359,11 @@ export default async function TripDetailsPage({
             <div className="flex min-w-0 flex-col p-5 sm:p-6 lg:p-8">
               <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
                 <div className="min-w-0">
-                  <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
                     Centrum wyprawy
                   </p>
 
-                  <h1 className="mt-2 break-words text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">
+                  <h1 className="mt-2 break-words text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
                     {trip.title}
                   </h1>
 
@@ -395,6 +402,7 @@ export default async function TripDetailsPage({
                   tripId={trip.id}
                   action="checklist"
                   canEdit={canEdit}
+                  icon={<CheckListIcon className="h-4 w-4 shrink-0" />}
                   label={trip.checklistId ? "Otwórz checklistę" : "Utwórz checklistę"}
                   tripStartsAt={trip.startsAt}
                   tripEndsAt={trip.endsAt}
@@ -406,8 +414,9 @@ export default async function TripDetailsPage({
                   tripId={trip.id}
                   action="catch"
                   canEdit={canEdit}
+                  icon={<FishIcon className="h-4 w-4 shrink-0" />}
                   label="Dodaj połów"
-                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                  className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
                 />
 
                 {trip.lake && (
@@ -415,7 +424,7 @@ export default async function TripDetailsPage({
                     href={getNavigationUrl(trip.lake.lat, trip.lake.lng)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                   >
                     Nawigacja
                   </a>
@@ -454,7 +463,7 @@ export default async function TripDetailsPage({
                 <Link
                   key={tab.value}
                   href={`/wyprawy/${trip.id}?tab=${tab.value}`}
-                  className={`rounded-2xl px-4 py-3 text-sm font-black transition ${
+                  className={`rounded-2xl px-4 py-3 text-sm font-bold transition ${
                     isActive
                       ? "bg-blue-600 text-white"
                       : "text-slate-600 hover:bg-slate-100"
@@ -501,7 +510,7 @@ export default async function TripDetailsPage({
 
                   {preparationWarnings.length > 0 && (
                     <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-700">Wymaga uwagi</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700">Wymaga uwagi</p>
                       <div className="mt-2 space-y-1.5">
                         {preparationWarnings.map((warning) => (
                           <p key={warning} className="text-sm font-bold text-amber-900">⚠ {warning}</p>
@@ -516,7 +525,7 @@ export default async function TripDetailsPage({
                 title="Ostatnia aktywność"
                 action={
                   activityCount > 0 ? (
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
                       {activityCount} wpisów
                     </span>
                   ) : undefined
@@ -593,7 +602,7 @@ export default async function TripDetailsPage({
                 {trip.lake ? (
                   <div>
                     <div className="rounded-2xl bg-slate-50 p-4">
-                      <p className="font-black text-slate-950">
+                      <p className="font-bold text-slate-950">
                         {trip.lake.name}
                       </p>
                       <p className="mt-1 text-sm text-slate-500">
@@ -604,17 +613,17 @@ export default async function TripDetailsPage({
                         woj. {trip.lake.voivodeship}
                       </p>
                       <div className="mt-4 flex flex-wrap gap-2">
-                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">
+                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
                           ★ {Number(trip.lake.rating).toFixed(1)}
                         </span>
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600">
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600">
                           {trip.lake.fish}
                         </span>
                       </div>
 
                       {trip.lake.gearRequirements.length > 0 && (
                         <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50 p-3">
-                          <p className="text-xs font-black uppercase tracking-[0.12em] text-amber-700">Wymagania łowiska</p>
+                          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-amber-700">Wymagania łowiska</p>
                           <p className="mt-1 text-xs leading-5 text-amber-900">
                             {trip.lake.gearRequirements.length} {trip.lake.gearRequirements.length === 1 ? "wymaganie zostanie" : "wymagania zostaną"} uwzględnione w rekomendowanej checkliście Rybio.
                           </p>
@@ -624,7 +633,7 @@ export default async function TripDetailsPage({
                     <div className="mt-4 grid gap-3">
                       <Link
                         href={`/lowiska/${trip.lake.slug}`}
-                        className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
+                        className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-blue-700"
                       >
                         Zobacz łowisko
                       </Link>
@@ -632,7 +641,7 @@ export default async function TripDetailsPage({
                         href={getNavigationUrl(trip.lake.lat, trip.lake.lng)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-black text-slate-700 transition hover:bg-slate-50"
+                        className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-bold text-slate-700 transition hover:bg-slate-50"
                       >
                         Prowadź w Google Maps
                       </a>
@@ -656,10 +665,10 @@ export default async function TripDetailsPage({
                 </div>
                 {biggestCatch?.weight && (
                   <div className="mt-4 rounded-2xl bg-amber-50 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-600">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-600">
                       Największa ryba
                     </p>
-                    <p className="mt-2 font-black text-slate-950">
+                    <p className="mt-2 font-bold text-slate-950">
                       {biggestCatch.fishName} — {biggestCatch.weight.toFixed(2)} kg
                     </p>
                   </div>
@@ -677,6 +686,7 @@ export default async function TripDetailsPage({
                 tripId={trip.id}
                 action="checklist"
                 canEdit={canEdit}
+                icon={<CheckListIcon className="h-4 w-4 shrink-0" />}
                 label={trip.checklist ? "Edytuj checklistę" : "Utwórz checklistę"}
                 tripStartsAt={trip.startsAt}
                 tripEndsAt={trip.endsAt}
@@ -713,12 +723,12 @@ export default async function TripDetailsPage({
                     >
                       <summary className="flex cursor-pointer list-none items-center justify-between gap-4 bg-slate-50 px-4 py-3 [&::-webkit-details-marker]:hidden">
                         <div>
-                          <p className="font-black text-slate-900">{getChecklistCategoryLabel(group.category)}</p>
+                          <p className="font-bold text-slate-900">{getChecklistCategoryLabel(group.category)}</p>
                           <p className="mt-0.5 text-xs text-slate-500">
                             {group.packedCount}/{group.items.length} spakowane
                           </p>
                         </div>
-                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-600 shadow-sm">
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">
                           {group.unpackedCount > 0 ? `${group.unpackedCount} do spakowania` : "Gotowe"}
                         </span>
                       </summary>
@@ -737,14 +747,14 @@ export default async function TripDetailsPage({
                           >
                             <div className="min-w-0">
                               <div className="flex flex-wrap items-center gap-2">
-                                <p className={`break-words font-black ${item.isPacked ? "text-emerald-700 line-through" : "text-slate-800"}`}>
+                                <p className={`break-words font-bold ${item.isPacked ? "text-emerald-700 line-through" : "text-slate-800"}`}>
                                   {item.name}
                                 </p>
                                 {item.isImportant && (
-                                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-700">Ważne</span>
+                                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Ważne</span>
                                 )}
                                 {item.source === "template" && (
-                                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-black text-blue-700">Podpowiedź Rybio</span>
+                                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">Podpowiedź Rybio</span>
                                 )}
                               </div>
                               <p className="mt-1 text-sm text-slate-500">Ilość: {item.quantity} {item.unit || ""}</p>
@@ -791,13 +801,15 @@ export default async function TripDetailsPage({
                   tripId={trip.id}
                   action="gear"
                   canEdit={canEdit}
-                  label="Dodaj / edytuj sprzęt"
+                  icon={<PencilIcon className="h-4 w-4 shrink-0" />}
+                  label="Edytuj sprzęt"
                 />
                 <Link
                   href="/ekwipunek"
-                  className="rounded-2xl bg-blue-50 px-5 py-3 text-sm font-black text-blue-700 transition hover:bg-blue-100"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-blue-50 px-5 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-100"
                 >
-                  Mój ekwipunek
+                  <HookIcon className="h-4 w-4 shrink-0" />
+                  <span>Mój ekwipunek</span>
                 </Link>
               </div>
             }
@@ -824,17 +836,17 @@ export default async function TripDetailsPage({
                       <div className="min-w-0">
                         <div className="flex flex-wrap gap-2">
                           {item.isRequired && (
-                            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-black text-amber-700">
+                            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-semibold text-amber-700">
                               Wymagany
                             </span>
                           )}
                           {item.isPacked && (
-                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700">
+                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">
                               Spakowany
                             </span>
                           )}
                         </div>
-                        <h3 className="mt-2 break-words font-black text-slate-950">
+                        <h3 className="mt-2 break-words font-bold text-slate-950">
                           {item.name}
                         </h3>
                         <p className="mt-1 text-sm text-slate-500">
@@ -887,14 +899,14 @@ export default async function TripDetailsPage({
               <div className="space-y-6">
                 {pinnedNotes.length > 0 && (
                   <div>
-                    <p className="mb-3 text-xs font-black uppercase tracking-[0.14em] text-blue-600">📌 Przypięte</p>
+                    <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">📌 Przypięte</p>
                     <div className="grid gap-4 md:grid-cols-2">
                       {pinnedNotes.map((note) => (
                         <article key={note.id} className="rounded-3xl border border-blue-100 bg-blue-50 p-5">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex flex-wrap gap-2">
-                              <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-black text-blue-700">Przypięta</span>
-                              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-slate-500">{getNoteTypeLabel(note.type)}</span>
+                              <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-semibold text-blue-700">Przypięta</span>
+                              <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-500">{getNoteTypeLabel(note.type)}</span>
                             </div>
                             {(isOwner || note.authorUserId === user.id) && (
                               <TripNoteActions tripId={trip.id} note={note} />
@@ -913,13 +925,13 @@ export default async function TripDetailsPage({
                 {regularNotes.length > 0 && (
                   <div>
                     {pinnedNotes.length > 0 && (
-                      <p className="mb-3 text-xs font-black uppercase tracking-[0.14em] text-slate-400">Pozostałe</p>
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Pozostałe</p>
                     )}
                     <div className="grid gap-4 md:grid-cols-2">
                       {regularNotes.map((note) => (
                         <article key={note.id} className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
                           <div className="flex items-start justify-between gap-3">
-                            <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-slate-500">{getNoteTypeLabel(note.type)}</span>
+                            <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-500">{getNoteTypeLabel(note.type)}</span>
                             {(isOwner || note.authorUserId === user.id) && (
                               <TripNoteActions tripId={trip.id} note={note} />
                             )}
@@ -963,18 +975,18 @@ export default async function TripDetailsPage({
           >
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl bg-blue-50 p-4">
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-blue-600">Łącznie</p>
-                <p className="mt-1 text-2xl font-black text-blue-950">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-blue-600">Łącznie</p>
+                <p className="mt-1 text-2xl font-extrabold text-blue-950">
                   {formatMoney(totalCosts)}
                 </p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Zarejestrowani uczestnicy</p>
-                <p className="mt-1 text-2xl font-black text-slate-950">{registeredParticipants.length}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Zarejestrowani uczestnicy</p>
+                <p className="mt-1 text-2xl font-extrabold text-slate-950">{registeredParticipants.length}</p>
               </div>
               <div className="rounded-2xl bg-slate-50 p-4">
-                <p className="text-xs font-black uppercase tracking-[0.12em] text-slate-400">Równy udział na osobę</p>
-                <p className="mt-1 text-2xl font-black text-slate-950">{formatMoney(costSettlement.sharePerPerson)}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Równy udział na osobę</p>
+                <p className="mt-1 text-2xl font-extrabold text-slate-950">{formatMoney(costSettlement.sharePerPerson)}</p>
               </div>
             </div>
 
@@ -987,14 +999,14 @@ export default async function TripDetailsPage({
                       className="grid gap-3 border-b border-slate-100 p-4 last:border-none sm:grid-cols-[1fr_auto]"
                     >
                       <div className="min-w-0">
-                        <p className="font-black text-slate-900">{cost.label}</p>
+                        <p className="font-bold text-slate-900">{cost.label}</p>
                         <p className="mt-1 text-sm text-slate-500">
                           {getCostCategoryLabel(cost.category)} • zapłacił(a): {cost.paidByName || "Użytkownik"}
                         </p>
                         {cost.note && <p className="mt-2 text-xs leading-5 text-slate-500">{cost.note}</p>}
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-2">
-                        <p className="text-lg font-black text-slate-950">{formatMoney(cost.amount, cost.currency)}</p>
+                        <p className="text-lg font-bold text-slate-950">{formatMoney(cost.amount, cost.currency)}</p>
                         {(isOwner || cost.paidByUserId === user.id) && (
                           <TripDeleteButton
                             tripId={trip.id}
@@ -1010,15 +1022,15 @@ export default async function TripDetailsPage({
 
                 <div className="mt-6 grid gap-5 xl:grid-cols-2">
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
-                    <h3 className="font-black text-slate-950">Kto ile zapłacił</h3>
+                    <h3 className="font-bold text-slate-950">Kto ile zapłacił</h3>
                     <div className="mt-4 space-y-3">
                       {costSettlement.balances.map((participant) => (
                         <div key={participant.id} className="flex items-center justify-between gap-4 rounded-2xl bg-white p-3">
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-black text-slate-800">{participant.name}</p>
+                            <p className="truncate text-sm font-bold text-slate-800">{participant.name}</p>
                             <p className="mt-0.5 text-xs text-slate-500">Zapłacono: {formatMoney(participant.paid)}</p>
                           </div>
-                          <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${
+                          <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${
                             participant.balance > 0.009
                               ? "bg-emerald-100 text-emerald-700"
                               : participant.balance < -0.009
@@ -1037,7 +1049,7 @@ export default async function TripDetailsPage({
                   </div>
 
                   <div className="rounded-3xl border border-blue-100 bg-blue-50 p-5">
-                    <h3 className="font-black text-blue-950">Proponowane rozliczenie</h3>
+                    <h3 className="font-bold text-blue-950">Proponowane rozliczenie</h3>
                     <p className="mt-1 text-xs leading-5 text-blue-700">
                       Liczymy równy udział wyłącznie między zarejestrowanymi uczestnikami wyprawy.
                     </p>
@@ -1046,9 +1058,9 @@ export default async function TripDetailsPage({
                         {costSettlement.transfers.map((transfer, index) => (
                           <div key={`${transfer.from}-${transfer.to}-${index}`} className="flex items-center justify-between gap-3 rounded-2xl bg-white p-3">
                             <p className="min-w-0 text-sm font-bold text-slate-700">
-                              <span className="font-black text-slate-950">{transfer.from}</span> → {transfer.to}
+                              <span className="font-bold text-slate-950">{transfer.from}</span> → {transfer.to}
                             </p>
-                            <span className="shrink-0 font-black text-blue-700">{formatMoney(transfer.amount)}</span>
+                            <span className="shrink-0 font-bold text-blue-700">{formatMoney(transfer.amount)}</span>
                           </div>
                         ))}
                       </div>
@@ -1135,6 +1147,7 @@ export default async function TripDetailsPage({
                 tripId={trip.id}
                 action="catch"
                 canEdit={canEdit}
+                
               />
             }
           >
@@ -1154,10 +1167,10 @@ export default async function TripDetailsPage({
                       />
                     )}
                     <div className="p-5">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
                         {getMethodLabel(item.method)}
                       </p>
-                      <h3 className="mt-2 text-xl font-black text-slate-950">
+                      <h3 className="mt-2 text-xl font-bold text-slate-950">
                         {item.fishName}
                       </h3>
                       <p className="mt-1 text-sm font-semibold text-slate-500">
@@ -1175,7 +1188,7 @@ export default async function TripDetailsPage({
                       </div>
                       {item.bait && (
                         <p className="mt-4 text-sm text-slate-600">
-                          <span className="font-black">Przynęta:</span> {item.bait}
+                          <span className="font-semibold">Przynęta:</span> {item.bait}
                         </p>
                       )}
                     </div>
@@ -1198,7 +1211,7 @@ export default async function TripDetailsPage({
                 <div className="mb-5 flex items-center gap-4 rounded-2xl border border-blue-100 bg-blue-50 p-4">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-xl shadow-sm">👑</div>
                   <div className="min-w-0 flex-1">
-                    <p className="font-black text-slate-950">{ownerName}{isOwner ? " — Ty" : ""}</p>
+                    <p className="font-bold text-slate-950">{ownerName}{isOwner ? " — Ty" : ""}</p>
                     <p className="mt-1 text-xs font-bold text-blue-700">Właściciel • pełne uprawnienia</p>
                   </div>
                 </div>
@@ -1236,8 +1249,8 @@ export default async function TripDetailsPage({
 
               <Section title="Role">
                 <div className="space-y-3 text-sm leading-6 text-slate-600">
-                  <p><span className="font-black text-slate-900">Edytor:</span> może pracować na checkliście, sprzęcie, notatkach, kosztach, zdjęciach i połowach.</p>
-                  <p><span className="font-black text-slate-900">Tylko podgląd:</span> widzi dane wyprawy, ale nie może ich zmieniać.</p>
+                  <p><span className="font-semibold text-slate-900">Edytor:</span> może pracować na checkliście, sprzęcie, notatkach, kosztach, zdjęciach i połowach.</p>
+                  <p><span className="font-semibold text-slate-900">Tylko podgląd:</span> widzi dane wyprawy, ale nie może ich zmieniać.</p>
                 </div>
               </Section>
             </aside>
@@ -1267,12 +1280,12 @@ function ActivityPagination({
         {page > 1 ? (
           <Link
             href={`/wyprawy/${tripId}?tab=podsumowanie&activityPage=${page - 1}`}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-50"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             ← Poprzednia
           </Link>
         ) : (
-          <span className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2 text-xs font-black text-slate-300">
+          <span className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-300">
             ← Poprzednia
           </span>
         )}
@@ -1280,12 +1293,12 @@ function ActivityPagination({
         {page < totalPages ? (
           <Link
             href={`/wyprawy/${tripId}?tab=podsumowanie&activityPage=${page + 1}`}
-            className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-black text-white transition hover:bg-blue-700"
+            className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
           >
             Następna →
           </Link>
         ) : (
-          <span className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-black text-slate-300">
+          <span className="rounded-xl bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-300">
             Następna →
           </span>
         )}
@@ -1306,7 +1319,7 @@ function Section({
   return (
     <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-xl font-black text-slate-950">{title}</h2>
+        <h2 className="text-xl font-extrabold text-slate-950">{title}</h2>
         {action && <div className="shrink-0">{action}</div>}
       </div>
       <div className="mt-5">{children}</div>
@@ -1318,7 +1331,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-[180px] rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:min-w-0 md:p-5">
       <p className="text-sm font-bold text-slate-500">{label}</p>
-      <p className="mt-3 break-words text-2xl font-black tracking-tight text-slate-950">
+      <p className="mt-3 break-words text-2xl font-extrabold tracking-tight text-slate-950">
         {value}
       </p>
     </div>
@@ -1328,10 +1341,10 @@ function StatCard({ label, value }: { label: string; value: string }) {
 function MiniMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-3">
-      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
         {label}
       </p>
-      <p className="mt-1 break-words text-sm font-black text-slate-800">
+      <p className="mt-1 break-words text-sm font-bold text-slate-800">
         {value}
       </p>
     </div>
@@ -1341,10 +1354,10 @@ function MiniMetric({ label, value }: { label: string; value: string }) {
 function ProgressHeader({ value, label = "Ogólne przygotowanie" }: { value: number; label?: string }) {
   return (
     <div className="mb-2 flex items-center justify-between gap-3">
-      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
         {label}
       </p>
-      <span className="text-sm font-black text-blue-700">{value}%</span>
+      <span className="text-sm font-bold text-blue-700">{value}%</span>
     </div>
   );
 }
@@ -1374,10 +1387,10 @@ function ProgressItem({
     <div>
       <div className="mb-2 flex items-center justify-between gap-4">
         <div>
-          <p className="font-black text-slate-800">{label}</p>
+          <p className="font-bold text-slate-800">{label}</p>
           <p className="mt-0.5 text-xs text-slate-500">{description}</p>
         </div>
-        <span className="shrink-0 text-sm font-black text-blue-700">
+        <span className="shrink-0 text-sm font-bold text-blue-700">
           {value}%
         </span>
       </div>
@@ -1390,7 +1403,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4 last:border-none last:pb-0">
       <p className="text-sm text-slate-500">{label}</p>
-      <p className="max-w-[60%] break-words text-right text-sm font-black text-slate-950">
+      <p className="max-w-[60%] break-words text-right text-sm font-bold text-slate-950">
         {value}
       </p>
     </div>
@@ -1400,7 +1413,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 function AccessBadge({ isOwner, role }: { isOwner: boolean; role: string }) {
   return (
     <span
-      className={`w-fit rounded-full px-3 py-1 text-xs font-black ${
+      className={`w-fit rounded-full px-3 py-1 text-xs font-semibold ${
         isOwner
           ? "bg-blue-50 text-blue-700"
           : "bg-violet-50 text-violet-700"
@@ -1430,7 +1443,7 @@ function PhaseBadge({ phase }: { phase: "upcoming" | "active" | "finished" | "ca
   };
 
   return (
-    <span className={`rounded-full px-3 py-1 text-xs font-black ${styles[phase]}`}>
+    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${styles[phase]}`}>
       {labels[phase]}
     </span>
   );
@@ -1439,8 +1452,8 @@ function PhaseBadge({ phase }: { phase: "upcoming" | "active" | "finished" | "ca
 function PermissionRow({ label, enabled }: { label: string; enabled: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 p-3">
-      <span className="text-sm font-bold text-slate-700">{label}</span>
-      <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${enabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"}`}>
+      <span className="text-sm font-semibold text-slate-700">{label}</span>
+      <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold ${enabled ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"}`}>
         {enabled ? "Tak" : "Nie"}
       </span>
     </div>
@@ -1450,7 +1463,7 @@ function PermissionRow({ label, enabled }: { label: string; enabled: boolean }) 
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
     <div className="rounded-2xl bg-slate-50 p-6 text-center">
-      <p className="font-black text-slate-950">{title}</p>
+      <p className="font-bold text-slate-950">{title}</p>
       <p className="mt-1 text-sm leading-6 text-slate-500">{description}</p>
     </div>
   );

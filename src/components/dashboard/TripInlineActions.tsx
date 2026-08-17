@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { useToast } from "@/components/ui/ToastProvider";
+import { TrashIcon } from "@/components/icons/TrashIcon";
 
 type PackedToggleProps = {
   tripId: string;
@@ -74,7 +75,7 @@ export function TripChecklistPackedToggle({
       onClick={toggle}
       disabled={!canEdit || loading}
       aria-pressed={checked}
-      className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
         checked
           ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
           : "bg-white text-slate-600 shadow-sm hover:bg-slate-100"
@@ -148,7 +149,7 @@ export function TripGearPackedToggle({
       onClick={toggle}
       disabled={!canEdit || loading}
       aria-pressed={checked}
-      className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
         checked
           ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
           : "bg-white text-slate-600 shadow-sm hover:bg-slate-100"
@@ -248,13 +249,34 @@ export function TripDeleteButton({
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleDelete}
-      disabled={loading}
-      className={`rounded-xl bg-red-50 px-3 py-2 text-xs font-black text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
-    >
-      {loading ? "Usuwanie..." : label}
-    </button>
+    <div className="group relative inline-flex shrink-0">
+      <button
+        type="button"
+        onClick={handleDelete}
+        disabled={loading}
+        aria-label={loading ? "Usuwanie..." : label}
+        title={loading ? "Usuwanie..." : label}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      >
+        <TrashIcon className="h-4 w-4" />
+      </button>
+
+      <div
+        className="
+          pointer-events-none absolute bottom-full left-1/2 z-30 mb-2
+          -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950
+          px-2.5 py-1.5 text-[11px] font-semibold text-white
+          opacity-0 shadow-lg transition group-hover:opacity-100
+        "
+      >
+        {loading ? "Usuwanie..." : label}
+        <span
+          className="
+            absolute left-1/2 top-full -translate-x-1/2
+            border-4 border-transparent border-t-slate-950
+          "
+        />
+      </div>
+    </div>
   );
 }
