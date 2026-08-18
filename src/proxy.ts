@@ -53,7 +53,6 @@ export async function proxy(request: NextRequest) {
   }
 
   // Subdomena łowiska jest niezależną stroną publiczną.
-  // Najpierw wykonujemy rewrite do runtime strony łowiska.
   if (subdomain && !RESERVED_HOSTS.has(subdomain)) {
     url.pathname = `/site-runtime/${subdomain}${url.pathname}`;
 
@@ -61,7 +60,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Na głównej domenie Rybio odświeżamy sesję Supabase
-  // tylko dla tras, które faktycznie korzystają z konta użytkownika.
+  // tylko dla tras korzystających z konta użytkownika.
   if (shouldRefreshSession(url.pathname)) {
     return updateSession(request);
   }
