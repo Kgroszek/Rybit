@@ -18,6 +18,10 @@ const navLinks = [
     href: "/lowiska-w-polsce",
   },
   {
+    label: "Blog",
+    href: "/blog",
+  },
+  {
     label: "Dziennik połowów",
     href: "/#dziennik",
   },

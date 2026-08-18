@@ -96,13 +96,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
 
   const fallbackFeatured =
     featuredPost ??
-    (category || tag || search
-      ? null
-      : posts[0] ?? null);
+    (!category && !tag && !search ? posts[0] ?? null : null);
 
-  const displayedPosts = fallbackFeatured
-    ? posts.filter((post) => post.id !== fallbackFeatured.id)
-    : posts;
+  // Wyróżnienie jest tylko dodatkową ekspozycją.
+  // Artykuł nadal pozostaje w "Najnowszych" i w swojej kategorii.
+  const displayedPosts = posts;
 
   const popularTags = getPopularTags(postsForTags.flatMap((post) => post.tags));
 
