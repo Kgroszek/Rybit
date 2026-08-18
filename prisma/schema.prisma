@@ -33,19 +33,19 @@ model Lake {
   bottomType   String
   waterType    String
 
-  cottages     Boolean @default(false)
-  campfire     Boolean @default(false)
-  noKill       Boolean @default(false)
-  tent         Boolean @default(false)
-  parking      Boolean @default(false)
-  pier         Boolean @default(false)
-  toilet       Boolean @default(false)
+  cottages           Boolean @default(false)
+  campfire           Boolean @default(false)
+  noKill             Boolean @default(false)
+  tent               Boolean @default(false)
+  parking            Boolean @default(false)
+  pier               Boolean @default(false)
+  toilet             Boolean @default(false)
   sanitaryFacilities Boolean @default(false)
-  shop         Boolean @default(false)
-  nightFishing      Boolean @default(false)
-  boatRental        Boolean @default(false)
-  camperCaravan     Boolean @default(false)
-  electricityHookup Boolean @default(false)
+  shop               Boolean @default(false)
+  nightFishing       Boolean @default(false)
+  boatRental         Boolean @default(false)
+  camperCaravan      Boolean @default(false)
+  electricityHookup  Boolean @default(false)
 
   gearRental   Boolean @default(false)
   shelter      Boolean @default(false)
@@ -85,6 +85,7 @@ model Lake {
   spots           LakeSpot[]
   reservations    LakeReservation[]
   bookingSettings LakeBookingSettings?
+  website         LakeWebsite?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -291,7 +292,7 @@ model LakeGearRequirement {
 }
 
 model LakeImage {
-  id        String @id @default(cuid())
+  id        String  @id @default(cuid())
   url       String
   imagePath String?
 
@@ -363,19 +364,19 @@ model LakeSubmission {
   bottomType   String?
   waterType    String?
 
-  cottages     Boolean @default(false)
-  campfire     Boolean @default(false)
-  noKill       Boolean @default(false)
-  tent         Boolean @default(false)
-  parking      Boolean @default(false)
-  pier         Boolean @default(false)
-  toilet       Boolean @default(false)
+  cottages           Boolean @default(false)
+  campfire           Boolean @default(false)
+  noKill             Boolean @default(false)
+  tent               Boolean @default(false)
+  parking            Boolean @default(false)
+  pier               Boolean @default(false)
+  toilet             Boolean @default(false)
   sanitaryFacilities Boolean @default(false)
-  shop         Boolean @default(false)
-  nightFishing      Boolean @default(false)
-  boatRental        Boolean @default(false)
-  camperCaravan     Boolean @default(false)
-  electricityHookup Boolean @default(false)
+  shop               Boolean @default(false)
+  nightFishing       Boolean @default(false)
+  boatRental         Boolean @default(false)
+  camperCaravan      Boolean @default(false)
+  electricityHookup  Boolean @default(false)
 
   gearRental   Boolean @default(false)
   shelter      Boolean @default(false)
@@ -426,7 +427,7 @@ model LakeSubmissionImage {
 }
 
 model LakeSubmissionFishRecord {
-  id           String @id @default(cuid())
+  id           String         @id @default(cuid())
   fishName     String
   weightKg     Float
   submissionId String
@@ -441,7 +442,7 @@ model LakeSubmissionFishRecord {
 }
 
 model LakeSubmissionGearRequirement {
-  id           String @id @default(cuid())
+  id           String         @id @default(cuid())
   text         String
   submissionId String
   submission   LakeSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
@@ -559,12 +560,12 @@ model FishingTrip {
   lakeName String?
   lake     Lake?   @relation(fields: [lakeId], references: [id], onDelete: SetNull)
 
-  tripType String   @default("custom")
-  status   String   @default("planned")
+  tripType String    @default("custom")
+  status   String    @default("planned")
   startsAt DateTime
   endsAt   DateTime?
 
-  peopleCount Int @default(1)
+  peopleCount Int     @default(1)
   note        String?
 
   checklistId String?
@@ -617,8 +618,8 @@ model TripMember {
 
   invitedByUserId String
 
-  acceptedAt  DateTime?
-  declinedAt  DateTime?
+  acceptedAt   DateTime?
+  declinedAt   DateTime?
   lastViewedAt DateTime?
 
   createdAt DateTime @default(now())
@@ -694,7 +695,7 @@ model TripGearItem {
 
   name     String
   category String
-  quantity Int    @default(1)
+  quantity Int     @default(1)
   unit     String?
   note     String?
 
@@ -720,11 +721,11 @@ model TripReminder {
 
   userId String
 
-  type     String @default("custom")
+  type     String   @default("custom")
   title    String
   remindAt DateTime
 
-  status String @default("pending")
+  status String    @default("pending")
   sentAt DateTime?
 
   createdAt DateTime @default(now())
@@ -1033,7 +1034,7 @@ model UserChecklistTemplate {
   userId      String
   name        String
   description String?
-  tripType    String @default("custom")
+  tripType    String  @default("custom")
 
   items UserChecklistTemplateItem[]
 
@@ -1066,12 +1067,11 @@ model UserChecklistTemplateItem {
   @@index([templateId, position])
 }
 
-
 model BlogPost {
   id String @id @default(cuid())
 
   title   String
-  slug    String @unique
+  slug    String  @unique
   excerpt String?
 
   category String
@@ -1098,4 +1098,58 @@ model BlogPost {
   @@index([publishedAt])
   @@index([status, publishedAt])
   @@index([isFeatured, status])
+}
+
+model LakeWebsite {
+  id String @id @default(cuid())
+
+  lakeId String @unique
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  subdomain   String @unique
+  templateKey String @default("modern")
+
+  status String @default("draft")
+
+  siteName     String?
+  heroTitle    String?
+  heroSubtitle String?
+
+  aboutTitle String?
+  aboutText  String?
+
+  logoUrl      String?
+  heroImageUrl String?
+  galleryUrls  String[] @default([])
+
+  primaryColor    String @default("#2563EB")
+  accentColor     String @default("#0EA5E9")
+  backgroundColor String @default("#FFFFFF")
+  textColor       String @default("#0F172A")
+
+  showAbout        Boolean @default(true)
+  showFish         Boolean @default(true)
+  showGallery      Boolean @default(true)
+  showPriceList    Boolean @default(true)
+  showRules        Boolean @default(true)
+  showContact      Boolean @default(true)
+  showReservations Boolean @default(false)
+
+  sections Json @default("[]")
+
+  contactPhone   String?
+  contactEmail   String?
+  contactWebsite String?
+
+  seoTitle       String?
+  seoDescription String?
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+  @@index([templateKey])
+  @@index([publishedAt])
+  @@index([status, publishedAt])
 }
