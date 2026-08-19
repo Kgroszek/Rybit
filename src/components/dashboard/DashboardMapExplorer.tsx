@@ -12,6 +12,7 @@ import {
 
 import { useUserLocation } from "@/hooks/useUserLocation";
 import {
+  isValidLocation,
   requestUserLocation,
   type UserLocation,
 } from "@/lib/location";
@@ -66,6 +67,17 @@ const userIcon = L.divIcon({
   popupAnchor: [0, -12],
 });
 
+function hasValidLakeCoordinates(lake: LakeListDto) {
+  return (
+    Number.isFinite(lake.lat) &&
+    Number.isFinite(lake.lng) &&
+    lake.lat >= -90 &&
+    lake.lat <= 90 &&
+    lake.lng >= -180 &&
+    lake.lng <= 180
+  );
+}
+
 function MapLocationButton({
   onLocationFound,
 }: {
@@ -83,6 +95,10 @@ function MapLocationButton({
         timeout: 10000,
         maximumAge: 0,
       });
+
+      if (!isValidLocation(location)) {
+        throw new Error("Nieprawidłowe współrzędne lokalizacji.");
+      }
 
       onLocationFound(location);
 
@@ -145,6 +161,10 @@ export function DashboardMapExplorer({
 
   const handleLocationFound = useCallback(
     (location: UserLocation) => {
+      if (!isValidLocation(location)) {
+        return;
+      }
+
       setUserLocation(location);
     },
     [setUserLocation]
@@ -152,6 +172,10 @@ export function DashboardMapExplorer({
 
   const filteredLakes = useMemo(() => {
     return lakes.filter((lake) => {
+      if (!hasValidLakeCoordinates(lake)) {
+        return false;
+      }
+
       const ownerMatches =
         ownerType === "all" || lake.type === ownerType;
 
@@ -163,6 +187,11 @@ export function DashboardMapExplorer({
   }, [lakes, ownerType, fishingType]);
 
   const hasFilters = ownerType !== "all" || fishingType !== "all";
+
+  const validUserLocation =
+    userLocation && isValidLocation(userLocation)
+      ? userLocation
+      : null;
 
   return (
     <div>
@@ -258,9 +287,9 @@ export function DashboardMapExplorer({
 
           <MapLocationButton onLocationFound={handleLocationFound} />
 
-          {userLocation && (
+          {validUserLocation && (
             <Marker
-              position={[userLocation.lat, userLocation.lng]}
+              position={[validUserLocation.lat, validUserLocation.lng]}
               icon={userIcon}
               zIndexOffset={1000}
             >
@@ -361,7 +390,7 @@ export function DashboardMapExplorer({
           Komercyjne
         </span>
 
-        {userLocation && (
+        {validUserLocation && (
           <span className="inline-flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
             Twoja lokalizacja

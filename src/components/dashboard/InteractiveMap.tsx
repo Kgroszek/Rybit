@@ -12,6 +12,7 @@ import {
 
 import { useUserLocation } from "@/hooks/useUserLocation";
 import {
+  isValidLocation,
   requestUserLocation,
   type UserLocation,
 } from "@/lib/location";
@@ -23,6 +24,53 @@ type FishingType = "all" | "general" | "spinning" | "carp";
 type InteractiveMapProps = {
   lakes: LakeDto[];
 };
+
+type SafeLatLng = [number, number];
+
+function getSafeLatLng(location: unknown): SafeLatLng | null {
+  if (!location || typeof location !== "object") {
+    return null;
+  }
+
+  const candidate = location as {
+    lat?: unknown;
+    lng?: unknown;
+  };
+
+  const rawLat = candidate.lat;
+  const rawLng = candidate.lng;
+
+  if (typeof rawLat !== "number" || typeof rawLng !== "number") {
+    return null;
+  }
+
+  /*
+   * Kopiujemy wartości do lokalnych zmiennych.
+   * Leaflet nigdy nie dostaje bezpośrednio obiektu ze stanu.
+   */
+  const lat = rawLat;
+  const lng = rawLng;
+
+  if (
+    !Number.isFinite(lat) ||
+    !Number.isFinite(lng) ||
+    lat < -90 ||
+    lat > 90 ||
+    lng < -180 ||
+    lng > 180
+  ) {
+    return null;
+  }
+
+  return [lat, lng];
+}
+
+function getSafeLakeLatLng(lake: LakeDto): SafeLatLng | null {
+  return getSafeLatLng({
+    lat: lake.lat,
+    lng: lake.lng,
+  });
+}
 
 function createLakeIcon(color: string, shadowColor: string) {
   return L.divIcon({
@@ -43,7 +91,11 @@ function createLakeIcon(color: string, shadowColor: string) {
 }
 
 const pzwIcon = createLakeIcon("#2563EB", "rgba(37, 99, 235, 0.35)");
-const commercialIcon = createLakeIcon("#10B981", "rgba(16, 185, 129, 0.35)");
+
+const commercialIcon = createLakeIcon(
+  "#10B981",
+  "rgba(16, 185, 129, 0.35)"
+);
 
 const userIcon = L.divIcon({
   className: "",
@@ -93,6 +145,14 @@ function getNavigationUrl(lat: number, lng: number) {
   return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 }
 
+/*
+ * Automatycznie próbujemy pobrać lokalizację, ale NIE centrujemy mapy.
+ *
+ * To ważne:
+ * - dashboard zawsze otworzy się na widoku Polski,
+ * - błędna / niedostępna geolokalizacja nie może wywalić Leafleta,
+ * - użytkownik nadal może kliknąć "Moja lokalizacja", aby ręcznie się zbliżyć.
+ */
 function AutoLocateUser({
   userLocation,
   onLocationFound,
@@ -100,22 +160,14 @@ function AutoLocateUser({
   userLocation: UserLocation | null;
   onLocationFound: (location: UserLocation) => void;
 }) {
-  const map = useMap();
   const hasRequestedLocation = useRef(false);
-  const hasCenteredSavedLocation = useRef(false);
 
   useEffect(() => {
-    if (userLocation && !hasCenteredSavedLocation.current) {
-      hasCenteredSavedLocation.current = true;
-
-      map.flyTo([userLocation.lat, userLocation.lng], 11, {
-        duration: 1,
-      });
-
+    if (getSafeLatLng(userLocation)) {
       return;
     }
 
-    if (userLocation || hasRequestedLocation.current) {
+    if (hasRequestedLocation.current) {
       return;
     }
 
@@ -127,10 +179,19 @@ function AutoLocateUser({
       maximumAge: 5 * 60 * 1000,
     })
       .then((location) => {
-        onLocationFound(location);
+        const coordinates = getSafeLatLng(location);
 
-        map.flyTo([location.lat, location.lng], 11, {
-          duration: 1,
+        if (!coordinates || !isValidLocation(location)) {
+          console.warn(
+            "[InteractiveMap] Przeglądarka zwróciła nieprawidłową lokalizację:",
+            location
+          );
+          return;
+        }
+
+        onLocationFound({
+          lat: coordinates[0],
+          lng: coordinates[1],
         });
       })
       .catch((error) => {
@@ -139,7 +200,7 @@ function AutoLocateUser({
           error
         );
       });
-  }, [map, onLocationFound, userLocation]);
+  }, [onLocationFound, userLocation]);
 
   return null;
 }
@@ -156,17 +217,42 @@ function LocateButton({
     setIsLoading(true);
 
     try {
-      const userLocation = await requestUserLocation({
+      const location = await requestUserLocation({
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0,
       });
 
-      onLocationFound(userLocation);
+      const coordinates = getSafeLatLng(location);
 
-      map.flyTo([userLocation.lat, userLocation.lng], 13, {
-        duration: 1.2,
-      });
+      if (!coordinates || !isValidLocation(location)) {
+        throw new Error(
+          "Przeglądarka zwróciła nieprawidłowe współrzędne lokalizacji."
+        );
+      }
+
+      const safeLocation: UserLocation = {
+        lat: coordinates[0],
+        lng: coordinates[1],
+      };
+
+      onLocationFound(safeLocation);
+
+      /*
+       * Dodatkowy try/catch bezpośrednio wokół Leafleta.
+       * Nawet gdyby Leaflet z jakiegoś powodu odrzucił poprawne
+       * współrzędne, cały dashboard nie powinien się wywrócić.
+       */
+      try {
+        map.flyTo(coordinates, 13, {
+          duration: 1.2,
+        });
+      } catch (error) {
+        console.warn(
+          "[InteractiveMap] Nie udało się wycentrować mapy:",
+          error
+        );
+      }
     } catch (error) {
       alert(
         error instanceof Error
@@ -219,28 +305,71 @@ export function InteractiveMap({ lakes }: InteractiveMapProps) {
 
   const [ownerTypeFilter, setOwnerTypeFilter] =
     useState<LakeOwnerType>("all");
+
   const [fishingTypeFilter, setFishingTypeFilter] =
     useState<FishingType>("all");
+
   const [areFiltersOpen, setAreFiltersOpen] = useState(false);
 
   const handleLocationFound = useCallback(
     (location: UserLocation) => {
-      setUserLocation(location);
+      const coordinates = getSafeLatLng(location);
+
+      if (!coordinates) {
+        console.warn(
+          "[InteractiveMap] Pominięto nieprawidłową lokalizację:",
+          location
+        );
+        return;
+      }
+
+      setUserLocation({
+        lat: coordinates[0],
+        lng: coordinates[1],
+      });
     },
     [setUserLocation]
   );
 
+  const validLakes = useMemo(() => {
+    return lakes.flatMap((lake) => {
+      const coordinates = getSafeLakeLatLng(lake);
+
+      if (!coordinates) {
+        console.warn(
+          `[InteractiveMap] Pominięto łowisko z nieprawidłowymi współrzędnymi: ${lake.name}`,
+          {
+            lat: lake.lat,
+            lng: lake.lng,
+          }
+        );
+
+        return [];
+      }
+
+      return [
+        {
+          lake,
+          coordinates,
+        },
+      ];
+    });
+  }, [lakes]);
+
   const filteredLakes = useMemo(() => {
-    return lakes.filter((lake) => {
+    return validLakes.filter(({ lake }) => {
       const matchesOwnerType =
         ownerTypeFilter === "all" || lake.type === ownerTypeFilter;
 
       const matchesFishingType =
-        fishingTypeFilter === "all" || lake.fishingType === fishingTypeFilter;
+        fishingTypeFilter === "all" ||
+        lake.fishingType === fishingTypeFilter;
 
       return matchesOwnerType && matchesFishingType;
     });
-  }, [lakes, ownerTypeFilter, fishingTypeFilter]);
+  }, [validLakes, ownerTypeFilter, fishingTypeFilter]);
+
+  const userCoordinates = getSafeLatLng(userLocation);
 
   return (
     <div className="relative h-[520px] overflow-hidden rounded-3xl border border-slate-200 bg-slate-100 shadow-sm sm:h-[560px]">
@@ -262,20 +391,21 @@ export function InteractiveMap({ lakes }: InteractiveMapProps) {
 
         <LocateButton onLocationFound={handleLocationFound} />
 
-        {userLocation && (
-          <Marker
-            position={[userLocation.lat, userLocation.lng]}
-            icon={userIcon}
-          >
+        {userCoordinates && (
+          <Marker position={userCoordinates} icon={userIcon}>
             <Popup>Jesteś tutaj</Popup>
           </Marker>
         )}
 
-        {filteredLakes.map((lake) => (
+        {filteredLakes.map(({ lake, coordinates }) => (
           <Marker
             key={lake.id}
-            position={[lake.lat, lake.lng]}
-            icon={lake.type === "commercial" ? commercialIcon : pzwIcon}
+            position={coordinates}
+            icon={
+              lake.type === "commercial"
+                ? commercialIcon
+                : pzwIcon
+            }
           >
             <Popup>
               <div className="min-w-[220px]">
@@ -301,7 +431,10 @@ export function InteractiveMap({ lakes }: InteractiveMapProps) {
 
                 <div className="mt-3 flex flex-col gap-2">
                   <a
-                    href={getNavigationUrl(lake.lat, lake.lng)}
+                    href={getNavigationUrl(
+                      coordinates[0],
+                      coordinates[1]
+                    )}
                     target="_blank"
                     rel="noreferrer"
                     className="rounded-xl bg-blue-600 px-3 py-2 text-center text-sm font-bold !text-white transition hover:bg-blue-700"

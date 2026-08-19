@@ -18,12 +18,12 @@ export function useUserLocation() {
   useEffect(() => {
     const savedLocation = getSavedUserLocation();
 
-    if (savedLocation) {
+    if (savedLocation && isValidLocation(savedLocation)) {
       setUserLocationState(savedLocation);
     }
 
     function handleLocationUpdated(event: Event) {
-      const customEvent = event as CustomEvent<UserLocation>;
+      const customEvent = event as CustomEvent<unknown>;
 
       if (isValidLocation(customEvent.detail)) {
         setUserLocationState(customEvent.detail);
@@ -44,6 +44,14 @@ export function useUserLocation() {
   }, []);
 
   const setUserLocation = useCallback((location: UserLocation) => {
+    if (!isValidLocation(location)) {
+      console.warn(
+        "[useUserLocation] Pominięto nieprawidłową lokalizację:",
+        location
+      );
+      return;
+    }
+
     setUserLocationState(location);
     saveAndBroadcastUserLocation(location);
   }, []);
