@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import {
+  useEffect,
+  useId,
+  useState,
+} from "react";
 
 import { FieldLabel } from "@/components/catches/forms/FormField";
+import { AddCircleIcon } from "@/components/icons/AddCircleIcon";
 import { CloseIcon } from "@/components/icons/CloseIcon";
-import { FishIcon } from "@/components/icons/FishIcon";
 import { cn } from "@/lib/cn";
 
 export function CatchPhotoField({
@@ -13,12 +17,14 @@ export function CatchPhotoField({
   onImageChange,
   optional = true,
   compact = false,
+  showLabel = true,
 }: {
   selectedImage: File | null;
   existingImageUrl?: string | null;
   onImageChange: (file: File | null) => void;
   optional?: boolean;
   compact?: boolean;
+  showLabel?: boolean;
 }) {
   const inputId = useId();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -32,23 +38,33 @@ export function CatchPhotoField({
     const objectUrl = URL.createObjectURL(selectedImage);
     setPreviewUrl(objectUrl);
 
-    return () => URL.revokeObjectURL(objectUrl);
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
   }, [selectedImage]);
 
-  const visibleImage = previewUrl ?? existingImageUrl ?? null;
+  const visibleImage =
+    previewUrl ??
+    existingImageUrl ??
+    null;
 
   return (
     <div>
-      <FieldLabel>
-        Zdjęcie połowu{optional ? " (opcjonalnie)" : ""}
-      </FieldLabel>
+      {showLabel && (
+        <FieldLabel>
+          Zdjęcie połowu
+          {optional ? " (opcjonalnie)" : ""}
+        </FieldLabel>
+      )}
 
-      <div className="relative overflow-hidden rounded-card border border-dashed border-border-strong bg-surface-muted">
+      <div className="relative overflow-hidden rounded-control border border-dashed border-border-strong bg-surface-muted">
         {visibleImage ? (
           <div
             className={cn(
               "relative w-full overflow-hidden bg-surface-muted",
-              compact ? "h-28 sm:h-32" : "aspect-[16/9] max-h-64"
+              compact
+                ? "h-32 sm:h-36"
+                : "aspect-[16/9] max-h-64"
             )}
           >
             <img
@@ -72,34 +88,51 @@ export function CatchPhotoField({
           <label
             htmlFor={inputId}
             className={cn(
-              "cursor-pointer transition hover:bg-primary-50/40",
+              "cursor-pointer transition hover:bg-primary-50/45",
               compact
-                ? "flex min-h-24 items-center gap-4 px-4 py-4 text-left"
+                ? "flex min-h-28 items-center gap-4 px-5 py-5 text-left"
                 : "flex min-h-44 flex-col items-center justify-center px-6 py-8 text-center"
             )}
           >
             <span
               className={cn(
                 "flex shrink-0 items-center justify-center bg-primary-100 text-primary",
-                compact ? "h-10 w-10 rounded-xl" : "h-12 w-12 rounded-2xl"
+                compact
+                  ? "h-11 w-11 rounded-xl"
+                  : "h-12 w-12 rounded-2xl"
               )}
             >
-              <FishIcon className={cn("-scale-x-100", compact ? "h-5 w-5" : "h-6 w-6")} />
+              <AddCircleIcon
+                className={
+                  compact
+                    ? "h-5 w-5"
+                    : "h-6 w-6"
+                }
+              />
             </span>
 
-            <span className={cn(compact ? "min-w-0" : "mt-4")}>
+            <span
+              className={cn(
+                compact
+                  ? "min-w-0"
+                  : "mt-4"
+              )}
+            >
               <span className="block text-sm font-bold text-text">
-                Dodaj zdjęcie połowu
+                Dodaj zdjęcie
               </span>
+
               <span
                 className={cn(
                   "block text-xs leading-5 text-text-muted",
-                  compact ? "mt-0.5" : "mt-1 max-w-sm"
+                  compact
+                    ? "mt-1"
+                    : "mt-1 max-w-sm"
                 )}
               >
                 {compact
-                  ? "Wybierz zdjęcie lub zrób je telefonem."
-                  : "Wybierz zdjęcie z urządzenia. Na telefonie możesz też skorzystać z aparatu."}
+                  ? "Wybierz zdjęcie z urządzenia lub zrób je telefonem."
+                  : "Wybierz zdjęcie z urządzenia. Na telefonie możesz skorzystać z aparatu."}
               </span>
             </span>
           </label>
@@ -110,7 +143,12 @@ export function CatchPhotoField({
           type="file"
           accept="image/*"
           capture={compact ? "environment" : undefined}
-          onChange={(event) => onImageChange(event.target.files?.[0] ?? null)}
+          onChange={(event) => {
+            onImageChange(
+              event.target.files?.[0] ??
+                null
+            );
+          }}
           className="sr-only"
         />
       </div>
@@ -118,9 +156,11 @@ export function CatchPhotoField({
       {visibleImage && (
         <label
           htmlFor={inputId}
-          className="mt-2 inline-flex cursor-pointer text-xs font-bold text-primary transition hover:text-primary-hover"
+          className="mt-2.5 inline-flex cursor-pointer text-xs font-bold text-primary transition hover:text-primary-hover"
         >
-          {selectedImage ? "Wybierz inne zdjęcie" : "Zmień zdjęcie"}
+          {selectedImage
+            ? "Wybierz inne zdjęcie"
+            : "Zmień zdjęcie"}
         </label>
       )}
 
