@@ -4,7 +4,6 @@ export type NavigationIconKey =
   | "trip"
   | "catch"
   | "gear"
-  | "checklist"
   | "blog"
   | "add"
   | "profile"
@@ -29,32 +28,94 @@ export type NavigationItem = {
   emphasized?: boolean;
 };
 
+
 export const PRIMARY_NAVIGATION: NavigationItem[] = [
-  { id: "dashboard", label: "Dashboard", href: "/dashboard", icon: "dashboard" },
-  { id: "lakes", label: "Łowiska", href: "/lowiska", icon: "map" },
-  { id: "trips", label: "Moje wyprawy", href: "/wyprawy", icon: "trip" },
-  { id: "catches", label: "Moje połowy", href: "/polowy", icon: "catch" },
-  { id: "gear", label: "Mój ekwipunek", href: "/ekwipunek", icon: "gear" },
-  { id: "checklists", label: "Checklisty", href: "/checklisty", icon: "checklist" },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    href: "/dashboard",
+    icon: "dashboard",
+  },
+  {
+    id: "lakes",
+    label: "Łowiska",
+    href: "/lowiska",
+    icon: "map",
+  },
+  {
+    id: "trips",
+    label: "Centrum wypraw",
+    href: "/wyprawy",
+    icon: "trip",
+  },
+  {
+    id: "catches",
+    label: "Moje połowy",
+    href: "/polowy",
+    icon: "catch",
+  },
+  {
+    id: "gear",
+    label: "Mój ekwipunek",
+    href: "/ekwipunek",
+    icon: "gear",
+  },
 ];
+
 
 export const DISCOVER_NAVIGATION: NavigationItem[] = [
-  { id: "blog", label: "Blog", href: "/blog", icon: "blog" },
-  { id: "submit-lake", label: "Zgłoś łowisko", href: "/lowiska/zglos", icon: "add" },
+  {
+    id: "blog",
+    label: "Blog",
+    href: "/blog",
+    icon: "blog",
+  },
+  {
+    id: "submit-lake",
+    label: "Zgłoś łowisko",
+    href: "/lowiska/zglos",
+    icon: "add",
+  },
 ];
 
+
 export const OWNER_NAVIGATION: NavigationItem[] = [
-  { id: "owner-lakes", label: "Moje łowiska", href: "/moje-lowiska", icon: "map" },
+  {
+    id: "owner-lakes",
+    label: "Moje łowiska",
+    href: "/moje-lowiska",
+    icon: "map",
+  },
 ];
 
 export const ACCOUNT_NAVIGATION: NavigationItem[] = [
-  { id: "profile", label: "Profil", href: "/profil", icon: "profile" },
-  { id: "settings", label: "Ustawienia", href: "/ustawienia", icon: "settings" },
+  {
+    id: "profile",
+    label: "Profil",
+    href: "/profil",
+    icon: "profile",
+  },
+  {
+    id: "settings",
+    label: "Ustawienia",
+    href: "/ustawienia",
+    icon: "settings",
+  },
 ];
 
 export const ADMIN_NAVIGATION: NavigationItem[] = [
-  { id: "admin", label: "Panel admina", href: "/admin", icon: "dashboard" },
-  { id: "admin-blog", label: "Zarządzaj blogiem", href: "/admin/blog", icon: "blog" },
+  {
+    id: "admin",
+    label: "Panel admina",
+    href: "/admin",
+    icon: "dashboard",
+  },
+  {
+    id: "admin-blog",
+    label: "Zarządzaj blogiem",
+    href: "/admin/blog",
+    icon: "blog",
+  },
   {
     id: "admin-lake-submissions",
     label: "Zgłoszenia łowisk",
@@ -83,12 +144,27 @@ export const ADMIN_NAVIGATION: NavigationItem[] = [
     icon: "catch",
     badgeKey: "pendingCatchReportsCount",
   },
-  { id: "admin-users", label: "Użytkownicy", href: "/admin/uzytkownicy", icon: "users" },
+  {
+    id: "admin-users",
+    label: "Użytkownicy",
+    href: "/admin/uzytkownicy",
+    icon: "users",
+  },
 ];
 
 export const MOBILE_PRIMARY_NAVIGATION: NavigationItem[] = [
-  { id: "mobile-dashboard", label: "Start", href: "/dashboard", icon: "dashboard" },
-  { id: "mobile-lakes", label: "Łowiska", href: "/lowiska", icon: "map" },
+  {
+    id: "mobile-dashboard",
+    label: "Start",
+    href: "/dashboard",
+    icon: "dashboard",
+  },
+  {
+    id: "mobile-lakes",
+    label: "Łowiska",
+    href: "/lowiska",
+    icon: "map",
+  },
   {
     id: "mobile-catches",
     label: "Połów",
@@ -96,14 +172,28 @@ export const MOBILE_PRIMARY_NAVIGATION: NavigationItem[] = [
     icon: "catch",
     emphasized: true,
   },
-  { id: "mobile-trips", label: "Wyprawy", href: "/wyprawy", icon: "trip" },
+  {
+    id: "mobile-trips",
+    label: "Wyprawy",
+    href: "/wyprawy",
+    icon: "trip",
+  },
 ];
 
-export function isNavigationActive(pathname: string, href: string) {
+
+export function isNavigationActive(
+  pathname: string,
+  href: string
+) {
   const hrefPath = href.split("?")[0];
 
-  if (hrefPath === "/dashboard") return pathname === "/dashboard";
-  if (hrefPath === "/admin") return pathname === "/admin";
+  if (hrefPath === "/dashboard") {
+    return pathname === "/dashboard";
+  }
+
+  if (hrefPath === "/admin") {
+    return pathname === "/admin";
+  }
 
   if (hrefPath === "/lowiska") {
     return (
@@ -113,5 +203,8 @@ export function isNavigationActive(pathname: string, href: string) {
     );
   }
 
-  return pathname === hrefPath || pathname.startsWith(`${hrefPath}/`);
+  return (
+    pathname === hrefPath ||
+    pathname.startsWith(`${hrefPath}/`)
+  );
 }
