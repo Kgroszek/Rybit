@@ -1,12 +1,22 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
+import { LakesExplorer } from "@/components/lakes/LakesExplorer";
+import {
+  LAKE_EXPLORER_PAGE_SIZE,
+} from "@/components/lakes/constants";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicHeader } from "@/components/public/PublicHeader";
-import { PublicLakesPage } from "@/components/public/PublicLakesPage";
+import { ButtonLink } from "@/components/ui/Button";
+import {
+  getLakeExplorerMapResults,
+  getLakeExplorerResults,
+} from "@/lib/lake-explorer";
+import {
+  parseLakeExplorerSearchParams,
+  type LakeExplorerSearchParams,
+} from "@/lib/lake-explorer-params";
 import {
   getLakeFilterOptions,
-  getPaginatedLakes,
 } from "@/lib/lakes";
 
 const siteUrl = "https://rybio.pl";
@@ -15,7 +25,8 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Łowiska w Polsce – mapa i baza łowisk dla wędkarzy | Rybio",
+  title:
+    "Łowiska w Polsce – mapa i baza łowisk dla wędkarzy | Rybio",
   description:
     "Znajdź łowiska w Polsce. Przeglądaj bazę łowisk, sprawdzaj gatunki ryb, typ łowiska, udogodnienia, lokalizację i informacje przydatne przed wyprawą.",
   keywords: [
@@ -34,7 +45,8 @@ export const metadata: Metadata = {
     canonical: "/lowiska-w-polsce",
   },
   openGraph: {
-    title: "Łowiska w Polsce – mapa i baza łowisk dla wędkarzy | Rybio",
+    title:
+      "Łowiska w Polsce – mapa i baza łowisk dla wędkarzy | Rybio",
     description:
       "Przeglądaj publiczną bazę łowisk w Polsce. Sprawdzaj gatunki ryb, lokalizację, typ łowiska, udogodnienia i szczegóły przed wyjazdem nad wodę.",
     url: "/lowiska-w-polsce",
@@ -46,13 +58,15 @@ export const metadata: Metadata = {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Rybio – baza łowisk w Polsce",
+        alt:
+          "Rybio – baza łowisk w Polsce",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Łowiska w Polsce – mapa i baza łowisk | Rybio",
+    title:
+      "Łowiska w Polsce – mapa i baza łowisk | Rybio",
     description:
       "Znajdź łowiska w Polsce, sprawdź gatunki ryb, udogodnienia i informacje przydatne przed wyprawą.",
     images: ["/og-image.jpg"],
@@ -63,131 +77,106 @@ export const metadata: Metadata = {
   },
 };
 
-type PublicLakesListPageProps = {
-  searchParams?: Promise<{
-    page?: string;
-    q?: string;
-    owner?: string;
-    fishing?: string;
-    voivodeship?: string;
-    fish?: string;
-    amenities?: string;
-    sort?: string;
-  }>;
+type PublicLakesPageProps = {
+  searchParams?: Promise<LakeExplorerSearchParams>;
 };
 
-
-function getStringParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
-}
-
-function getPageParam(value: string | string[] | undefined) {
-  const parsed = Number.parseInt(getStringParam(value), 10);
-
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-}
-
-function getAmenitiesParam(value: string | string[] | undefined) {
-  const raw = getStringParam(value);
-
-  if (!raw || raw === "none") {
-    return [];
-  }
-
-  return raw
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-
-export default async function PublicLakesListPage({
+export default async function PublicLakesPage({
   searchParams,
-}: PublicLakesListPageProps) {
-  const params = (await searchParams) ?? {};
+}: PublicLakesPageProps) {
+  const params =
+    (await searchParams) ?? {};
 
-  const initialFilters = {
-    search: getStringParam(params.q),
-    ownerType: getStringParam(params.owner) || "all",
-    fishingType: getStringParam(params.fishing) || "all",
-    voivodeship: getStringParam(params.voivodeship) || "all",
-    fish: getStringParam(params.fish) || "all",
-    amenities: getAmenitiesParam(params.amenities),
-    sort: getStringParam(params.sort) || "rating-desc",
+  const parsed =
+    parseLakeExplorerSearchParams(
+      params
+    );
+
+  const query = {
+    ...parsed.filters,
+    bounds: parsed.bounds,
+    page: 1,
+    pageSize:
+      LAKE_EXPLORER_PAGE_SIZE,
   };
 
-  const [result, filterOptions] = await Promise.all([
-    getPaginatedLakes({
-      page: getPageParam(params.page),
-      search: initialFilters.search,
-      ownerType: initialFilters.ownerType,
-      fishingType: initialFilters.fishingType,
-      voivodeship: initialFilters.voivodeship,
-      fish: initialFilters.fish,
-      amenities: initialFilters.amenities,
-      sort: initialFilters.sort,
-    }),
+  const [
+    result,
+    mapResult,
+    filterOptions,
+  ] = await Promise.all([
+    getLakeExplorerResults(query),
+    getLakeExplorerMapResults(query),
     getLakeFilterOptions(),
   ]);
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
+    <main className="min-h-screen bg-background text-text">
       <PublicHeader />
 
-      <section className="relative overflow-hidden border-b border-slate-200 bg-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_35%),radial-gradient(circle_at_top_right,#ccfbf1,transparent_30%)]" />
+      <section className="relative overflow-hidden border-b border-border bg-surface">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,var(--rybio-blue-100),transparent_38%),radial-gradient(circle_at_top_right,var(--rybio-aqua-100),transparent_32%)] opacity-80" />
 
-        <div className="relative mx-auto max-w-[1500px] px-4 py-14 sm:px-6 lg:px-8 lg:py-20">
+        <div className="relative mx-auto max-w-[1720px] px-4 py-10 sm:px-6 sm:py-12 lg:px-8 lg:py-14">
           <div className="max-w-4xl">
-            <p className="mb-5 inline-flex rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-bold text-blue-700 shadow-sm">
-              Publiczna baza łowisk dla wędkarzy
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">
+              Baza łowisk w Polsce
             </p>
 
-            <h1 className="text-4xl font-black tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
-              Łowiska w Polsce – znajdź miejsce na kolejną wyprawę
+            <h1 className="mt-3 font-display text-4xl font-extrabold tracking-[-0.045em] text-text sm:text-5xl">
+              Znajdź łowisko na
+              kolejną wyprawę
             </h1>
 
-            <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-              Przeglądaj łowiska w Polsce, sprawdzaj gatunki ryb, typ łowiska,
-              udogodnienia, lokalizację i podstawowe informacje przed wyjazdem
-              nad wodę. Rankingi, oceny i ulubione są dostępne po zalogowaniu.
+            <p className="mt-5 max-w-3xl text-base leading-7 text-text-secondary sm:text-lg">
+              Przeglądaj łowiska w
+              całej Polsce, filtruj
+              miejsca według gatunków,
+              rodzaju i udogodnień, a
+              następnie odkrywaj je
+              bezpośrednio na mapie.
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <ButtonLink
                 href="#lista-lowisk"
-                className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-6 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+                variant="primary"
               >
                 Przeglądaj łowiska
-              </a>
+              </ButtonLink>
 
-              <Link
+              <ButtonLink
                 href="/register"
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-4 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                variant="outline"
               >
-                Dołącz do Rybio
-              </Link>
+                Załóż darmowe konto
+              </ButtonLink>
+            </div>
+
+            <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-border bg-surface/85 px-3 py-2 text-xs font-semibold text-text-secondary shadow-card backdrop-blur">
+              <span className="h-2 w-2 rounded-full bg-aqua-500" />
+              {
+                filterOptions.allLakesCount
+              }{" "}
+              łowisk w bazie Rybio
             </div>
           </div>
         </div>
       </section>
 
-      <PublicLakesPage
-        lakes={result.lakes}
-        initialPagination={{
-          page: result.page,
-          pageSize: result.pageSize,
-          totalCount: result.totalCount,
-          totalPages: result.totalPages,
+      <LakesExplorer
+        mode="public"
+        detailBasePath="/lowiska-w-polsce"
+        initialData={{
+          result,
+          mapResult,
+          filterOptions,
+          filters:
+            parsed.filters,
+          bounds: parsed.bounds,
+          mobileView:
+            parsed.mobileView,
         }}
-        filterOptions={filterOptions}
-        initialOwnerType={initialFilters.ownerType}
-        initialFishingType={initialFilters.fishingType}
-        initialVoivodeship={initialFilters.voivodeship}
-        initialFish={initialFilters.fish}
-        initialAmenities={initialFilters.amenities}
-        initialSearch={initialFilters.search}
-        initialSort={initialFilters.sort}
       />
 
       <PublicFooter />

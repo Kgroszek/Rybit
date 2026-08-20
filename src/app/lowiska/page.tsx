@@ -1,98 +1,97 @@
+import { redirect } from "next/navigation";
+
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { LakesPage } from "@/components/dashboard/LakesPage";
+import { LakesExplorer } from "@/components/lakes/LakesExplorer";
+import {
+  LAKE_EXPLORER_PAGE_SIZE,
+} from "@/components/lakes/constants";
+import {
+  getLakeExplorerMapResults,
+  getLakeExplorerResults,
+} from "@/lib/lake-explorer";
+import {
+  parseLakeExplorerSearchParams,
+  type LakeExplorerSearchParams,
+} from "@/lib/lake-explorer-params";
 import {
   getLakeFilterOptions,
-  getPaginatedLakes,
 } from "@/lib/lakes";
+import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 
 type LowiskaPageProps = {
-  searchParams?: Promise<{
-    view?: string;
-    page?: string;
-    q?: string;
-    owner?: string;
-    fishing?: string;
-    voivodeship?: string;
-    fish?: string;
-    amenities?: string;
-    sort?: string;
-  }>;
+  searchParams?: Promise<LakeExplorerSearchParams>;
 };
-
-
-function getStringParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
-}
-
-function getPageParam(value: string | string[] | undefined) {
-  const parsed = Number.parseInt(getStringParam(value), 10);
-
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
-}
-
-function getAmenitiesParam(value: string | string[] | undefined) {
-  const raw = getStringParam(value);
-
-  if (!raw || raw === "none") {
-    return [];
-  }
-
-  return raw
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
 
 export default async function LowiskaPage({
   searchParams,
 }: LowiskaPageProps) {
-  const params = (await searchParams) ?? {};
+  const supabase =
+    await createClient();
 
-  const initialView =
-    params.view === "map"
-      ? "map"
-      : params.view === "list"
-        ? "list"
-        : "grid";
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const initialFilters = {
-    search: getStringParam(params.q),
-    ownerType: getStringParam(params.owner) || "all",
-    fishingType: getStringParam(params.fishing) || "all",
-    voivodeship: getStringParam(params.voivodeship) || "all",
-    fish: getStringParam(params.fish) || "all",
-    amenities: getAmenitiesParam(params.amenities),
-    sort: getStringParam(params.sort) || "rating",
+  if (!user) {
+    redirect("/login");
+  }
+
+  const params =
+    (await searchParams) ?? {};
+
+  const parsed =
+    parseLakeExplorerSearchParams(
+      params
+    );
+
+  const query = {
+    ...parsed.filters,
+    bounds: parsed.bounds,
+    page: 1,
+    pageSize:
+      LAKE_EXPLORER_PAGE_SIZE,
   };
 
-  const [result, filterOptions] = await Promise.all([
-    getPaginatedLakes({
-      page: getPageParam(params.page),
-      search: initialFilters.search,
-      ownerType: initialFilters.ownerType,
-      fishingType: initialFilters.fishingType,
-      voivodeship: initialFilters.voivodeship,
-      fish: initialFilters.fish,
-      amenities: initialFilters.amenities,
-      sort: initialFilters.sort,
-    }),
+  const [
+    result,
+    mapResult,
+    filterOptions,
+    favouriteRows,
+  ] = await Promise.all([
+    getLakeExplorerResults(query),
+    getLakeExplorerMapResults(query),
     getLakeFilterOptions(),
+    prisma.favourite.findMany({
+      where: {
+        userId: user.id,
+      },
+      select: {
+        lakeId: true,
+      },
+    }),
   ]);
 
   return (
     <DashboardLayout>
-      <LakesPage
-        lakes={result.lakes}
-        initialView={initialView}
-        initialPagination={{
-          page: result.page,
-          pageSize: result.pageSize,
-          totalCount: result.totalCount,
-          totalPages: result.totalPages,
+      <LakesExplorer
+        mode="authenticated"
+        detailBasePath="/lowiska"
+        initialData={{
+          result,
+          mapResult,
+          filterOptions,
+          filters:
+            parsed.filters,
+          bounds: parsed.bounds,
+          mobileView:
+            parsed.mobileView,
+          favouriteLakeIds:
+            favouriteRows.map(
+              (item) =>
+                item.lakeId
+            ),
         }}
-        filterOptions={filterOptions}
-        initialFilters={initialFilters}
       />
     </DashboardLayout>
   );
