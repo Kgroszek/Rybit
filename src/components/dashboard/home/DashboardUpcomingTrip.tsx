@@ -9,10 +9,7 @@ import {
   formatTripDateRange,
 } from "@/components/dashboard/home/utils";
 import { ButtonLink } from "@/components/ui/Button";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 
 export function DashboardUpcomingTrip({
   trip,
@@ -28,7 +25,7 @@ export function DashboardUpcomingTrip({
       <CardContent>
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">
               Najbliższa wyprawa
             </p>
 
@@ -46,18 +43,10 @@ export function DashboardUpcomingTrip({
 
               <Pill>
                 <CalendarIcon className="h-4 w-4" />
-                {formatTripDateRange(
-                  trip.startsAt,
-                  trip.endsAt
-                )}
+                {formatTripDateRange(trip.startsAt, trip.endsAt)}
               </Pill>
 
-              <Pill>
-                {formatTimeUntilTrip(
-                  trip.startsAt,
-                  now
-                )}
-              </Pill>
+              <Pill>{formatTimeUntilTrip(trip.startsAt, now)}</Pill>
             </div>
 
             <div className="mt-5 grid max-w-xl gap-2 sm:grid-cols-2">
@@ -80,10 +69,7 @@ export function DashboardUpcomingTrip({
             </div>
           </div>
 
-          <ButtonLink
-            href={`/wyprawy/${trip.id}`}
-            variant="dark"
-          >
+          <ButtonLink href={`/wyprawy/${trip.id}`} variant="primary">
             Otwórz wyprawę
           </ButtonLink>
         </div>
@@ -92,33 +78,19 @@ export function DashboardUpcomingTrip({
   );
 }
 
-function Pill({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function Pill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-surface-muted px-3 py-1.5 text-xs font-bold text-text-secondary">
+    <span className="inline-flex min-h-8 items-center gap-1.5 rounded-full border border-border bg-surface-muted px-3 py-1.5 text-xs font-semibold text-text-secondary">
       {children}
     </span>
   );
 }
 
-function Metric({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-control bg-surface-muted px-4 py-3">
-      <p className="text-xs font-semibold text-text-muted">
-        {label}
-      </p>
-      <p className="mt-1 text-sm font-extrabold text-text">
-        {value}
-      </p>
+      <p className="text-xs font-medium text-text-muted">{label}</p>
+      <p className="mt-1 text-sm font-bold text-text">{value}</p>
     </div>
   );
 }

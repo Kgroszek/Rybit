@@ -215,7 +215,7 @@ export function getPriorityCard({
   preparation,
   catchesCount,
   savedLakesCount,
-  completedTripsCount,
+  tripsCount,
   now,
 }: {
   pendingInvitation: PendingInvitation | null;
@@ -225,7 +225,7 @@ export function getPriorityCard({
   preparation: PreparationSummary | null;
   catchesCount: number;
   savedLakesCount: number;
-  completedTripsCount: number;
+  tripsCount: number;
   now: Date;
 }): PriorityCardData {
   if (pendingInvitation) {
@@ -371,7 +371,7 @@ export function getPriorityCard({
   const isNewUser =
     catchesCount === 0 &&
     savedLakesCount === 0 &&
-    completedTripsCount === 0;
+    tripsCount === 0;
 
   if (isNewUser) {
     return {

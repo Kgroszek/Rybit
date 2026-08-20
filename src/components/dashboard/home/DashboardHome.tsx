@@ -46,50 +46,32 @@ export function DashboardHome({
 }: DashboardHomeProps) {
   return (
     <div className="space-y-9 pb-8 lg:space-y-11">
-      <DashboardMapSection
-        lakes={lakes}
-      />
+      <DashboardMapSection lakes={lakes} />
 
-      <DashboardPriorityCard
-        card={priorityCard}
-      />
+      <DashboardPriorityCard card={priorityCard} />
 
-      <DashboardActivityPanel
-        stats={stats}
-      />
-
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
-        <DashboardTodayPanel
-          tasks={todayTasks}
-        />
+      <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
+        <DashboardTodayPanel tasks={todayTasks} />
 
         <DashboardQuickActions
-          quickCatchHref={
-            quickCatchHref
-          }
-          hasActiveTrip={
-            hasActiveTrip
-          }
+          quickCatchHref={quickCatchHref}
+          hasActiveTrip={hasActiveTrip}
         />
       </section>
+
+      <DashboardActivityPanel stats={stats} />
 
       {secondaryTrip && (
         <DashboardUpcomingTrip
           trip={secondaryTrip.trip}
-          preparation={
-            secondaryTrip.preparation
-          }
+          preparation={secondaryTrip.preparation}
           now={now}
         />
       )}
 
-      <RecentCatches
-        catches={recentCatches}
-      />
+      <RecentCatches catches={recentCatches} />
 
-      <RecommendedLakes
-        lakes={lakes}
-      />
+      <RecommendedLakes lakes={lakes} />
     </div>
   );
 }

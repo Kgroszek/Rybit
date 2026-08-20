@@ -14,50 +14,25 @@ import { SectionHeader } from "@/components/ui/SectionHeader";
 import { isValidLocation } from "@/lib/location";
 import type { LakeListDto } from "@/lib/lakes";
 
-export function DashboardMapSection({
-  lakes,
-}: {
-  lakes: LakeListDto[];
-}) {
-  const [ownerType, setOwnerType] =
-    useState<LakeOwnerFilter>("all");
-  const [
-    fishingType,
-    setFishingType,
-  ] = useState<LakeFishingFilter>("all");
+export function DashboardMapSection({ lakes }: { lakes: LakeListDto[] }) {
+  const [ownerType, setOwnerType] = useState<LakeOwnerFilter>("all");
+  const [fishingType, setFishingType] = useState<LakeFishingFilter>("all");
 
   const filteredLakes = useMemo(
     () =>
       lakes.filter((lake) => {
-        if (
-          !isValidLocation({
-            lat: lake.lat,
-            lng: lake.lng,
-          })
-        ) {
-          return false;
-        }
+        if (!isValidLocation({ lat: lake.lat, lng: lake.lng })) return false;
 
-        const ownerMatches =
-          ownerType === "all" ||
-          lake.type === ownerType;
-
+        const ownerMatches = ownerType === "all" || lake.type === ownerType;
         const fishingMatches =
-          fishingType === "all" ||
-          lake.fishingType ===
-            fishingType;
+          fishingType === "all" || lake.fishingType === fishingType;
 
-        return (
-          ownerMatches &&
-          fishingMatches
-        );
+        return ownerMatches && fishingMatches;
       }),
-    [
-      lakes,
-      ownerType,
-      fishingType,
-    ]
+    [lakes, ownerType, fishingType]
   );
+
+  const hasFilters = ownerType !== "all" || fishingType !== "all";
 
   function clearFilters() {
     setOwnerType("all");
@@ -71,11 +46,7 @@ export function DashboardMapSection({
         title="Znajdź miejsce na kolejny wyjazd"
         description="Przeglądaj łowiska, filtruj je według rodzaju i typu oraz sprawdzaj miejsca najbliżej Twojej lokalizacji."
         action={
-          <ButtonLink
-            href="/lowiska"
-            variant="outline"
-            size="sm"
-          >
+          <ButtonLink href="/lowiska" variant="outline" size="sm">
             Zobacz wszystkie
           </ButtonLink>
         }
@@ -85,32 +56,20 @@ export function DashboardMapSection({
         <DashboardMapFilters
           ownerType={ownerType}
           fishingType={fishingType}
-          resultsCount={
-            filteredLakes.length
-          }
-          onOwnerTypeChange={
-            setOwnerType
-          }
-          onFishingTypeChange={
-            setFishingType
-          }
+          resultsCount={filteredLakes.length}
+          onOwnerTypeChange={setOwnerType}
+          onFishingTypeChange={setFishingType}
           onClear={clearFilters}
         />
       </div>
 
       <div className="mt-4 grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0">
-          <DashboardMap
-            lakes={filteredLakes}
-          />
+          <DashboardMap lakes={filteredLakes} fitToResults={hasFilters} />
         </div>
 
         <aside className="min-h-0">
-          <NearestLakes
-            lakes={lakes}
-            limit={5}
-            fullHeight
-          />
+          <NearestLakes lakes={lakes} limit={5} fullHeight />
         </aside>
       </div>
     </section>

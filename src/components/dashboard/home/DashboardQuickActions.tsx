@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 import { BackpackIcon } from "@/components/icons/BackpackIcon";
+import { CalendarIcon } from "@/components/icons/CalendarIcon";
 import { FishIcon } from "@/components/icons/FishIcon";
-import { HookIcon } from "@/components/icons/HookIcon";
 import { MapIcon } from "@/components/icons/MapIcon";
 import {
   Card,
@@ -17,11 +17,7 @@ type Action = {
   href: string;
   label: string;
   description: string;
-  icon:
-    | "trip"
-    | "catch"
-    | "map"
-    | "gear";
+  icon: "trip" | "catch" | "map" | "gear";
   emphasized?: boolean;
 };
 
@@ -36,8 +32,7 @@ export function DashboardQuickActions({
     {
       href: "/wyprawy",
       label: "Zaplanuj wyprawę",
-      description:
-        "Termin i przygotowanie",
+      description: "Termin i przygotowanie",
       icon: "trip",
     },
     {
@@ -58,36 +53,27 @@ export function DashboardQuickActions({
     {
       href: "/ekwipunek",
       label: "Mój ekwipunek",
-      description:
-        "Sprzęt i przygotowanie",
+      description: "Sprzęt i przygotowanie",
       icon: "gear",
     },
   ];
 
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader>
-        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">
+        <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">
           Szybkie akcje
         </p>
-
-        <CardTitle className="mt-1">
-          Przejdź od razu
-        </CardTitle>
-
+        <CardTitle className="mt-1">Przejdź od razu</CardTitle>
         <CardDescription>
-          Najczęściej używane funkcje
-          zawsze pod ręką.
+          Najczęściej używane funkcje zawsze pod ręką.
         </CardDescription>
       </CardHeader>
 
       <CardContent className="pt-4">
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-border bg-border">
           {actions.map((action) => (
-            <QuickAction
-              key={action.label}
-              {...action}
-            />
+            <QuickAction key={action.label} {...action} />
           ))}
         </div>
       </CardContent>
@@ -106,9 +92,8 @@ function QuickAction({
     <Link
       href={href}
       className={cn(
-        "group min-h-[132px] bg-surface p-4 transition-colors duration-150 hover:bg-primary-50 sm:p-5",
-        emphasized &&
-          "bg-primary-50"
+        "group min-h-[112px] bg-surface p-4 transition-colors duration-150 hover:bg-primary-50",
+        emphasized && "bg-primary-50"
       )}
     >
       <div
@@ -122,10 +107,7 @@ function QuickAction({
         <ActionIcon type={icon} />
       </div>
 
-      <p className="mt-4 text-sm font-extrabold text-text">
-        {label}
-      </p>
-
+      <p className="mt-3 text-sm font-bold text-text">{label}</p>
       <p className="mt-1 text-xs leading-5 text-text-secondary">
         {description}
       </p>
@@ -133,40 +115,14 @@ function QuickAction({
   );
 }
 
-function ActionIcon({
-  type,
-}: {
-  type: Action["icon"];
-}) {
+function ActionIcon({ type }: { type: Action["icon"] }) {
   const className = "h-5 w-5";
 
-  if (type === "trip") {
-    return (
-      <BackpackIcon
-        className={className}
-      />
-    );
-  }
-
+  if (type === "trip") return <CalendarIcon className={className} />;
   if (type === "catch") {
-    return (
-      <FishIcon
-        className={`${className} -scale-x-100`}
-      />
-    );
+    return <FishIcon className={`${className} -scale-x-100`} />;
   }
+  if (type === "map") return <MapIcon className={className} />;
 
-  if (type === "map") {
-    return (
-      <MapIcon
-        className={className}
-      />
-    );
-  }
-
-  return (
-    <HookIcon
-      className={className}
-    />
-  );
+  return <BackpackIcon className={className} />;
 }
