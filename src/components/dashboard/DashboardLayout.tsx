@@ -29,51 +29,51 @@ const emptyAdminNotificationCounts: AdminNotificationCounts = {
   pendingOwnerClaimsCount: 0,
 };
 
-const getAdminNotificationCounts = unstable_cache(
-  async (): Promise<AdminNotificationCounts> => {
-    const [
-      pendingSubmissionsCount,
-      pendingCorrectionsCount,
-      pendingCatchReportsCount,
-      pendingOwnerClaimsCount,
-    ] = await Promise.all([
-      prisma.lakeSubmission.count({
-        where: {
-          status: "pending",
-        },
-      }),
+const getAdminNotificationCounts =
+  unstable_cache(
+    async (): Promise<AdminNotificationCounts> => {
+      const [
+        pendingSubmissionsCount,
+        pendingCorrectionsCount,
+        pendingCatchReportsCount,
+        pendingOwnerClaimsCount,
+      ] = await Promise.all([
+        prisma.lakeSubmission.count({
+          where: {
+            status: "pending",
+          },
+        }),
+        prisma.lakeCorrectionReport.count({
+          where: {
+            status: "pending",
+          },
+        }),
+        prisma.fishingCatchReport.count({
+          where: {
+            status: "pending",
+          },
+        }),
+        prisma.lakeOwnerClaim.count({
+          where: {
+            status: "pending",
+          },
+        }),
+      ]);
 
-      prisma.lakeCorrectionReport.count({
-        where: {
-          status: "pending",
-        },
-      }),
-
-      prisma.fishingCatchReport.count({
-        where: {
-          status: "pending",
-        },
-      }),
-
-      prisma.lakeOwnerClaim.count({
-        where: {
-          status: "pending",
-        },
-      }),
-    ]);
-
-    return {
-      pendingSubmissionsCount,
-      pendingCorrectionsCount,
-      pendingCatchReportsCount,
-      pendingOwnerClaimsCount,
-    };
-  },
-  ["dashboard-admin-notification-counts"],
-  {
-    revalidate: 30,
-  }
-);
+      return {
+        pendingSubmissionsCount,
+        pendingCorrectionsCount,
+        pendingCatchReportsCount,
+        pendingOwnerClaimsCount,
+      };
+    },
+    [
+      "dashboard-admin-notification-counts",
+    ],
+    {
+      revalidate: 30,
+    }
+  );
 
 function getUserDisplayName(user: {
   email?: string | null;
@@ -83,23 +83,35 @@ function getUserDisplayName(user: {
     display_name?: unknown;
   };
 }) {
-  if (typeof user.user_metadata?.name === "string") {
+  if (
+    typeof user.user_metadata
+      ?.name === "string"
+  ) {
     return user.user_metadata.name;
   }
 
-  if (typeof user.user_metadata?.full_name === "string") {
+  if (
+    typeof user.user_metadata
+      ?.full_name === "string"
+  ) {
     return user.user_metadata.full_name;
   }
 
-  if (typeof user.user_metadata?.display_name === "string") {
+  if (
+    typeof user.user_metadata
+      ?.display_name === "string"
+  ) {
     return user.user_metadata.display_name;
   }
 
   return null;
 }
 
-export async function DashboardLayout({ children }: DashboardLayoutProps) {
-  const supabase = await createClient();
+export async function DashboardLayout({
+  children,
+}: DashboardLayoutProps) {
+  const supabase =
+    await createClient();
 
   const {
     data: { user },
@@ -109,10 +121,16 @@ export async function DashboardLayout({ children }: DashboardLayoutProps) {
     redirect("/login");
   }
 
-  const isAdmin = isAdminUser(user);
+  const isAdmin =
+    isAdminUser(user);
 
-  const [adminNotificationCounts, ownedLakesCount] = await Promise.all([
-    isAdmin ? getAdminNotificationCounts() : emptyAdminNotificationCounts,
+  const [
+    adminNotificationCounts,
+    ownedLakesCount,
+  ] = await Promise.all([
+    isAdmin
+      ? getAdminNotificationCounts()
+      : emptyAdminNotificationCounts,
 
     prisma.lakeOwner.count({
       where: {
@@ -122,76 +140,70 @@ export async function DashboardLayout({ children }: DashboardLayoutProps) {
     }),
   ]);
 
-  const isOwner = ownedLakesCount > 0;
-
-  const {
-    pendingSubmissionsCount,
-    pendingCorrectionsCount,
-    pendingCatchReportsCount,
-    pendingOwnerClaimsCount,
-  } = adminNotificationCounts;
+  const isOwner =
+    ownedLakesCount > 0;
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
+    <main className="min-h-screen bg-background text-text">
       <div className="flex min-h-screen">
         <Sidebar
           isAdmin={isAdmin}
           isOwner={isOwner}
-          pendingSubmissionsCount={pendingSubmissionsCount}
-          pendingCorrectionsCount={pendingCorrectionsCount}
-          pendingCatchReportsCount={pendingCatchReportsCount}
-          pendingOwnerClaimsCount={pendingOwnerClaimsCount}
+          {...adminNotificationCounts}
         />
 
-        <section className="min-w-0 flex-1 px-4 pb-32 pt-4 sm:px-5 lg:p-8">
-          <DashboardTopbar
-            userName={getUserDisplayName(user)}
-            userEmail={user.email}
-          />
+        <section className="min-w-0 flex-1 px-4 pb-32 pt-4 sm:px-5 lg:px-7 lg:py-7 2xl:px-8">
+          <div className="mx-auto w-full max-w-[1720px]">
+            <DashboardTopbar
+              userName={getUserDisplayName(
+                user
+              )}
+              userEmail={user.email}
+            />
 
-          {children}
+            {children}
 
-          <footer className="mt-12 border-t border-slate-200 pt-6">
-            <div className="flex flex-col gap-3 text-sm text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-              <p>
-                © {new Date().getFullYear()} Rybio. Wszystkie prawa
-                zastrzeżone.
-              </p>
+            <footer className="mt-12 border-t border-border pt-6">
+              <div className="flex flex-col gap-3 text-sm text-text-muted sm:flex-row sm:items-center sm:justify-between">
+                <p>
+                  ©{" "}
+                  {new Date().getFullYear()}{" "}
+                  Rybio. Wszystkie prawa
+                  zastrzeżone.
+                </p>
 
-              <div className="flex flex-wrap gap-4">
-                <Link
-                  href="/regulamin"
-                  className="font-semibold transition hover:text-blue-600"
-                >
-                  Regulamin
-                </Link>
+                <div className="flex flex-wrap gap-4">
+                  <Link
+                    href="/regulamin"
+                    className="font-semibold transition-colors hover:text-primary"
+                  >
+                    Regulamin
+                  </Link>
 
-                <Link
-                  href="/polityka-prywatnosci"
-                  className="font-semibold transition hover:text-blue-600"
-                >
-                  Polityka prywatności
-                </Link>
+                  <Link
+                    href="/polityka-prywatnosci"
+                    className="font-semibold transition-colors hover:text-primary"
+                  >
+                    Polityka prywatności
+                  </Link>
 
-                <a
-                  href="mailto:kontakt@rybio.pl"
-                  className="font-semibold transition hover:text-blue-600"
-                >
-                  Kontakt
-                </a>
+                  <a
+                    href="mailto:kontakt@rybio.pl"
+                    className="font-semibold transition-colors hover:text-primary"
+                  >
+                    Kontakt
+                  </a>
+                </div>
               </div>
-            </div>
-          </footer>
+            </footer>
+          </div>
         </section>
       </div>
 
       <MobileBottomNav
         isAdmin={isAdmin}
         isOwner={isOwner}
-        pendingSubmissionsCount={pendingSubmissionsCount}
-        pendingCorrectionsCount={pendingCorrectionsCount}
-        pendingCatchReportsCount={pendingCatchReportsCount}
-        pendingOwnerClaimsCount={pendingOwnerClaimsCount}
+        {...adminNotificationCounts}
       />
     </main>
   );

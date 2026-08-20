@@ -1,10 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import { BellIcon } from "@/components/icons/BellIcon";
 import { BellRingIcon } from "@/components/icons/BellRingIcon";
+import { PlusIcon } from "@/components/icons/PlusIcon";
+import { buttonClassName } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { cn } from "@/lib/cn";
 
 type DashboardTopbarProps = {
   userName?: string | null;
@@ -15,126 +22,168 @@ export function DashboardTopbar({
   userName,
   userEmail,
 }: DashboardTopbarProps) {
-  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const [
+    unreadNotificationsCount,
+    setUnreadNotificationsCount,
+  ] = useState(0);
 
-  const displayName = userName || "Wędkarz";
-  const initials = getInitials(displayName || userEmail || "R");
+  const displayName =
+    userName || "Wędkarz";
+
+  const initials = getInitials(
+    displayName ||
+      userEmail ||
+      "R"
+  );
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadUnreadNotificationsCount() {
+    async function loadCount() {
       try {
-        const response = await fetch("/api/notifications/unread-count", {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          "/api/notifications/unread-count",
+          {
+            cache: "no-store",
+          }
+        );
 
         if (!response.ok) {
           return;
         }
 
-        const data = (await response.json()) as {
-          count?: number;
-          unreadCount?: number;
-        };
+        const data =
+          (await response.json()) as {
+            count?: number;
+            unreadCount?: number;
+          };
 
-        const nextCount = Number(data.count ?? data.unreadCount ?? 0);
+        const nextCount = Number(
+          data.count ??
+            data.unreadCount ??
+            0
+        );
 
         if (isMounted) {
           setUnreadNotificationsCount(
-            Number.isFinite(nextCount) ? Math.max(0, nextCount) : 0
+            Number.isFinite(nextCount)
+              ? Math.max(
+                  0,
+                  nextCount
+                )
+              : 0
           );
         }
       } catch {
-        // Nie blokujemy topbara, jeśli licznik chwilowo nie może się pobrać.
+        // Licznik nie blokuje dashboardu.
       }
     }
 
-    function refreshNotificationsCount() {
-      void loadUnreadNotificationsCount();
+    function refresh() {
+      void loadCount();
     }
 
     function handleVisibilityChange() {
-      if (document.visibilityState === "visible") {
-        void loadUnreadNotificationsCount();
+      if (
+        document.visibilityState ===
+        "visible"
+      ) {
+        void loadCount();
       }
     }
 
-    void loadUnreadNotificationsCount();
+    void loadCount();
 
-    window.addEventListener("focus", refreshNotificationsCount);
+    window.addEventListener(
+      "focus",
+      refresh
+    );
     window.addEventListener(
       "notifications:updated",
-      refreshNotificationsCount
+      refresh
     );
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    );
 
     return () => {
       isMounted = false;
-      window.removeEventListener("focus", refreshNotificationsCount);
+      window.removeEventListener(
+        "focus",
+        refresh
+      );
       window.removeEventListener(
         "notifications:updated",
-        refreshNotificationsCount
+        refresh
       );
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      );
     };
   }, []);
 
-  const hasUnreadNotifications = unreadNotificationsCount > 0;
+  const hasUnread =
+    unreadNotificationsCount > 0;
 
   return (
-    <header className="mb-6 hidden border-b border-slate-200 bg-slate-50/90 py-4 backdrop-blur lg:block lg:border-b-0 lg:bg-transparent lg:py-0">
-      <div className="relative min-h-12">
+    <header className="mb-6 hidden lg:block">
+      <div className="grid items-center gap-4 lg:grid-cols-[minmax(320px,1fr)_auto] xl:grid-cols-[1fr_minmax(380px,520px)_1fr]">
+        <div className="hidden xl:block" />
+
         <form
           action="/lowiska"
-          className="w-full xl:absolute xl:left-1/2 xl:top-0 xl:w-[520px] xl:-translate-x-1/2"
+          className="min-w-0"
         >
-          <input
+          <Input
             name="search"
             type="search"
             placeholder="Szukaj łowiska, ryby, lokalizacji..."
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+            className="h-11"
           />
         </form>
 
-        <div className="mt-3 flex min-w-0 items-center gap-2 xl:absolute xl:right-0 xl:top-0 xl:mt-0 xl:justify-end">
+        <div className="flex items-center justify-end gap-2">
           <Link
             href="/lowiska/zglos"
-            className="inline-flex h-12 flex-1 items-center justify-center rounded-2xl bg-blue-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 sm:flex-none"
+            className={buttonClassName({
+              variant: "primary",
+              size: "md",
+              className: "h-11",
+            })}
           >
-            + Zgłoś łowisko
+            <PlusIcon className="h-4 w-4" />
+            Zgłoś łowisko
           </Link>
 
           <Link
             href="/powiadomienia"
-            className={`relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border transition ${
-              hasUnreadNotifications
-                ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
-                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600"
-            }`}
             aria-label={
-              hasUnreadNotifications
+              hasUnread
                 ? `Powiadomienia: ${unreadNotificationsCount} nieprzeczytanych`
                 : "Powiadomienia"
             }
+            className={cn(
+              buttonClassName({
+                variant: hasUnread
+                  ? "secondary"
+                  : "outline",
+                size: "md",
+              }),
+              "relative h-11 w-11 px-0"
+            )}
           >
-            {hasUnreadNotifications ? (
+            {hasUnread ? (
               <BellRingIcon className="h-5 w-5" />
             ) : (
               <BellIcon className="h-5 w-5" />
             )}
 
-            {hasUnreadNotifications && (
-              <span
-                className="
-                  absolute -right-1.5 -top-1.5
-                  flex min-h-5 min-w-5 items-center justify-center
-                  rounded-full bg-red-500 px-1.5
-                  text-[10px] font-bold leading-none text-white
-                  shadow-sm ring-2 ring-white
-                "
-              >
-                {unreadNotificationsCount > 99
+            {hasUnread && (
+              <span className="absolute -right-1.5 -top-1.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold leading-none text-white ring-2 ring-background">
+                {unreadNotificationsCount >
+                99
                   ? "99+"
                   : unreadNotificationsCount}
               </span>
@@ -143,18 +192,18 @@ export function DashboardTopbar({
 
           <Link
             href="/profil"
-            className="hidden h-12 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-3 transition hover:bg-slate-50 sm:flex"
+            className="hidden h-11 items-center gap-3 rounded-control border border-border bg-surface px-2.5 transition-colors hover:bg-surface-muted 2xl:flex"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-500 text-xs font-bold text-white">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-aqua-500 text-xs font-bold text-white">
               {initials}
             </span>
 
             <span className="min-w-0">
-              <span className="block max-w-[140px] truncate text-sm font-bold text-slate-950">
+              <span className="block max-w-[130px] truncate text-sm font-bold text-text">
                 {displayName}
               </span>
 
-              <span className="block text-xs font-medium text-slate-400">
+              <span className="block text-[11px] font-medium text-text-muted">
                 Wędkarz
               </span>
             </span>
@@ -165,15 +214,22 @@ export function DashboardTopbar({
   );
 }
 
-function getInitials(value: string) {
-  const parts = value.trim().split(" ").filter(Boolean);
+function getInitials(
+  value: string
+) {
+  const parts = value
+    .trim()
+    .split(" ")
+    .filter(Boolean);
 
   if (parts.length === 0) {
     return "R";
   }
 
   if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
+    return parts[0]
+      .slice(0, 2)
+      .toUpperCase();
   }
 
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();

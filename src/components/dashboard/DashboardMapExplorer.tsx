@@ -1,7 +1,13 @@
 "use client";
 
 import L from "leaflet";
-import { useCallback, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   MapContainer,
   Marker,
@@ -10,6 +16,12 @@ import {
   useMap,
 } from "react-leaflet";
 
+import { Badge } from "@/components/ui/Badge";
+import {
+  Button,
+  buttonClassName,
+} from "@/components/ui/Button";
+import { useToast } from "@/components/ui/ToastProvider";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import {
   isValidLocation,
@@ -18,262 +30,226 @@ import {
 } from "@/lib/location";
 import type { LakeListDto } from "@/lib/lakes";
 
-type LakeOwnerType = "all" | "pzw" | "commercial";
-type FishingType = "all" | "general" | "spinning" | "carp";
-
-type DashboardMapExplorerProps = {
-  lakes: LakeListDto[];
-};
-
-function createLakeIcon(color: string, shadowColor: string) {
+function createLakeIcon(
+  color: string,
+  shadowColor: string,
+  size = 26
+) {
   return L.divIcon({
     className: "",
     html: `
       <div style="
-        width: 34px;
-        height: 34px;
+        width: ${size}px;
+        height: ${size}px;
         border-radius: 999px;
         background: ${color};
-        border: 4px solid white;
-        box-shadow: 0 10px 24px ${shadowColor};
+        border: 3px solid #fff;
+        box-shadow: 0 5px 14px ${shadowColor};
       "></div>
     `,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-    popupAnchor: [0, -18],
+    iconSize: [size, size],
+    iconAnchor: [
+      size / 2,
+      size / 2,
+    ],
+    popupAnchor: [
+      0,
+      -(size / 2 + 3),
+    ],
   });
 }
 
-const pzwIcon = createLakeIcon("#2563EB", "rgba(37, 99, 235, 0.35)");
-const commercialIcon = createLakeIcon(
-  "#10B981",
-  "rgba(16, 185, 129, 0.35)"
+const pzwIcon = createLakeIcon(
+  "#2F5BA7",
+  "rgba(47,91,167,.28)"
 );
 
-const userIcon = L.divIcon({
-  className: "",
-  html: `
-    <div style="
-      width: 22px;
-      height: 22px;
-      border-radius: 999px;
-      background: #F97316;
-      border: 4px solid white;
-      box-shadow: 0 8px 20px rgba(249, 115, 22, 0.35);
-    "></div>
-  `,
-  iconSize: [22, 22],
-  iconAnchor: [11, 11],
-  popupAnchor: [0, -12],
-});
+const commercialIcon = createLakeIcon(
+  "#39A875",
+  "rgba(57,168,117,.28)"
+);
 
-function hasValidLakeCoordinates(lake: LakeListDto) {
-  return (
-    Number.isFinite(lake.lat) &&
-    Number.isFinite(lake.lng) &&
-    lake.lat >= -90 &&
-    lake.lat <= 90 &&
-    lake.lng >= -180 &&
-    lake.lng <= 180
+const userIcon = createLakeIcon(
+  "#F97316",
+  "rgba(249,115,22,.32)"
+);
+
+function FitMapToLakes({
+  lakes,
+}: {
+  lakes: LakeListDto[];
+}) {
+  const map = useMap();
+
+  const boundsKey = useMemo(
+    () =>
+      lakes
+        .map(
+          (lake) =>
+            `${lake.id}:${lake.lat}:${lake.lng}`
+        )
+        .join("|"),
+    [lakes]
   );
+
+  useEffect(() => {
+    if (lakes.length === 0) {
+      return;
+    }
+
+    if (lakes.length === 1) {
+      const lake = lakes[0];
+
+      if (
+        isValidLocation({
+          lat: lake.lat,
+          lng: lake.lng,
+        })
+      ) {
+        map.setView(
+          [lake.lat, lake.lng],
+          11,
+          {
+            animate: false,
+          }
+        );
+      }
+
+      return;
+    }
+
+    const points = lakes
+      .filter((lake) =>
+        isValidLocation({
+          lat: lake.lat,
+          lng: lake.lng,
+        })
+      )
+      .map(
+        (lake) =>
+          [
+            lake.lat,
+            lake.lng,
+          ] as [number, number]
+      );
+
+    if (points.length < 2) {
+      return;
+    }
+
+    map.fitBounds(points, {
+      padding: [28, 28],
+      maxZoom: 9,
+      animate: false,
+    });
+  }, [boundsKey, lakes, map]);
+
+  return null;
 }
 
 function MapLocationButton({
   onLocationFound,
 }: {
-  onLocationFound: (location: UserLocation) => void;
+  onLocationFound: (
+    location: UserLocation
+  ) => void;
 }) {
   const map = useMap();
-  const [isLoading, setIsLoading] = useState(false);
+  const toast = useToast();
+  const [isLoading, setIsLoading] =
+    useState(false);
 
   async function handleLocate() {
     setIsLoading(true);
 
     try {
-      const location = await requestUserLocation({
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      });
+      const location =
+        await requestUserLocation({
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0,
+        });
 
       if (!isValidLocation(location)) {
-        throw new Error("Nieprawidłowe współrzędne lokalizacji.");
+        throw new Error(
+          "Nieprawidłowe współrzędne lokalizacji."
+        );
       }
 
       onLocationFound(location);
 
-      map.flyTo([location.lat, location.lng], 12, {
-        duration: 1.1,
-      });
-    } catch (error) {
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Nie udało się pobrać Twojej lokalizacji."
+      map.flyTo(
+        [
+          location.lat,
+          location.lng,
+        ],
+        12,
+        {
+          duration: 1,
+        }
       );
+    } catch (error) {
+      toast.error({
+        title:
+          "Nie udało się pobrać lokalizacji",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Sprawdź uprawnienia lokalizacji w przeglądarce i spróbuj ponownie.",
+      });
     } finally {
       setIsLoading(false);
     }
   }
 
   return (
-    <button
-      type="button"
-      onClick={handleLocate}
-      disabled={isLoading}
-      className="absolute left-12 top-4 z-[1000] rounded-xl border border-slate-200 bg-white/95 px-3.5 py-2.5 text-xs font-black text-slate-700 shadow-lg backdrop-blur transition-colors hover:bg-white disabled:cursor-wait disabled:opacity-70"
-    >
-      {isLoading ? "Ustalam lokalizację…" : "Moja lokalizacja"}
-    </button>
-  );
-}
-
-function FilterButton({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`whitespace-nowrap rounded-xl px-3 py-2 text-xs font-black transition-colors ${
-        active
-          ? "bg-blue-600 text-white shadow-sm"
-          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-      }`}
-    >
-      {label}
-    </button>
+    <div className="absolute left-[58px] top-3 z-[1000] sm:top-4">
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        onClick={handleLocate}
+        isLoading={isLoading}
+        loadingLabel="Lokalizacja…"
+        className="bg-surface/95 backdrop-blur"
+      >
+        Moja lokalizacja
+      </Button>
+    </div>
   );
 }
 
 export function DashboardMapExplorer({
   lakes,
-}: DashboardMapExplorerProps) {
-  const { userLocation, setUserLocation } = useUserLocation();
-  const [ownerType, setOwnerType] = useState<LakeOwnerType>("all");
-  const [fishingType, setFishingType] = useState<FishingType>("all");
+}: {
+  lakes: LakeListDto[];
+}) {
+  const {
+    userLocation,
+    setUserLocation,
+  } = useUserLocation();
 
-  const handleLocationFound = useCallback(
-    (location: UserLocation) => {
-      if (!isValidLocation(location)) {
-        return;
-      }
-
-      setUserLocation(location);
-    },
-    [setUserLocation]
-  );
-
-  const filteredLakes = useMemo(() => {
-    return lakes.filter((lake) => {
-      if (!hasValidLakeCoordinates(lake)) {
-        return false;
-      }
-
-      const ownerMatches =
-        ownerType === "all" || lake.type === ownerType;
-
-      const fishingMatches =
-        fishingType === "all" || lake.fishingType === fishingType;
-
-      return ownerMatches && fishingMatches;
-    });
-  }, [lakes, ownerType, fishingType]);
-
-  const hasFilters = ownerType !== "all" || fishingType !== "all";
+  const handleLocationFound =
+    useCallback(
+      (location: UserLocation) => {
+        if (
+          isValidLocation(location)
+        ) {
+          setUserLocation(location);
+        }
+      },
+      [setUserLocation]
+    );
 
   const validUserLocation =
-    userLocation && isValidLocation(userLocation)
+    userLocation &&
+    isValidLocation(userLocation)
       ? userLocation
       : null;
 
   return (
     <div>
-      <div className="mb-4 min-h-[80px] rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur">
-        <div className="grid min-h-[54px] items-center gap-x-4 gap-y-3 lg:grid-cols-2 xl:grid-cols-[max-content_minmax(0,1fr)_160px]">
-          <div className="flex min-w-0 flex-nowrap items-center gap-2">
-            <span className="mr-1 shrink-0 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-              Rodzaj
-            </span>
-
-            <FilterButton
-              label="Wszystkie"
-              active={ownerType === "all"}
-              onClick={() => setOwnerType("all")}
-            />
-            <FilterButton
-              label="PZW"
-              active={ownerType === "pzw"}
-              onClick={() => setOwnerType("pzw")}
-            />
-            <FilterButton
-              label="Komercyjne"
-              active={ownerType === "commercial"}
-              onClick={() => setOwnerType("commercial")}
-            />
-          </div>
-
-          <div className="flex min-w-0 flex-nowrap items-center gap-2 xl:border-l xl:border-slate-200 xl:pl-4">
-            <span className="mr-1 shrink-0 whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
-              Typ łowiska
-            </span>
-
-            <FilterButton
-              label="Wszystkie"
-              active={fishingType === "all"}
-              onClick={() => setFishingType("all")}
-            />
-            <FilterButton
-              label="Ogólne"
-              active={fishingType === "general"}
-              onClick={() => setFishingType("general")}
-            />
-            <FilterButton
-              label="Spinningowe"
-              active={fishingType === "spinning"}
-              onClick={() => setFishingType("spinning")}
-            />
-            <FilterButton
-              label="Karpiowe"
-              active={fishingType === "carp"}
-              onClick={() => setFishingType("carp")}
-            />
-          </div>
-
-          <div className="flex min-h-9 items-center justify-end gap-3 lg:col-span-2 xl:col-span-1 xl:w-[160px]">
-            <span className="whitespace-nowrap text-xs font-bold tabular-nums text-slate-500">
-              {filteredLakes.length}{" "}
-              {filteredLakes.length === 1 ? "wynik" : "wyników"}
-            </span>
-
-            <button
-              type="button"
-              onClick={() => {
-                setOwnerType("all");
-                setFishingType("all");
-              }}
-              disabled={!hasFilters}
-              aria-hidden={!hasFilters}
-              tabIndex={hasFilters ? 0 : -1}
-              className={`w-[52px] whitespace-nowrap text-left text-xs font-black text-blue-600 transition-colors hover:text-blue-700 ${
-                hasFilters
-                  ? "visible opacity-100"
-                  : "invisible pointer-events-none opacity-0"
-              }`}
-            >
-              Wyczyść
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="relative h-[520px] overflow-hidden rounded-[26px] border border-slate-200 bg-slate-100 shadow-sm">
+      <div className="relative h-[420px] overflow-hidden rounded-panel border border-border bg-surface-muted sm:h-[480px] lg:h-[520px]">
         <MapContainer
           center={[52.1, 19.4]}
           zoom={6}
@@ -285,34 +261,52 @@ export function DashboardMapExplorer({
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          <MapLocationButton onLocationFound={handleLocationFound} />
+          <FitMapToLakes
+            lakes={lakes}
+          />
+
+          <MapLocationButton
+            onLocationFound={
+              handleLocationFound
+            }
+          />
 
           {validUserLocation && (
             <Marker
-              position={[validUserLocation.lat, validUserLocation.lng]}
+              position={[
+                validUserLocation.lat,
+                validUserLocation.lng,
+              ]}
               icon={userIcon}
               zIndexOffset={1000}
             >
               <Popup>
-                <p className="font-bold text-slate-950">
+                <p className="font-bold text-text">
                   Twoja lokalizacja
                 </p>
               </Popup>
             </Marker>
           )}
 
-          {filteredLakes.map((lake) => (
+          {lakes.map((lake) => (
             <Marker
               key={lake.id}
-              position={[lake.lat, lake.lng]}
+              position={[
+                lake.lat,
+                lake.lng,
+              ]}
               icon={
-                lake.type === "commercial"
+                lake.type ===
+                "commercial"
                   ? commercialIcon
                   : pzwIcon
               }
               riseOnHover
             >
-              <Popup minWidth={235} maxWidth={290}>
+              <Popup
+                minWidth={235}
+                maxWidth={290}
+              >
                 <div>
                   {lake.images[0] && (
                     <img
@@ -322,48 +316,76 @@ export function DashboardMapExplorer({
                     />
                   )}
 
-                  <p className="text-base font-black text-slate-950">
+                  <p className="text-base font-extrabold text-text">
                     {lake.name}
                   </p>
 
-                  <p className="mt-1 text-sm font-semibold text-slate-500">
+                  <p className="mt-1 text-sm font-semibold text-text-secondary">
                     {lake.address.city}
-                    {lake.address.voivodeship
+                    {lake.address
+                      .voivodeship
                       ? `, woj. ${lake.address.voivodeship}`
                       : ""}
                   </p>
 
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs font-bold ${
-                        lake.type === "commercial"
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-blue-50 text-blue-700"
-                      }`}
+                    <Badge
+                      variant={
+                        lake.type ===
+                        "commercial"
+                          ? "success"
+                          : "primary"
+                      }
                     >
-                      {lake.type === "commercial" ? "Komercyjne" : "PZW"}
-                    </span>
+                      {lake.type ===
+                      "commercial"
+                        ? "Komercyjne"
+                        : "PZW"}
+                    </Badge>
 
-                    <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">
-                      {Number(lake.rating || 0) > 0
-                        ? `★ ${Number(lake.rating).toFixed(1)}`
+                    <Badge variant="neutral">
+                      {Number(
+                        lake.rating || 0
+                      ) > 0
+                        ? `Ocena ${Number(
+                            lake.rating
+                          )
+                            .toFixed(1)
+                            .replace(
+                              ".",
+                              ","
+                            )}`
                         : "Brak ocen"}
-                    </span>
+                    </Badge>
                   </div>
 
                   <div className="mt-3 grid gap-2">
-                    <a
+                    <Link
                       href={`/lowiska/${lake.slug}`}
-                      className="rounded-xl bg-blue-600 px-3 py-2 text-center text-sm font-black !text-white transition hover:bg-blue-700"
+                      className={buttonClassName(
+                        {
+                          variant:
+                            "primary",
+                          size: "sm",
+                          fullWidth: true,
+                        }
+                      )}
                     >
                       Zobacz łowisko
-                    </a>
+                    </Link>
 
                     <a
                       href={`https://www.google.com/maps/dir/?api=1&destination=${lake.lat},${lake.lng}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="rounded-xl bg-slate-100 px-3 py-2 text-center text-sm font-black !text-slate-700 transition hover:bg-slate-200"
+                      className={buttonClassName(
+                        {
+                          variant:
+                            "outline",
+                          size: "sm",
+                          fullWidth: true,
+                        }
+                      )}
                     >
                       Wyznacz trasę
                     </a>
@@ -373,30 +395,61 @@ export function DashboardMapExplorer({
             </Marker>
           ))}
         </MapContainer>
+
+        {lakes.length === 0 && (
+          <div className="pointer-events-none absolute inset-x-4 bottom-4 z-[900] mx-auto max-w-sm rounded-card border border-border bg-surface/95 px-4 py-3 text-center shadow-card backdrop-blur">
+            <p className="text-sm font-extrabold text-text">
+              Brak łowisk dla tych filtrów
+            </p>
+            <p className="mt-1 text-xs leading-5 text-text-secondary">
+              Zmień filtry, aby ponownie wyświetlić miejsca na mapie.
+            </p>
+          </div>
+        )}
       </div>
 
-      <div className="mt-3 flex h-[36px] flex-wrap items-center gap-x-5 gap-y-2 px-1 text-xs font-bold text-slate-500">
-        <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+      <div className="mt-3 flex min-h-7 flex-wrap items-center gap-x-5 gap-y-2 px-1 text-xs font-semibold text-text-secondary">
+        <span className="text-[10px] font-black uppercase tracking-[0.13em] text-text-muted">
           Legenda
         </span>
 
-        <span className="inline-flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
-          PZW
-        </span>
+        <LegendDot
+          color="#2F5BA7"
+          label="PZW"
+        />
 
-        <span className="inline-flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-          Komercyjne
-        </span>
+        <LegendDot
+          color="#39A875"
+          label="Komercyjne"
+        />
 
         {validUserLocation && (
-          <span className="inline-flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-orange-500" />
-            Twoja lokalizacja
-          </span>
+          <LegendDot
+            color="#F97316"
+            label="Twoja lokalizacja"
+          />
         )}
       </div>
     </div>
+  );
+}
+
+function LegendDot({
+  color,
+  label,
+}: {
+  color: string;
+  label: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span
+        className="h-2.5 w-2.5 rounded-full"
+        style={{
+          backgroundColor: color,
+        }}
+      />
+      {label}
+    </span>
   );
 }
