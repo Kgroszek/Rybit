@@ -1,22 +1,6 @@
 @import "tailwindcss";
 
-/* ==========================================================================
-   RYBIO DESIGN SYSTEM
-   ==========================================================================
-
-   Zasada:
-   - Geist = UI, formularze, body, tabele, nawigacja.
-   - Manrope = H1-H3, duże statystyki, marketingowe statementy.
-   - Rybio Blue = główny kolor interakcji.
-   - Deep Water = premium / ciemne sekcje.
-   - Aqua = wodny akcent, nie drugi primary.
-   - Green / Amber / Red = wyłącznie znaczenie semantyczne.
-   ========================================================================== */
-
 :root {
-  /* -----------------------------------------------------------------------
-     Brand — Rybio Blue
-     ----------------------------------------------------------------------- */
   --rybio-blue-50: #f4f7fd;
   --rybio-blue-100: #eaf1ff;
   --rybio-blue-200: #cfddf7;
@@ -29,9 +13,6 @@
   --rybio-blue-900: #17315e;
   --rybio-blue-950: #102545;
 
-  /* -----------------------------------------------------------------------
-     Deep Water — premium / dark surfaces
-     ----------------------------------------------------------------------- */
   --rybio-navy-50: #f2f6fa;
   --rybio-navy-100: #e5edf5;
   --rybio-navy-200: #c8d8e8;
@@ -44,9 +25,6 @@
   --rybio-navy-900: #18324f;
   --rybio-navy-950: #0d1e33;
 
-  /* -----------------------------------------------------------------------
-     Water accent — Aqua
-     ----------------------------------------------------------------------- */
   --rybio-aqua-50: #effbfa;
   --rybio-aqua-100: #d6f4f2;
   --rybio-aqua-200: #ade9e6;
@@ -59,9 +37,6 @@
   --rybio-aqua-900: #124e50;
   --rybio-aqua-950: #062f31;
 
-  /* -----------------------------------------------------------------------
-     Neutral surfaces / typography
-     ----------------------------------------------------------------------- */
   --rybio-background: #f7f9fc;
   --rybio-surface: #ffffff;
   --rybio-surface-muted: #f0f4f8;
@@ -72,24 +47,22 @@
   --rybio-text-secondary: #526176;
   --rybio-text-muted: #8491a3;
   --rybio-text-inverse: #ffffff;
+  --rybio-text-on-dark-muted: #dce8f3;
 
   --rybio-border: #dde4ec;
   --rybio-border-strong: #c8d2de;
 
-  /* -----------------------------------------------------------------------
-     Semantic colors
-     ----------------------------------------------------------------------- */
   --rybio-success: #39a875;
   --rybio-success-hover: #2f9064;
-  --rybio-success-subtle: #edf8f2;
-  --rybio-success-border: #cce9d9;
-  --rybio-success-foreground: #17603e;
+  --rybio-success-subtle: #ecfdf5;
+  --rybio-success-border: #bfe8d2;
+  --rybio-success-foreground: #047857;
 
-  --rybio-warning: #e7a53b;
-  --rybio-warning-hover: #c88927;
-  --rybio-warning-subtle: #fff8e8;
-  --rybio-warning-border: #f1ddb2;
-  --rybio-warning-foreground: #855514;
+  --rybio-warning: #d97706;
+  --rybio-warning-hover: #b45309;
+  --rybio-warning-subtle: #fff7ed;
+  --rybio-warning-border: #fed7aa;
+  --rybio-warning-foreground: #9a4f08;
 
   --rybio-danger: #d94c57;
   --rybio-danger-hover: #bb3e49;
@@ -102,9 +75,11 @@
   --rybio-info-border: #cfddf7;
   --rybio-info-foreground: #274b8a;
 
-  /* -----------------------------------------------------------------------
-     Layout / radius / shadows
-     ----------------------------------------------------------------------- */
+  --rybio-map-pzw: #2f5ba7;
+  --rybio-map-commercial: #39a875;
+  --rybio-map-user: #f97316;
+  --rybio-map-cluster: #0d1e33;
+
   --rybio-radius-control: 0.875rem;
   --rybio-radius-card: 1.25rem;
   --rybio-radius-panel: 1.5rem;
@@ -124,21 +99,14 @@
   --rybio-focus-ring: rgba(47, 91, 167, 0.24);
 }
 
-/* ==========================================================================
-   Tailwind 4 theme bridge
-   ========================================================================== */
-
 @theme inline {
-  /* Fonts */
   --font-sans: var(--font-geist-sans);
   --font-display: var(--font-manrope);
   --font-mono: var(--font-geist-mono);
 
-  /* Base */
   --color-background: var(--rybio-background);
   --color-foreground: var(--rybio-text);
 
-  /* Brand */
   --color-primary-50: var(--rybio-blue-50);
   --color-primary-100: var(--rybio-blue-100);
   --color-primary-200: var(--rybio-blue-200);
@@ -154,7 +122,6 @@
   --color-primary-hover: var(--rybio-blue-700);
   --color-primary-subtle: var(--rybio-blue-100);
 
-  /* Deep Water */
   --color-navy-50: var(--rybio-navy-50);
   --color-navy-100: var(--rybio-navy-100);
   --color-navy-200: var(--rybio-navy-200);
@@ -167,7 +134,6 @@
   --color-navy-900: var(--rybio-navy-900);
   --color-navy-950: var(--rybio-navy-950);
 
-  /* Aqua */
   --color-aqua-50: var(--rybio-aqua-50);
   --color-aqua-100: var(--rybio-aqua-100);
   --color-aqua-200: var(--rybio-aqua-200);
@@ -180,7 +146,6 @@
   --color-aqua-900: var(--rybio-aqua-900);
   --color-aqua-950: var(--rybio-aqua-950);
 
-  /* Semantic surfaces / text */
   --color-surface: var(--rybio-surface);
   --color-surface-muted: var(--rybio-surface-muted);
   --color-surface-hover: var(--rybio-surface-hover);
@@ -190,11 +155,11 @@
   --color-text-secondary: var(--rybio-text-secondary);
   --color-text-muted: var(--rybio-text-muted);
   --color-text-inverse: var(--rybio-text-inverse);
+  --color-text-on-dark-muted: var(--rybio-text-on-dark-muted);
 
   --color-border: var(--rybio-border);
   --color-border-strong: var(--rybio-border-strong);
 
-  /* Status */
   --color-success: var(--rybio-success);
   --color-success-hover: var(--rybio-success-hover);
   --color-success-subtle: var(--rybio-success-subtle);
@@ -218,25 +183,22 @@
   --color-info-border: var(--rybio-info-border);
   --color-info-foreground: var(--rybio-info-foreground);
 
-  /* Radius */
+  --color-map-pzw: var(--rybio-map-pzw);
+  --color-map-commercial: var(--rybio-map-commercial);
+  --color-map-user: var(--rybio-map-user);
+  --color-map-cluster: var(--rybio-map-cluster);
+
   --radius-control: var(--rybio-radius-control);
   --radius-card: var(--rybio-radius-card);
   --radius-panel: var(--rybio-radius-panel);
   --radius-modal: var(--rybio-radius-modal);
 
-  /* Shadows */
   --shadow-card: var(--rybio-shadow-card);
   --shadow-card-hover: var(--rybio-shadow-card-hover);
   --shadow-float: var(--rybio-shadow-float);
 }
 
-/* ==========================================================================
-   Base
-   ========================================================================== */
-
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html {
   min-height: 100%;
@@ -255,60 +217,26 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1,
-h2,
-h3 {
+h1, h2, h3 {
   font-family: var(--font-manrope), var(--font-geist-sans), Arial, sans-serif;
   letter-spacing: -0.025em;
 }
 
-h4,
-h5,
-h6 {
-  letter-spacing: -0.0125em;
-}
+h4, h5, h6 { letter-spacing: -0.0125em; }
 
-code,
-pre,
-kbd,
-samp {
+code, pre, kbd, samp {
   font-family: var(--font-geist-mono), monospace;
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
-}
+button, input, textarea, select { font: inherit; }
 
-button,
-a {
-  -webkit-tap-highlight-color: transparent;
-}
+button, a { -webkit-tap-highlight-color: transparent; }
 
-button:not(:disabled),
-a[href],
-select:not(:disabled) {
-  cursor: pointer;
-}
+button:not(:disabled), a[href], select:not(:disabled) { cursor: pointer; }
 
-img,
-svg,
-video,
-canvas {
-  max-width: 100%;
-}
+img, svg, video, canvas { max-width: 100%; }
 
-input,
-textarea,
-select {
-  font-size: 16px;
-}
-
-/* ==========================================================================
-   Accessibility
-   ========================================================================== */
+input, textarea, select { font-size: 16px; }
 
 :where(a, button, [role="button"], [tabindex]):focus-visible {
   outline: 3px solid var(--rybio-focus-ring);
@@ -317,9 +245,7 @@ select {
 
 input:focus-visible,
 textarea:focus-visible,
-select:focus-visible {
-  outline: none;
-}
+select:focus-visible { outline: none; }
 
 ::selection {
   background: var(--rybio-blue-200);
@@ -327,9 +253,7 @@ select:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
+  html { scroll-behavior: auto; }
 
   *,
   *::before,
@@ -340,10 +264,6 @@ select:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
-
-/* ==========================================================================
-   Scrollbars
-   ========================================================================== */
 
 @media (min-width: 768px) {
   * {
@@ -356,9 +276,7 @@ select:focus-visible {
     height: 10px;
   }
 
-  *::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  *::-webkit-scrollbar-track { background: transparent; }
 
   *::-webkit-scrollbar-thumb {
     background: var(--rybio-border-strong);
@@ -374,14 +292,5 @@ select:focus-visible {
   }
 }
 
-/* ==========================================================================
-   Small reusable utilities
-   ========================================================================== */
-
-.text-balance {
-  text-wrap: balance;
-}
-
-.text-pretty {
-  text-wrap: pretty;
-}
+.text-balance { text-wrap: balance; }
+.text-pretty { text-wrap: pretty; }

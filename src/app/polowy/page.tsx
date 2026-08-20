@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 type CatchesRoutePageProps = {
   searchParams: Promise<{
     tripId?: string;
+    new?: string;
   }>;
 };
 
@@ -26,7 +27,7 @@ export default async function CatchesRoutePage({
     redirect("/login");
   }
 
-  const { tripId } = await searchParams;
+  const { tripId, new: newCatch } = await searchParams;
 
   const [catches, lakes, trips] = await Promise.all([
     prisma.fishingCatch.findMany({
@@ -114,6 +115,7 @@ export default async function CatchesRoutePage({
         lakes={JSON.parse(JSON.stringify(lakes))}
         trips={JSON.parse(JSON.stringify(trips))}
         initialTripId={tripId || null}
+        initialCreateOpen={newCatch === "1"}
       />
     </DashboardLayout>
   );

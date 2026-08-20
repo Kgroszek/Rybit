@@ -54,7 +54,7 @@ export default async function DashboardPage() {
     lakes,
     catchesCount,
     savedLakesCount,
-    completedTripsCount,
+    tripsCount,
     speciesRows,
     recentCatches,
     pendingInvitation,
@@ -77,17 +77,13 @@ export default async function DashboardPage() {
 
     prisma.fishingTrip.count({
       where: {
-        userId: user.id,
+        ...tripAccessWhere,
         status: {
-          in: ["finished", "completed"],
+          notIn: ["cancelled", "canceled"],
         },
       },
     }),
 
-    /*
-     * Potrzebujemy tylko unikalnych nazw gatunków do statystyki.
-     * Nie pobieramy wszystkich połowów i nie deduplikujemy ich w pamięci.
-     */
     prisma.fishingCatch.findMany({
       where: {
         userId: user.id,
@@ -247,30 +243,21 @@ export default async function DashboardPage() {
   ]);
 
   const typedTrips = tripCandidates as DashboardTrip[];
-  const typedInvitation =
-    pendingInvitation as PendingInvitation | null;
-  const typedFinishedTrip =
-    recentFinishedTrip as RecentFinishedTrip | null;
+  const typedInvitation = pendingInvitation as PendingInvitation | null;
+  const typedFinishedTrip = recentFinishedTrip as RecentFinishedTrip | null;
 
   const activeTrip =
-    typedTrips.find((trip) =>
-      isTripActive(trip, now)
-    ) ?? null;
+    typedTrips.find((trip) => isTripActive(trip, now)) ?? null;
 
   const upcomingTrip =
     typedTrips.find(
       (trip) =>
-        !["finished", "completed"].includes(
-          trip.status
-        ) &&
-        new Date(trip.startsAt).getTime() >
-          now.getTime()
+        !["finished", "completed"].includes(trip.status) &&
+        new Date(trip.startsAt).getTime() > now.getTime()
     ) ?? null;
 
   const focusTrip = activeTrip ?? upcomingTrip;
-  const preparation = focusTrip
-    ? getPreparationSummary(focusTrip)
-    : null;
+  const preparation = focusTrip ? getPreparationSummary(focusTrip) : null;
 
   const priorityCard = getPriorityCard({
     pendingInvitation: typedInvitation,
@@ -280,7 +267,7 @@ export default async function DashboardPage() {
     preparation,
     catchesCount,
     savedLakesCount,
-    completedTripsCount,
+    tripsCount,
     now,
   });
 
@@ -303,20 +290,18 @@ export default async function DashboardPage() {
     shouldShowSecondaryTrip && upcomingTrip
       ? {
           trip: upcomingTrip,
-          preparation:
-            getPreparationSummary(upcomingTrip),
+          preparation: getPreparationSummary(upcomingTrip),
         }
       : null;
 
   const quickCatchHref = activeTrip
     ? `/polowy?tripId=${activeTrip.id}`
-    : "/polowy";
+    : "/polowy?new=1";
 
-  const serializedRecentCatches =
-    recentCatches.map((item) => ({
-      ...item,
-      caughtAt: item.caughtAt.toISOString(),
-    }));
+  const serializedRecentCatches = recentCatches.map((item) => ({
+    ...item,
+    caughtAt: item.caughtAt.toISOString(),
+  }));
 
   return (
     <DashboardLayout>
@@ -329,7 +314,7 @@ export default async function DashboardPage() {
         stats={{
           catches: catchesCount,
           species: speciesRows.length,
-          trips: completedTripsCount,
+          trips: tripsCount,
           favourites: savedLakesCount,
         }}
         recentCatches={serializedRecentCatches}

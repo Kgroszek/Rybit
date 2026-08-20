@@ -3,7 +3,22 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { ReactNode } from "react";
+
+import { AddCircleIcon } from "@/components/icons/AddCircleIcon";
+import { ExitIcon } from "@/components/icons/ExitIcon";
+import { NavigationIcon } from "@/components/dashboard/NavigationIcon";
+import {
+  ACCOUNT_NAVIGATION,
+  ADMIN_NAVIGATION,
+  DISCOVER_NAVIGATION,
+  MOBILE_PRIMARY_NAVIGATION,
+  OWNER_NAVIGATION,
+  PRIMARY_NAVIGATION,
+  isNavigationActive,
+  type AdminBadgeKey,
+  type NavigationItem,
+} from "@/components/dashboard/navigation";
+import { cn } from "@/lib/cn";
 import { createClient } from "@/lib/supabase/client";
 
 type MobileBottomNavProps = {
@@ -15,12 +30,7 @@ type MobileBottomNavProps = {
   pendingOwnerClaimsCount?: number;
 };
 
-type MenuItem = {
-  label: string;
-  href: string;
-  icon: ReactNode;
-  badge?: number;
-};
+type BadgeCounts = Record<AdminBadgeKey, number>;
 
 export function MobileBottomNav({
   isAdmin = false,
@@ -38,11 +48,17 @@ export function MobileBottomNav({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
-  const totalAdminPendingCount =
-    pendingSubmissionsCount +
-    pendingCorrectionsCount +
-    pendingCatchReportsCount +
-    pendingOwnerClaimsCount;
+  const badgeCounts: BadgeCounts = {
+    pendingSubmissionsCount,
+    pendingCorrectionsCount,
+    pendingCatchReportsCount,
+    pendingOwnerClaimsCount,
+  };
+
+  const totalAdminPendingCount = Object.values(badgeCounts).reduce(
+    (sum, value) => sum + value,
+    0
+  );
 
   useEffect(() => {
     function isFormField(element: Element | null) {
@@ -76,134 +92,29 @@ export function MobileBottomNav({
     };
   }, []);
 
-  const mainItems: MenuItem[] = [
-    {
-      label: "Dashboard",
-      href: "/dashboard",
-      icon: <DashboardIcon />,
-    },
-    {
-      label: "Łowiska",
-      href: "/lowiska",
-      icon: <MapIcon />,
-    },
-    {
-      label: "Zgłoś łowisko",
-      href: "/lowiska/zglos",
-      icon: <PlusIcon />,
-    },
-    {
-      label: "Moje wyprawy",
-      href: "/wyprawy",
-      icon: <TripIcon />,
-    },
-    {
-      label: "Checklisty",
-      href: "/checklisty",
-      icon: <ChecklistIcon />,
-    },
-    {
-      label: "Moje połowy",
-      href: "/polowy",
-      icon: <FishIcon />,
-    },
-    {
-      label: "Mój ekwipunek",
-      href: "/ekwipunek",
-      icon: <BackpackIcon />,
-    },
-  ];
+  useEffect(() => {
+    if (!isMenuOpen) return;
 
-  const ownerItems: MenuItem[] = [
-    {
-      label: "Moje łowiska",
-      href: "/moje-lowiska",
-      icon: <MapIcon />,
-    },
-  ];
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
-  const accountItems: MenuItem[] = [
-    {
-      label: "Profil",
-      href: "/profil",
-      icon: <UserIcon />,
-    },
-    {
-      label: "Ustawienia",
-      href: "/ustawienia",
-      icon: <SettingsIcon />,
-    },
-  ];
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    }
 
-  const adminItems: MenuItem[] = [
-    {
-      label: "Panel admina",
-      href: "/admin",
-      icon: <DashboardIcon />,
-    },
-    {
-      label: "Zgłoszenia łowisk",
-      href: "/admin/zgloszenia-lowisk",
-      icon: <NotificationIcon />,
-      badge: pendingSubmissionsCount,
-    },
-    {
-      label: "Zgłoszenia właścicieli",
-      href: "/admin/zgloszenia-wlascicieli",
-      icon: <UsersIcon />,
-      badge: pendingOwnerClaimsCount,
-    },
-    {
-      label: "Zgłoszone poprawki",
-      href: "/admin/poprawki-lowisk",
-      icon: <ReportIcon />,
-      badge: pendingCorrectionsCount,
-    },
-    {
-      label: "Zgłoszenia połowów",
-      href: "/admin/zgloszenia-polowow",
-      icon: <CatchReportsIcon />,
-      badge: pendingCatchReportsCount,
-    },
-    {
-      label: "Użytkownicy",
-      href: "/admin/uzytkownicy",
-      icon: <UsersIcon />,
-    },
-  ];
+    window.addEventListener("keydown", handleKeyDown);
 
-  const bottomItems: MenuItem[] = [
-    {
-      label: "Start",
-      href: "/dashboard",
-      icon: <DashboardIcon />,
-    },
-    {
-      label: "Łowiska",
-      href: "/lowiska",
-      icon: <MapIcon />,
-    },
-    {
-      label: "Zgłoś",
-      href: "/lowiska/zglos",
-      icon: <PlusIcon />,
-    },
-    {
-      label: "Sprzęt",
-      href: "/ekwipunek",
-      icon: <BackpackIcon />,
-    },
-  ];
-
-  function closeMenu() {
-    setIsMenuOpen(false);
-  }
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMenuOpen]);
 
   async function handleLogout() {
     setIsLoggingOut(true);
-
     await supabase.auth.signOut();
-
     setIsLoggingOut(false);
     setIsMenuOpen(false);
 
@@ -214,61 +125,82 @@ export function MobileBottomNav({
   return (
     <>
       {isMenuOpen && (
-        <div className="fixed inset-0 z-[9998] bg-slate-950/40 backdrop-blur-sm lg:hidden">
-          <div className="absolute bottom-0 left-0 right-0 max-h-[82vh] overflow-y-auto rounded-t-[2rem] bg-white p-5 shadow-2xl">
+        <div
+          className="fixed inset-0 z-[9998] bg-navy-950/35 backdrop-blur-sm lg:hidden"
+          onMouseDown={() => setIsMenuOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu Rybio"
+            className="absolute inset-x-0 bottom-0 max-h-[84vh] overflow-y-auto rounded-t-modal border-t border-border bg-surface px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-5 shadow-float sm:px-5"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
             <div className="mb-5 flex items-center justify-between gap-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+                <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">
                   Menu
                 </p>
-
-                <h2 className="mt-1 text-2xl font-black text-slate-950">
+                <h2 className="mt-1 font-display text-2xl font-extrabold text-text">
                   Rybio
                 </h2>
               </div>
 
               <button
                 type="button"
-                onClick={closeMenu}
-                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-xl font-black text-slate-700"
+                onClick={() => setIsMenuOpen(false)}
+                className="flex h-11 w-11 items-center justify-center rounded-control border border-border bg-surface-muted text-text-secondary transition-colors hover:bg-surface-hover hover:text-text"
                 aria-label="Zamknij menu"
               >
-                ×
+                <AddCircleIcon
+                  className="h-5 w-5 rotate-45"
+                />
               </button>
             </div>
 
-            <div className="space-y-6 pb-20">
+            <div className="space-y-6 pb-8">
               <MobileMenuGroup title="Aplikacja">
-                {mainItems.map((item) => (
+                {PRIMARY_NAVIGATION.map((item) => (
                   <MobileMenuLink
-                    key={item.href}
+                    key={item.id}
                     item={item}
                     pathname={pathname}
-                    onClick={closeMenu}
+                    onClick={() => setIsMenuOpen(false)}
+                  />
+                ))}
+              </MobileMenuGroup>
+
+              <MobileMenuGroup title="Więcej">
+                {DISCOVER_NAVIGATION.map((item) => (
+                  <MobileMenuLink
+                    key={item.id}
+                    item={item}
+                    pathname={pathname}
+                    onClick={() => setIsMenuOpen(false)}
                   />
                 ))}
               </MobileMenuGroup>
 
               {isOwner && (
                 <MobileMenuGroup title="Właściciel">
-                  {ownerItems.map((item) => (
+                  {OWNER_NAVIGATION.map((item) => (
                     <MobileMenuLink
-                      key={item.href}
+                      key={item.id}
                       item={item}
                       pathname={pathname}
-                      onClick={closeMenu}
+                      onClick={() => setIsMenuOpen(false)}
                     />
                   ))}
                 </MobileMenuGroup>
               )}
 
               <MobileMenuGroup title="Moje konto">
-                {accountItems.map((item) => (
+                {ACCOUNT_NAVIGATION.map((item) => (
                   <MobileMenuLink
-                    key={item.href}
+                    key={item.id}
                     item={item}
                     pathname={pathname}
-                    onClick={closeMenu}
+                    onClick={() => setIsMenuOpen(false)}
                   />
                 ))}
 
@@ -276,26 +208,30 @@ export function MobileBottomNav({
                   type="button"
                   onClick={handleLogout}
                   disabled={isLoggingOut}
-                  className="flex items-center gap-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="mt-2 flex min-h-12 w-full items-center gap-3 rounded-control bg-danger-subtle px-3.5 py-3 text-sm font-semibold text-danger-foreground transition-colors hover:bg-danger-border disabled:pointer-events-none disabled:opacity-60"
                 >
-                  <span className="flex h-5 w-5 items-center justify-center">
-                    <LogoutIcon />
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-surface text-danger">
+                    <ExitIcon className="h-5 w-5" />
                   </span>
-
                   <span className="flex-1 text-left">
-                    {isLoggingOut ? "Wylogowywanie..." : "Wyloguj się"}
+                    {isLoggingOut ? "Wylogowywanie…" : "Wyloguj się"}
                   </span>
                 </button>
               </MobileMenuGroup>
 
               {isAdmin && (
                 <MobileMenuGroup title="Admin">
-                  {adminItems.map((item) => (
+                  {ADMIN_NAVIGATION.map((item) => (
                     <MobileMenuLink
-                      key={item.href}
+                      key={item.id}
                       item={item}
                       pathname={pathname}
-                      onClick={closeMenu}
+                      badge={
+                        item.badgeKey
+                          ? badgeCounts[item.badgeKey]
+                          : undefined
+                      }
+                      onClick={() => setIsMenuOpen(false)}
                     />
                   ))}
                 </MobileMenuGroup>
@@ -306,29 +242,37 @@ export function MobileBottomNav({
       )}
 
       <nav
-        className={`fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white px-3 pt-2 shadow-lg transition-all duration-200 lg:hidden ${
+        aria-label="Główna nawigacja mobilna"
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-50 border-t border-border bg-surface/95 px-2 pt-2 backdrop-blur-xl transition-[transform,opacity] duration-200 lg:hidden",
+          "pb-[max(0.65rem,env(safe-area-inset-bottom))]",
           isKeyboardOpen
             ? "pointer-events-none translate-y-full opacity-0"
             : "translate-y-0 opacity-100"
-        } pb-[max(0.75rem,env(safe-area-inset-bottom))]`}
+        )}
       >
         <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
-          {bottomItems.map((item) => (
-            <BottomNavLink key={item.href} item={item} pathname={pathname} />
+          {MOBILE_PRIMARY_NAVIGATION.map((item) => (
+            <BottomNavLink
+              key={item.id}
+              item={item}
+              pathname={pathname}
+            />
           ))}
 
           <button
             type="button"
             onClick={() => setIsMenuOpen(true)}
-            className="relative flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50"
+            className="relative flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-control px-1.5 py-1.5 text-[11px] font-semibold text-text-muted transition-colors hover:bg-surface-muted hover:text-text"
           >
-            <MenuIcon />
-
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl">
+              <NavigationIcon icon="menu" className="h-5 w-5" />
+            </span>
             <span>Menu</span>
 
             {isAdmin && totalAdminPendingCount > 0 && (
-              <span className="absolute right-2 top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
-                {totalAdminPendingCount}
+              <span className="absolute right-1.5 top-0.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
+                {totalAdminPendingCount > 99 ? "99+" : totalAdminPendingCount}
               </span>
             )}
           </button>
@@ -342,22 +286,34 @@ function BottomNavLink({
   item,
   pathname,
 }: {
-  item: MenuItem;
+  item: NavigationItem;
   pathname: string;
 }) {
-  const isActive =
-    pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const active = isNavigationActive(pathname, item.href);
 
   return (
     <Link
       href={item.href}
-      className={`flex flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-xs font-bold transition ${
-        isActive
-          ? "bg-blue-50 text-blue-600"
-          : "text-slate-500 hover:bg-slate-50"
-      }`}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "group flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-control px-1.5 py-1.5 text-[11px] font-semibold transition-colors",
+        active
+          ? "text-primary-700"
+          : "text-text-muted hover:bg-surface-muted hover:text-text"
+      )}
     >
-      {item.icon}
+      <span
+        className={cn(
+          "flex h-9 w-9 items-center justify-center rounded-xl transition-colors",
+          item.emphasized
+            ? "bg-primary text-white shadow-[0_3px_8px_rgba(47,91,167,0.18)]"
+            : active
+              ? "bg-primary-100 text-primary"
+              : "group-hover:bg-surface"
+        )}
+      >
+        <NavigationIcon icon={item.icon} className="h-5 w-5" />
+      </span>
       <span>{item.label}</span>
     </Link>
   );
@@ -368,15 +324,14 @@ function MobileMenuGroup({
   children,
 }: {
   title: string;
-  children: ReactNode;
+  children: React.ReactNode;
 }) {
   return (
     <section>
-      <p className="mb-3 px-2 text-xs font-black uppercase tracking-[0.16em] text-slate-400">
+      <p className="mb-2 px-2 text-[10px] font-extrabold uppercase tracking-[0.15em] text-text-muted">
         {title}
       </p>
-
-      <div className="grid gap-2">{children}</div>
+      <div className="grid gap-1">{children}</div>
     </section>
   );
 }
@@ -384,209 +339,48 @@ function MobileMenuGroup({
 function MobileMenuLink({
   item,
   pathname,
+  badge,
   onClick,
 }: {
-  item: MenuItem;
+  item: NavigationItem;
   pathname: string;
+  badge?: number;
   onClick: () => void;
 }) {
-  const isActive =
-    pathname === item.href || pathname.startsWith(`${item.href}/`);
+  const active = isNavigationActive(pathname, item.href);
 
   return (
     <Link
       href={item.href}
       onClick={onClick}
-      className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition ${
-        isActive
-          ? "bg-blue-50 text-blue-600"
-          : "bg-slate-50 text-slate-700 hover:bg-slate-100"
-      }`}
+      aria-current={active ? "page" : undefined}
+      className={cn(
+        "flex min-h-12 items-center gap-3 rounded-control px-3 py-2.5 text-sm font-semibold transition-colors",
+        active
+          ? "bg-primary-100 text-primary-800"
+          : "text-text-secondary hover:bg-surface-muted hover:text-text"
+      )}
     >
-      <span className="flex h-5 w-5 items-center justify-center">
-        {item.icon}
+      <span
+        className={cn(
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+          active
+            ? "bg-surface text-primary"
+            : "bg-surface-muted text-text-muted"
+        )}
+      >
+        <NavigationIcon icon={item.icon} className="h-5 w-5" />
       </span>
 
-      <span className="flex-1">{item.label}</span>
+      <span className="min-w-0 flex-1 truncate">
+        {item.label}
+      </span>
 
-      {item.badge !== undefined && item.badge > 0 && (
-        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-2 text-xs font-black text-white">
-          {item.badge}
+      {badge !== undefined && badge > 0 && (
+        <span className="flex min-h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">
+          {badge > 99 ? "99+" : badge}
         </span>
       )}
     </Link>
-  );
-}
-
-function IconBase({ children }: { children: ReactNode }) {
-  return (
-    <svg
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {children}
-    </svg>
-  );
-}
-
-function DashboardIcon() {
-  return (
-    <IconBase>
-      <rect x="3" y="3" width="7" height="7" rx="2" />
-      <rect x="14" y="3" width="7" height="7" rx="2" />
-      <rect x="3" y="14" width="7" height="7" rx="2" />
-      <rect x="14" y="14" width="7" height="7" rx="2" />
-    </IconBase>
-  );
-}
-
-function MapIcon() {
-  return (
-    <IconBase>
-      <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z" />
-      <path d="M9 3v15" />
-      <path d="M15 6v15" />
-    </IconBase>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <IconBase>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 8v8" />
-      <path d="M8 12h8" />
-    </IconBase>
-  );
-}
-
-function TripIcon() {
-  return (
-    <IconBase>
-      <path d="M6 21V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14" />
-      <path d="M9 5V3h6v2" />
-      <path d="M6 11h12" />
-      <path d="M9 21v-3" />
-      <path d="M15 21v-3" />
-    </IconBase>
-  );
-}
-
-function ChecklistIcon() {
-  return (
-    <IconBase>
-      <path d="M9 6h11" />
-      <path d="M9 12h11" />
-      <path d="M9 18h11" />
-      <path d="m4 6 1 1 2-2" />
-      <path d="m4 12 1 1 2-2" />
-      <path d="m4 18 1 1 2-2" />
-    </IconBase>
-  );
-}
-
-function FishIcon() {
-  return (
-    <IconBase>
-      <path d="M16.5 10.5c2.5 0 4.5 1.5 4.5 1.5s-2 1.5-4.5 1.5c-2.8 0-5.2-2-7.5-4.5C6.5 11 4 12 3 12c1 0 3.5 1 6 3.5 2.3-2.5 4.7-5 7.5-5Z" />
-      <circle cx="14" cy="12" r="0.8" fill="currentColor" stroke="none" />
-    </IconBase>
-  );
-}
-
-function BackpackIcon() {
-  return (
-    <IconBase>
-      <path d="M8 7V6a4 4 0 0 1 8 0v1" />
-      <rect x="5" y="7" width="14" height="14" rx="3" />
-      <path d="M8 13h8" />
-      <path d="M9 17h6" />
-    </IconBase>
-  );
-}
-
-function UserIcon() {
-  return (
-    <IconBase>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21a8 8 0 0 1 16 0" />
-    </IconBase>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <IconBase>
-      <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" />
-      <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2.1 2.1 0 0 1-2.97 2.97l-.04-.04a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.66V21a2.1 2.1 0 0 1-4.2 0v-.06a1.8 1.8 0 0 0-1.1-1.66 1.8 1.8 0 0 0-1.98.36l-.04.04a2.1 2.1 0 0 1-2.97-2.97l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.66-1.1H3a2.1 2.1 0 0 1 0-4.2h.06A1.8 1.8 0 0 0 4.72 8.6a1.8 1.8 0 0 0-.36-1.98l-.04-.04a2.1 2.1 0 0 1 2.97-2.97l.04.04a1.8 1.8 0 0 0 1.98.36A1.8 1.8 0 0 0 10.4 2.4V2a2.1 2.1 0 0 1 4.2 0v.06a1.8 1.8 0 0 0 1.1 1.66 1.8 1.8 0 0 0 1.98-.36l.04-.04a2.1 2.1 0 0 1 2.97 2.97l-.04.04a1.8 1.8 0 0 0-.36 1.98 1.8 1.8 0 0 0 1.66 1.1H21a2.1 2.1 0 0 1 0 4.2h-.06A1.8 1.8 0 0 0 19.4 15Z" />
-    </IconBase>
-  );
-}
-
-function NotificationIcon() {
-  return (
-    <IconBase>
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
-      <path d="M10 21h4" />
-    </IconBase>
-  );
-}
-
-function ReportIcon() {
-  return (
-    <IconBase>
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-      <path d="M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />
-    </IconBase>
-  );
-}
-
-function CatchReportsIcon() {
-  return (
-    <IconBase>
-      <path d="M4 5h16" />
-      <path d="M4 12h10" />
-      <path d="M4 19h7" />
-      <path d="M17 14l3 3" />
-      <path d="M20 14l-3 3" />
-    </IconBase>
-  );
-}
-
-function UsersIcon() {
-  return (
-    <IconBase>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </IconBase>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <IconBase>
-      <path d="M10 17l5-5-5-5" />
-      <path d="M15 12H3" />
-      <path d="M21 19V5a2 2 0 0 0-2-2h-6" />
-      <path d="M13 21h6a2 2 0 0 0 2-2" />
-    </IconBase>
-  );
-}
-
-function MenuIcon() {
-  return (
-    <IconBase>
-      <path d="M4 6h16" />
-      <path d="M4 12h16" />
-      <path d="M4 18h16" />
-    </IconBase>
   );
 }

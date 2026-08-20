@@ -58,6 +58,7 @@ type CatchesPageProps = {
   lakes: LakeOption[];
   trips: TripOption[];
   initialTripId?: string | null;
+  initialCreateOpen?: boolean;
 };
 
 type CatchFormState = {
@@ -158,6 +159,7 @@ export function CatchesPage({
   lakes,
   trips,
   initialTripId = null,
+  initialCreateOpen = false,
 }: CatchesPageProps) {
   const toast = useToast();
 
@@ -202,7 +204,9 @@ export function CatchesPage({
   const [catches, setCatches] = useState<FishingCatch[]>(initialCatches);
   const [form, setForm] = useState<CatchFormState>(initialFormWithTrip);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [isFormOpen, setIsFormOpen] = useState(initialTripExists);
+  const [isFormOpen, setIsFormOpen] = useState(
+  initialTripExists || initialCreateOpen
+  );
   const [formMode, setFormMode] = useState<CatchFormMode>(
     initialTripExists ? "quick" : "full"
   );

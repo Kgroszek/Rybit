@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import {
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
 import { BellIcon } from "@/components/icons/BellIcon";
 import { BellRingIcon } from "@/components/icons/BellRingIcon";
-import { PlusIcon } from "@/components/icons/PlusIcon";
+import { FishIcon } from "@/components/icons/FishIcon";
 import { buttonClassName } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
@@ -22,56 +19,32 @@ export function DashboardTopbar({
   userName,
   userEmail,
 }: DashboardTopbarProps) {
-  const [
-    unreadNotificationsCount,
-    setUnreadNotificationsCount,
-  ] = useState(0);
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
 
-  const displayName =
-    userName || "Wędkarz";
-
-  const initials = getInitials(
-    displayName ||
-      userEmail ||
-      "R"
-  );
+  const displayName = userName || "Wędkarz";
+  const initials = getInitials(displayName || userEmail || "R");
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadCount() {
       try {
-        const response = await fetch(
-          "/api/notifications/unread-count",
-          {
-            cache: "no-store",
-          }
-        );
+        const response = await fetch("/api/notifications/unread-count", {
+          cache: "no-store",
+        });
 
-        if (!response.ok) {
-          return;
-        }
+        if (!response.ok) return;
 
-        const data =
-          (await response.json()) as {
-            count?: number;
-            unreadCount?: number;
-          };
+        const data = (await response.json()) as {
+          count?: number;
+          unreadCount?: number;
+        };
 
-        const nextCount = Number(
-          data.count ??
-            data.unreadCount ??
-            0
-        );
+        const nextCount = Number(data.count ?? data.unreadCount ?? 0);
 
         if (isMounted) {
           setUnreadNotificationsCount(
-            Number.isFinite(nextCount)
-              ? Math.max(
-                  0,
-                  nextCount
-                )
-              : 0
+            Number.isFinite(nextCount) ? Math.max(0, nextCount) : 0
           );
         }
       } catch {
@@ -84,59 +57,36 @@ export function DashboardTopbar({
     }
 
     function handleVisibilityChange() {
-      if (
-        document.visibilityState ===
-        "visible"
-      ) {
+      if (document.visibilityState === "visible") {
         void loadCount();
       }
     }
 
     void loadCount();
 
-    window.addEventListener(
-      "focus",
-      refresh
-    );
-    window.addEventListener(
-      "notifications:updated",
-      refresh
-    );
-    document.addEventListener(
-      "visibilitychange",
-      handleVisibilityChange
-    );
+    window.addEventListener("focus", refresh);
+    window.addEventListener("notifications:updated", refresh);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       isMounted = false;
-      window.removeEventListener(
-        "focus",
-        refresh
-      );
-      window.removeEventListener(
-        "notifications:updated",
-        refresh
-      );
-      document.removeEventListener(
-        "visibilitychange",
-        handleVisibilityChange
-      );
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("notifications:updated", refresh);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
-  const hasUnread =
-    unreadNotificationsCount > 0;
+  const hasUnread = unreadNotificationsCount > 0;
 
   return (
     <header className="mb-6 hidden lg:block">
-      <div className="grid items-center gap-4 lg:grid-cols-[minmax(320px,1fr)_auto] xl:grid-cols-[1fr_minmax(380px,520px)_1fr]">
-        <div className="hidden xl:block" />
-
-        <form
-          action="/lowiska"
-          className="min-w-0"
-        >
+      <div className="flex items-center gap-4">
+        <form action="/lowiska" className="w-full max-w-[520px]" role="search">
+          <label htmlFor="dashboard-search" className="sr-only">
+            Szukaj łowiska, ryby lub lokalizacji
+          </label>
           <Input
+            id="dashboard-search"
             name="search"
             type="search"
             placeholder="Szukaj łowiska, ryby, lokalizacji..."
@@ -144,17 +94,17 @@ export function DashboardTopbar({
           />
         </form>
 
-        <div className="flex items-center justify-end gap-2">
+        <div className="ml-auto flex items-center gap-2">
           <Link
-            href="/lowiska/zglos"
+            href="/polowy?new=1"
             className={buttonClassName({
               variant: "primary",
               size: "md",
               className: "h-11",
             })}
           >
-            <PlusIcon className="h-4 w-4" />
-            Zgłoś łowisko
+            <FishIcon className="h-5 w-5 -scale-x-100" />
+            Dodaj połów
           </Link>
 
           <Link
@@ -166,9 +116,7 @@ export function DashboardTopbar({
             }
             className={cn(
               buttonClassName({
-                variant: hasUnread
-                  ? "secondary"
-                  : "outline",
+                variant: hasUnread ? "secondary" : "outline",
                 size: "md",
               }),
               "relative h-11 w-11 px-0"
@@ -182,27 +130,23 @@ export function DashboardTopbar({
 
             {hasUnread && (
               <span className="absolute -right-1.5 -top-1.5 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold leading-none text-white ring-2 ring-background">
-                {unreadNotificationsCount >
-                99
-                  ? "99+"
-                  : unreadNotificationsCount}
+                {unreadNotificationsCount > 99 ? "99+" : unreadNotificationsCount}
               </span>
             )}
           </Link>
 
           <Link
             href="/profil"
-            className="hidden h-11 items-center gap-3 rounded-control border border-border bg-surface px-2.5 transition-colors hover:bg-surface-muted 2xl:flex"
+            className="hidden h-11 items-center gap-3 rounded-control border border-border bg-surface px-2.5 transition-colors hover:bg-surface-muted xl:flex"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-aqua-500 text-xs font-bold text-white">
               {initials}
             </span>
 
             <span className="min-w-0">
-              <span className="block max-w-[130px] truncate text-sm font-bold text-text">
+              <span className="block max-w-[120px] truncate text-sm font-semibold text-text">
                 {displayName}
               </span>
-
               <span className="block text-[11px] font-medium text-text-muted">
                 Wędkarz
               </span>
@@ -214,23 +158,11 @@ export function DashboardTopbar({
   );
 }
 
-function getInitials(
-  value: string
-) {
-  const parts = value
-    .trim()
-    .split(" ")
-    .filter(Boolean);
+function getInitials(value: string) {
+  const parts = value.trim().split(" ").filter(Boolean);
 
-  if (parts.length === 0) {
-    return "R";
-  }
-
-  if (parts.length === 1) {
-    return parts[0]
-      .slice(0, 2)
-      .toUpperCase();
-  }
+  if (parts.length === 0) return "R";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
 
   return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 }
