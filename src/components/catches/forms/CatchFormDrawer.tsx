@@ -4,9 +4,8 @@ import {
   useEffect,
   useId,
   useRef,
-  useState,
 } from "react";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 
 import { FullCatchForm } from "@/components/catches/forms/FullCatchForm";
 import { QuickCatchForm } from "@/components/catches/forms/QuickCatchForm";
@@ -19,9 +18,9 @@ import type {
   TripOption,
 } from "@/components/catches/types";
 import { formatDateTime } from "@/components/catches/utils";
-import { ArrowSmallRightIcon } from "@/components/icons/ArrowSmallRightIcon";
 import { CloseIcon } from "@/components/icons/CloseIcon";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 
 type CatchFormDrawerProps = {
   isOpen: boolean;
@@ -35,7 +34,7 @@ type CatchFormDrawerProps = {
   isLoading: boolean;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onClose: () => void;
-  onSwitchToFull: () => void;
+  onModeChange: (mode: CatchFormMode) => void;
   onFieldChange: CatchFieldChange;
   onImageChange: (file: File | null) => void;
 };
@@ -61,7 +60,7 @@ export function CatchFormDrawer({
   isLoading,
   onSubmit,
   onClose,
-  onSwitchToFull,
+  onModeChange,
   onFieldChange,
   onImageChange,
 }: CatchFormDrawerProps) {
@@ -74,24 +73,11 @@ export function CatchFormDrawer({
   const onCloseRef = useRef(onClose);
   const isLoadingRef = useRef(isLoading);
 
-  // `mode` pozostaje kontrolowany przez CatchesManager. Lokalny tryb służy tylko
-  // do bezpiecznego powrotu Full -> Quick bez wymagania zmiany publicznego API
-  // managera. Przy każdym nowym otwarciu synchronizujemy go z propsem.
-  const [visibleMode, setVisibleMode] = useState<CatchFormMode>(mode);
-
   onCloseRef.current = onClose;
   isLoadingRef.current = isLoading;
 
-  useEffect(() => {
-    if (!isOpen) {
-      return;
-    }
-
-    setVisibleMode(mode);
-  }, [editingCatch?.id, isOpen, mode]);
-
-  const isQuick = visibleMode === "quick" && !editingCatch;
-  const canReturnToQuick = !editingCatch && visibleMode === "full";
+  const isQuick = mode === "quick" && !editingCatch;
+  const canChangeMode = !editingCatch;
 
   useEffect(() => {
     if (!isOpen) {
@@ -127,12 +113,11 @@ export function CatchFormDrawer({
 
       const focusable = Array.from(
         dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-      ).filter((element) => {
-        return (
+      ).filter(
+        (element) =>
           !element.hasAttribute("disabled") &&
           element.getAttribute("aria-hidden") !== "true"
-        );
-      });
+      );
 
       if (focusable.length === 0) {
         event.preventDefault();
@@ -185,39 +170,27 @@ export function CatchFormDrawer({
       });
     });
 
-    return () => {
-      window.cancelAnimationFrame(frame);
-    };
-  }, [editingCatch?.id, isOpen, visibleMode]);
+    return () => window.cancelAnimationFrame(frame);
+  }, [editingCatch?.id, isOpen, mode]);
 
   if (!isOpen) {
     return null;
   }
 
-  const title = editingCatch
-    ? "Edytuj połów"
-    : isQuick
-      ? "Dodaj połów"
-      : "Pełny formularz";
+  const title = editingCatch ? "Edytuj połów" : "Dodaj połów";
 
   const description = editingCatch
     ? "Zaktualizuj dane, zdjęcie i ustawienia widoczności połowu."
     : isQuick
-      ? "Zapisz najważniejsze informacje. Szczegóły możesz uzupełnić później."
-      : "Uzupełnij wszystkie dane połowu w jednym uporządkowanym formularzu.";
-
-  function switchToFull() {
-    setVisibleMode("full");
-    onSwitchToFull();
-  }
-
-  function switchToQuick() {
-    setVisibleMode("quick");
-  }
+      ? "Zapisz najważniejsze informacje w kilkadziesiąt sekund."
+      : "Uzupełnij wszystkie szczegóły połowu w jednym miejscu.";
 
   return (
     <div
-      className="fixed inset-0 z-[1200] flex items-end justify-center overflow-hidden bg-navy-950/70 backdrop-blur-[3px] sm:items-center sm:p-8"
+      className="fixed inset-0 z-[1200] flex items-end justify-center overflow-hidden backdrop-blur-[4px] sm:items-center sm:p-6 lg:p-8"
+      style={{
+        backgroundColor: "rgba(13, 30, 51, 0.78)",
+      }}
       onMouseDown={() => {
         if (!isLoading) {
           onClose();
@@ -227,70 +200,82 @@ export function CatchFormDrawer({
       <form
         ref={dialogRef}
         onSubmit={onSubmit}
-        className="catch-form-dialog flex min-h-0 w-full flex-col overflow-hidden rounded-t-modal border-border bg-surface shadow-float sm:w-auto sm:rounded-modal sm:border"
-        onMouseDown={(event) => {
-          event.stopPropagation();
-        }}
+        className="catch-form-dialog flex min-h-0 w-full flex-col overflow-hidden rounded-t-modal border-border bg-surface shadow-float sm:rounded-modal sm:border"
+        onMouseDown={(event) => event.stopPropagation()}
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
         role="dialog"
       >
-        <header className="flex shrink-0 items-start justify-between gap-6 border-b border-border px-5 py-5 sm:px-8 sm:py-6">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-primary sm:text-[11px]">
-              {isQuick ? "Szybki zapis" : "Dziennik połowów"}
-            </p>
-
-            <h2
-              id={titleId}
-              className="mt-1.5 font-display text-xl font-extrabold tracking-[-0.02em] text-text sm:text-2xl"
-            >
-              {title}
-            </h2>
-
-            <p
-              id={descriptionId}
-              className="mt-2 max-w-2xl text-xs leading-5 text-text-secondary sm:text-sm sm:leading-6"
-            >
-              {description}
-            </p>
-
-            {isQuick && form.caughtAt && (
-              <p className="mt-3 text-xs font-semibold text-text-muted">
-                {formatDateTime(form.caughtAt)}
-                <span className="mx-1.5 text-border-strong">·</span>
-                data ustawiona automatycznie
+        <header className="shrink-0 border-b border-border bg-surface px-5 py-5 sm:px-8 sm:py-6">
+          <div className="flex items-start justify-between gap-6">
+            <div className="min-w-0">
+              <p className="text-[11px] font-black uppercase tracking-[0.16em] text-primary">
+                Dziennik połowów
               </p>
-            )}
 
-            {canReturnToQuick && (
-              <button
-                type="button"
-                onClick={switchToQuick}
-                disabled={isLoading}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg py-1 text-xs font-bold text-primary transition hover:text-primary-hover disabled:opacity-50 sm:text-sm"
+              <h2
+                id={titleId}
+                className="mt-1.5 font-display text-2xl font-extrabold tracking-[-0.025em] text-text"
               >
-                <ArrowSmallRightIcon className="h-4 w-4 rotate-180" />
-                Wróć do szybkiego formularza
-              </button>
-            )}
+                {title}
+              </h2>
+
+              <p
+                id={descriptionId}
+                className="mt-2 max-w-xl text-sm leading-6 text-text-secondary"
+              >
+                {description}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={isLoading}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-surface-muted text-text-secondary transition hover:bg-surface-hover hover:text-text disabled:opacity-50"
+              aria-label="Zamknij formularz"
+            >
+              <CloseIcon className="h-5 w-5" />
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isLoading}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-surface-muted text-text-secondary transition hover:bg-surface-hover hover:text-text disabled:opacity-50"
-            aria-label="Zamknij formularz"
-          >
-            <CloseIcon className="h-5 w-5" />
-          </button>
+          {canChangeMode && (
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                className="inline-flex w-full rounded-control bg-surface-muted p-1 sm:w-auto"
+                role="tablist"
+                aria-label="Tryb formularza połowu"
+              >
+                <ModeButton
+                  isActive={mode === "quick"}
+                  onClick={() => onModeChange("quick")}
+                  disabled={isLoading}
+                >
+                  Szybki zapis
+                </ModeButton>
+
+                <ModeButton
+                  isActive={mode === "full"}
+                  onClick={() => onModeChange("full")}
+                  disabled={isLoading}
+                >
+                  Pełny formularz
+                </ModeButton>
+              </div>
+
+              {form.caughtAt && (
+                <p className="text-xs font-semibold text-text-muted">
+                  Data połowu: {formatDateTime(form.caughtAt)}
+                </p>
+              )}
+            </div>
+          )}
         </header>
 
         <div
           ref={contentRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-6 [scrollbar-gutter:stable] sm:px-8 sm:py-8"
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-7 [scrollbar-gutter:stable] sm:px-8 sm:py-8"
         >
           {isQuick ? (
             <QuickCatchForm
@@ -299,8 +284,6 @@ export function CatchFormDrawer({
               lakes={lakes}
               trips={trips}
               autoTripId={autoTripId}
-              isLoading={isLoading}
-              onSwitchToFull={switchToFull}
               onFieldChange={onFieldChange}
               onImageChange={onImageChange}
             />
@@ -317,7 +300,7 @@ export function CatchFormDrawer({
           )}
         </div>
 
-        <footer className="shrink-0 border-t border-border bg-surface px-5 py-4 sm:px-8 sm:py-5">
+        <footer className="shrink-0 border-t border-border bg-surface px-5 py-4 shadow-[0_-8px_24px_rgba(13,30,51,0.035)] sm:px-8 sm:py-5">
           <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
             <Button
               type="button"
@@ -333,9 +316,13 @@ export function CatchFormDrawer({
               type="submit"
               isLoading={isLoading}
               loadingLabel="Zapisywanie…"
-              className="w-full sm:w-auto sm:min-w-40"
+              className="w-full sm:w-auto sm:min-w-44"
             >
-              {editingCatch ? "Zapisz zmiany" : "Zapisz połów"}
+              {editingCatch
+                ? "Zapisz zmiany"
+                : isQuick
+                  ? "Zapisz szybki połów"
+                  : "Zapisz połów"}
             </Button>
           </div>
         </footer>
@@ -343,16 +330,54 @@ export function CatchFormDrawer({
 
       <style jsx>{`
         .catch-form-dialog {
-          height: min(90dvh, 760px);
+          height: min(90dvh, 780px);
         }
 
-        @media (min-width: 640px) {
+        @media (min-width: 640px) and (max-width: 1279px) {
           .catch-form-dialog {
-            width: min(840px, calc(100vw - 64px));
-            height: min(760px, calc(100dvh - 64px));
+            width: min(820px, calc(100vw - 48px));
+            height: min(820px, calc(100dvh - 48px));
+          }
+        }
+
+        @media (min-width: 1280px) {
+          .catch-form-dialog {
+            width: min(880px, 50vw);
+            height: min(820px, calc(100dvh - 64px));
           }
         }
       `}</style>
     </div>
+  );
+}
+
+function ModeButton({
+  isActive,
+  onClick,
+  disabled,
+  children,
+}: {
+  isActive: boolean;
+  onClick: () => void;
+  disabled: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={isActive}
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "min-h-10 flex-1 rounded-xl px-4 py-2 text-sm font-bold transition-[background-color,color,box-shadow] sm:min-w-36",
+        isActive
+          ? "bg-surface text-primary shadow-[0_1px_3px_rgba(13,30,51,0.10)]"
+          : "text-text-secondary hover:text-text",
+        disabled && "opacity-50"
+      )}
+    >
+      {children}
+    </button>
   );
 }

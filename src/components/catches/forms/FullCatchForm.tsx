@@ -49,8 +49,10 @@ export function FullCatchForm({
   return (
     <div>
       <FormSection
+        number="01"
         title="Podstawowe"
-        description="Co złowiłeś i kiedy."
+        description="Najważniejsze informacje o połowie."
+        isFirst
       >
         <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
           <CatchSelect
@@ -58,18 +60,12 @@ export function FullCatchForm({
             value={form.fishName}
             onChange={(value) => onFieldChange("fishName", value)}
             options={[
-              {
-                label: "Wybierz gatunek",
-                value: "",
-              },
+              { label: "Wybierz gatunek", value: "" },
               ...FISH_SPECIES_OPTIONS.map((value) => ({
                 label: value,
                 value,
               })),
-              {
-                label: "Inny gatunek",
-                value: "other",
-              },
+              { label: "Inny gatunek", value: "other" },
             ]}
             required
           />
@@ -78,9 +74,7 @@ export function FullCatchForm({
             label="Metoda"
             value={form.method}
             onChange={(value) => onFieldChange("method", value)}
-            options={CATCH_METHODS.map((item) => ({
-              ...item,
-            }))}
+            options={CATCH_METHODS.map((item) => ({ ...item }))}
             required
           />
 
@@ -111,6 +105,7 @@ export function FullCatchForm({
       </FormSection>
 
       <FormSection
+        number="02"
         title="Wynik"
         description="Pomiary ryby i użyta przynęta."
       >
@@ -143,8 +138,9 @@ export function FullCatchForm({
       </FormSection>
 
       <FormSection
+        number="03"
         title="Miejsce"
-        description="Połącz połów z łowiskiem lub wyprawą."
+        description="Powiąż połów z łowiskiem lub wyprawą."
       >
         <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
           <LakeSearchSelect
@@ -163,7 +159,9 @@ export function FullCatchForm({
                 value: "",
               },
               ...trips.map((trip) => ({
-                label: `${trip.title} — ${formatShortDate(trip.startsAt)}`,
+                label: `${trip.title} — ${formatShortDate(
+                  trip.startsAt
+                )}`,
                 value: trip.id,
               })),
             ]}
@@ -172,8 +170,9 @@ export function FullCatchForm({
       </FormSection>
 
       <FormSection
-        title="Zdjęcie"
-        description="Fotografia ryby będzie częścią wpisu i karty połowu."
+        number="04"
+        title="Zdjęcie i widoczność"
+        description="Dodaj fotografię i zdecyduj, gdzie połów będzie widoczny."
       >
         <CatchPhotoField
           selectedImage={selectedImage}
@@ -182,33 +181,29 @@ export function FullCatchForm({
           compact
           showLabel={false}
         />
+
+        <div className="mt-6 border-t border-border pt-6">
+          <FieldLabel className="mb-3">Widoczność połowu</FieldLabel>
+          <CatchVisibilityField
+            isPublic={form.isPublic}
+            hasLake={Boolean(form.lakeId)}
+            hasImage={hasImage}
+            hasMetric={Boolean(form.weight || form.length)}
+            onChange={(isPublic) =>
+              onFieldChange("isPublic", isPublic)
+            }
+          />
+        </div>
       </FormSection>
 
       <FormSection
-        title="Widoczność"
-        description="Zdecyduj, czy połów pozostaje prywatny, czy trafia do rankingu."
-      >
-        <CatchVisibilityField
-          isPublic={form.isPublic}
-          hasLake={Boolean(form.lakeId)}
-          hasImage={hasImage}
-          hasMetric={Boolean(form.weight || form.length)}
-          onChange={(isPublic) =>
-            onFieldChange("isPublic", isPublic)
-          }
-        />
-      </FormSection>
-
-      <FormSection
+        number="05"
         title="Notatka"
-        description="Prywatne informacje tylko dla Ciebie."
+        description="Prywatne informacje, które zobaczysz tylko Ty."
         isLast
       >
         <label className="block">
-          <FieldLabel>
-            Treść notatki
-          </FieldLabel>
-
+          <FieldLabel>Treść notatki</FieldLabel>
           <Textarea
             value={form.note}
             onChange={(event) =>
@@ -216,7 +211,7 @@ export function FullCatchForm({
             }
             rows={4}
             placeholder="np. Branie przy trzcinach około 6:20 rano."
-            className="min-h-28"
+            className="min-h-28 px-4 py-3.5 text-[15px]"
           />
         </label>
       </FormSection>
@@ -225,39 +220,43 @@ export function FullCatchForm({
 }
 
 function FormSection({
+  number,
   title,
   description,
   children,
+  isFirst = false,
   isLast = false,
 }: {
+  number: string;
   title: string;
   description: string;
   children: ReactNode;
+  isFirst?: boolean;
   isLast?: boolean;
 }) {
   return (
     <section
-      className={
-        isLast
-          ? "py-8 first:pt-0"
-          : "border-b border-border py-8 first:pt-0"
-      }
+      className={[
+        isFirst ? "pt-0" : "border-t border-border pt-8",
+        isLast ? "pb-0" : "pb-8",
+      ].join(" ")}
     >
-      <div className="grid gap-5 sm:grid-cols-[150px_minmax(0,1fr)] sm:gap-8">
+      <div className="mb-6 flex items-start gap-3.5">
+        <span className="flex h-7 min-w-7 items-center justify-center rounded-lg bg-primary-100 px-1.5 text-[10px] font-black tracking-[0.06em] text-primary-700">
+          {number}
+        </span>
+
         <div>
-          <h3 className="font-display text-base font-bold text-text sm:text-[17px]">
+          <h3 className="font-display text-[17px] font-bold tracking-[-0.01em] text-text">
             {title}
           </h3>
-
-          <p className="mt-1.5 text-xs leading-5 text-text-secondary sm:text-sm">
+          <p className="mt-1 text-sm leading-5 text-text-secondary">
             {description}
           </p>
         </div>
-
-        <div className="min-w-0">
-          {children}
-        </div>
       </div>
+
+      {children}
     </section>
   );
 }

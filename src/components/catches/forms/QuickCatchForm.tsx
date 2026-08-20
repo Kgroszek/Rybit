@@ -1,5 +1,7 @@
 "use client";
 
+import type { ReactNode } from "react";
+
 import { CATCH_METHODS, FISH_SPECIES_OPTIONS } from "@/components/catches/constants";
 import { CatchPhotoField } from "@/components/catches/forms/CatchPhotoField";
 import {
@@ -14,7 +16,6 @@ import type {
   TripOption,
 } from "@/components/catches/types";
 import { formatShortDate } from "@/components/catches/utils";
-import { FormIcon } from "@/components/icons/FormIcon";
 
 type QuickCatchFormProps = {
   form: CatchFormState;
@@ -22,8 +23,6 @@ type QuickCatchFormProps = {
   lakes: LakeOption[];
   trips: TripOption[];
   autoTripId: string | null;
-  isLoading: boolean;
-  onSwitchToFull: () => void;
   onFieldChange: CatchFieldChange;
   onImageChange: (file: File | null) => void;
 };
@@ -34,40 +33,32 @@ export function QuickCatchForm({
   lakes,
   trips,
   autoTripId,
-  isLoading,
-  onSwitchToFull,
   onFieldChange,
   onImageChange,
 }: QuickCatchFormProps) {
-  const selectedTrip = trips.find((trip) => trip.id === form.tripId) ?? null;
+  const selectedTrip =
+    trips.find((trip) => trip.id === form.tripId) ?? null;
 
   return (
-    <div className="space-y-8">
-      <section aria-labelledby="quick-catch-main">
-        <SectionHeading
-          id="quick-catch-main"
-          title="Co złowiłeś?"
-          description="Najważniejsze dane potrzebne do zapisania połowu."
-        />
-
-        <div className="grid gap-x-7 gap-y-5 sm:grid-cols-2">
+    <div>
+      <FormSection
+        number="01"
+        title="Dane połowu"
+        description="Wybierz gatunek i metodę."
+        isFirst
+      >
+        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
           <CatchSelect
             label="Gatunek ryby"
             value={form.fishName}
             onChange={(value) => onFieldChange("fishName", value)}
             options={[
-              {
-                label: "Wybierz gatunek",
-                value: "",
-              },
+              { label: "Wybierz gatunek", value: "" },
               ...FISH_SPECIES_OPTIONS.map((value) => ({
                 label: value,
                 value,
               })),
-              {
-                label: "Inny gatunek",
-                value: "other",
-              },
+              { label: "Inny gatunek", value: "other" },
             ]}
             required
           />
@@ -76,9 +67,7 @@ export function QuickCatchForm({
             label="Metoda"
             value={form.method}
             onChange={(value) => onFieldChange("method", value)}
-            options={CATCH_METHODS.map((item) => ({
-              ...item,
-            }))}
+            options={CATCH_METHODS.map((item) => ({ ...item }))}
             required
           />
 
@@ -96,18 +85,14 @@ export function QuickCatchForm({
             </div>
           )}
         </div>
-      </section>
+      </FormSection>
 
-      <SectionDivider />
-
-      <section aria-labelledby="quick-catch-result">
-        <SectionHeading
-          id="quick-catch-result"
-          title="Wynik"
-          description="Wystarczy waga, długość albo oba pomiary."
-        />
-
-        <div className="grid gap-x-7 gap-y-5 sm:grid-cols-2">
+      <FormSection
+        number="02"
+        title="Wynik"
+        description="Podaj wagę, długość lub oba pomiary."
+      >
+        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
           <CatchInput
             label="Waga w kg"
             value={form.weight}
@@ -124,18 +109,14 @@ export function QuickCatchForm({
             type="number"
           />
         </div>
-      </section>
+      </FormSection>
 
-      <SectionDivider />
-
-      <section aria-labelledby="quick-catch-place">
-        <SectionHeading
-          id="quick-catch-place"
-          title="Miejsce"
-          description="Przypisz łowisko lub powiąż połów z wyprawą."
-        />
-
-        <div className="grid gap-x-7 gap-y-5 sm:grid-cols-2">
+      <FormSection
+        number="03"
+        title="Miejsce"
+        description="Przypisz łowisko lub wyprawę."
+      >
+        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
           <LakeSearchSelect
             lakes={lakes}
             value={form.lakeId}
@@ -153,7 +134,9 @@ export function QuickCatchForm({
                   value: "",
                 },
                 ...trips.map((trip) => ({
-                  label: `${trip.title} — ${formatShortDate(trip.startsAt)}`,
+                  label: `${trip.title} — ${formatShortDate(
+                    trip.startsAt
+                  )}`,
                   value: trip.id,
                 })),
               ]}
@@ -169,87 +152,75 @@ export function QuickCatchForm({
               className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-success"
               aria-hidden="true"
             />
-
-            <div className="min-w-0">
+            <div>
               <p className="text-sm font-bold text-success-foreground">
                 {selectedTrip.id === autoTripId
                   ? "Przypisano trwającą wyprawę"
                   : "Połów przypisany do wyprawy"}
               </p>
-
               <p className="mt-1 text-xs leading-5 text-text-secondary">
                 {selectedTrip.title}
-                {selectedTrip.lakeId
-                  ? " · łowisko i metoda mogą zostać uzupełnione z wyprawy"
-                  : " · metoda może zostać uzupełniona z wyprawy"}
               </p>
             </div>
           </div>
         )}
-      </section>
+      </FormSection>
 
-      <SectionDivider />
-
-      <section aria-labelledby="quick-catch-photo">
-        <SectionHeading
-          id="quick-catch-photo"
-          title="Zdjęcie"
-          description="Opcjonalne w szybkim zapisie."
-        />
-
+      <FormSection
+        number="04"
+        title="Zdjęcie"
+        description="Opcjonalne w szybkim zapisie."
+        isLast
+      >
         <CatchPhotoField
           selectedImage={selectedImage}
           onImageChange={onImageChange}
           compact
           showLabel={false}
         />
-      </section>
-
-      <div className="flex flex-col gap-4 rounded-control bg-surface-muted px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs leading-5 text-text-secondary">
-          Szybki zapis tworzy prywatny wpis. Przynętę, notatkę, dokładną datę
-          i ranking możesz uzupełnić w pełnym formularzu.
-        </p>
-
-        <button
-          type="button"
-          onClick={onSwitchToFull}
-          disabled={isLoading}
-          className="inline-flex shrink-0 items-center gap-2 self-start rounded-control px-3 py-2 text-sm font-bold text-primary transition hover:bg-primary-50 hover:text-primary-hover disabled:opacity-50 sm:self-auto"
-        >
-          <FormIcon className="h-4 w-4" />
-          Pełny formularz
-        </button>
-      </div>
+      </FormSection>
     </div>
   );
 }
 
-function SectionHeading({
-  id,
+function FormSection({
+  number,
   title,
   description,
+  children,
+  isFirst = false,
+  isLast = false,
 }: {
-  id: string;
+  number: string;
   title: string;
   description: string;
+  children: ReactNode;
+  isFirst?: boolean;
+  isLast?: boolean;
 }) {
   return (
-    <div className="mb-5">
-      <h3
-        id={id}
-        className="font-display text-base font-bold text-text sm:text-[17px]"
-      >
-        {title}
-      </h3>
+    <section
+      className={[
+        isFirst ? "pt-0" : "border-t border-border pt-8",
+        isLast ? "pb-0" : "pb-8",
+      ].join(" ")}
+    >
+      <div className="mb-6 flex items-start gap-3.5">
+        <span className="flex h-7 min-w-7 items-center justify-center rounded-lg bg-primary-100 px-1.5 text-[10px] font-black tracking-[0.06em] text-primary-700">
+          {number}
+        </span>
 
-      <p className="mt-1.5 text-xs leading-5 text-text-secondary sm:text-sm">
-        {description}
-      </p>
-    </div>
+        <div>
+          <h3 className="font-display text-[17px] font-bold tracking-[-0.01em] text-text">
+            {title}
+          </h3>
+          <p className="mt-1 text-sm leading-5 text-text-secondary">
+            {description}
+          </p>
+        </div>
+      </div>
+
+      {children}
+    </section>
   );
-}
-
-function SectionDivider() {
-  return <div className="border-t border-border" aria-hidden="true" />;
 }
