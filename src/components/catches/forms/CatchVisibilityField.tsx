@@ -18,13 +18,17 @@ export function CatchVisibilityField({
   onChange,
 }: CatchVisibilityFieldProps) {
   return (
-    <fieldset>
-      <legend className="sr-only">Widoczność połowu</legend>
-
-      <div className="grid gap-3 sm:grid-cols-2">
+    <div>
+      <div
+        className="grid sm:grid-cols-2"
+        style={{
+          gap: "16px",
+        }}
+        role="radiogroup"
+        aria-label="Widoczność połowu"
+      >
         <VisibilityOption
           checked={!isPublic}
-          value="private"
           title="Tylko dla mnie"
           description="Połów zostanie wyłącznie w Twoim prywatnym dzienniku."
           onSelect={() => onChange(false)}
@@ -32,7 +36,6 @@ export function CatchVisibilityField({
 
         <VisibilityOption
           checked={isPublic}
-          value="ranking"
           title="Ranking łowiska"
           description="Połów będzie publiczny po pozytywnej weryfikacji."
           onSelect={() => onChange(true)}
@@ -40,44 +43,64 @@ export function CatchVisibilityField({
       </div>
 
       {isPublic && (
-        <div className="mt-4 rounded-control border border-border bg-surface-muted px-4 py-3.5">
-          <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs font-bold text-text">
-              Wymagania do rankingu
-            </p>
+        <div
+          className="rounded-card border border-border bg-surface-muted px-5 py-5"
+          style={{
+            marginTop: "20px",
+          }}
+        >
+          <p className="text-sm font-bold text-text">
+            Wymagania do rankingu
+          </p>
 
-            <div className="flex flex-wrap gap-2">
-              <Requirement label="Łowisko" ready={hasLake} />
-              <Requirement label="Zdjęcie" ready={hasImage} />
-              <Requirement
-                label="Waga lub długość"
-                ready={hasMetric}
-              />
-            </div>
+          <p
+            className="text-xs leading-5 text-text-secondary"
+            style={{
+              marginTop: "6px",
+            }}
+          >
+            Uzupełnij wszystkie wymagane elementy przed wysłaniem połowu do weryfikacji.
+          </p>
+
+          <div
+            className="grid sm:grid-cols-3"
+            style={{
+              gap: "12px",
+              marginTop: "16px",
+            }}
+          >
+            <Requirement label="Łowisko" ready={hasLake} />
+            <Requirement label="Zdjęcie" ready={hasImage} />
+            <Requirement
+              label="Waga lub długość"
+              ready={hasMetric}
+            />
           </div>
         </div>
       )}
-    </fieldset>
+    </div>
   );
 }
 
 function VisibilityOption({
   checked,
-  value,
   title,
   description,
   onSelect,
 }: {
   checked: boolean;
-  value: string;
   title: string;
   description: string;
   onSelect: () => void;
 }) {
   return (
-    <label
+    <button
+      type="button"
+      role="radio"
+      aria-checked={checked}
+      onClick={onSelect}
       className={cn(
-        "group flex min-h-24 cursor-pointer items-start gap-3.5 rounded-card border px-4 py-4 transition-[background-color,border-color,box-shadow]",
+        "group flex min-h-[108px] w-full items-start rounded-card border px-5 py-4 text-left transition-[background-color,border-color,box-shadow]",
         checked
           ? "border-primary-300 bg-primary-50 shadow-[0_1px_2px_rgba(13,30,51,0.04)]"
           : "border-border bg-surface hover:border-primary-200 hover:bg-primary-50/35"
@@ -92,33 +115,36 @@ function VisibilityOption({
         )}
         aria-hidden="true"
       >
-        {checked && <span className="h-2.5 w-2.5 rounded-full bg-primary" />}
+        {checked && (
+          <span className="h-2.5 w-2.5 rounded-full bg-primary" />
+        )}
       </span>
 
-      <input
-        type="radio"
-        name="catch-visibility"
-        value={value}
-        checked={checked}
-        onChange={onSelect}
-        className="sr-only"
-      />
-
-      <span className="min-w-0">
+      <span
+        className="min-w-0"
+        style={{
+          marginLeft: "14px",
+        }}
+      >
         <span
           className={cn(
-            "block text-sm font-bold",
+            "block text-sm font-bold leading-5",
             checked ? "text-primary-800" : "text-text"
           )}
         >
           {title}
         </span>
 
-        <span className="mt-1.5 block text-xs leading-5 text-text-secondary">
+        <span
+          className="block text-xs leading-5 text-text-secondary"
+          style={{
+            marginTop: "6px",
+          }}
+        >
           {description}
         </span>
       </span>
-    </label>
+    </button>
   );
 }
 
@@ -130,9 +156,9 @@ function Requirement({
   ready: boolean;
 }) {
   return (
-    <span
+    <div
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold",
+        "flex min-h-10 items-center rounded-control border px-3 py-2 text-xs font-bold",
         ready
           ? "border-success-border bg-success-subtle text-success-foreground"
           : "border-warning-border bg-warning-subtle text-warning-foreground"
@@ -140,12 +166,13 @@ function Requirement({
     >
       <span
         className={cn(
-          "h-1.5 w-1.5 rounded-full",
+          "h-2 w-2 shrink-0 rounded-full",
           ready ? "bg-success" : "bg-warning"
         )}
         aria-hidden="true"
       />
-      {label}
-    </span>
+
+      <span style={{ marginLeft: "8px" }}>{label}</span>
+    </div>
   );
 }

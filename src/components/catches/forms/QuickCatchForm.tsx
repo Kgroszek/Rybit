@@ -1,8 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
-
 import { CATCH_METHODS, FISH_SPECIES_OPTIONS } from "@/components/catches/constants";
+import {
+  CatchFormSection,
+  CatchFormStack,
+} from "@/components/catches/forms/CatchFormSection";
 import { CatchPhotoField } from "@/components/catches/forms/CatchPhotoField";
 import {
   CatchInput,
@@ -40,14 +42,19 @@ export function QuickCatchForm({
     trips.find((trip) => trip.id === form.tripId) ?? null;
 
   return (
-    <div>
-      <FormSection
+    <CatchFormStack>
+      <CatchFormSection
         number="01"
         title="Dane połowu"
         description="Wybierz gatunek i metodę."
-        isFirst
       >
-        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+        <div
+          className="grid sm:grid-cols-2"
+          style={{
+            columnGap: "24px",
+            rowGap: "24px",
+          }}
+        >
           <CatchSelect
             label="Gatunek ryby"
             value={form.fishName}
@@ -85,14 +92,20 @@ export function QuickCatchForm({
             </div>
           )}
         </div>
-      </FormSection>
+      </CatchFormSection>
 
-      <FormSection
+      <CatchFormSection
         number="02"
         title="Wynik"
         description="Podaj wagę, długość lub oba pomiary."
       >
-        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+        <div
+          className="grid sm:grid-cols-2"
+          style={{
+            columnGap: "24px",
+            rowGap: "24px",
+          }}
+        >
           <CatchInput
             label="Waga w kg"
             value={form.weight}
@@ -109,14 +122,20 @@ export function QuickCatchForm({
             type="number"
           />
         </div>
-      </FormSection>
+      </CatchFormSection>
 
-      <FormSection
+      <CatchFormSection
         number="03"
         title="Miejsce"
         description="Przypisz łowisko lub wyprawę."
       >
-        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+        <div
+          className="grid sm:grid-cols-2"
+          style={{
+            columnGap: "24px",
+            rowGap: "24px",
+          }}
+        >
           <LakeSearchSelect
             lakes={lakes}
             value={form.lakeId}
@@ -147,30 +166,34 @@ export function QuickCatchForm({
         </div>
 
         {selectedTrip && (
-          <div className="mt-5 flex items-start gap-3 rounded-control border border-success-border bg-success-subtle px-4 py-3.5">
+          <div
+            className="flex items-start rounded-control border border-success-border bg-success-subtle px-4 py-4"
+            style={{ marginTop: "20px" }}
+          >
             <span
               className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-success"
               aria-hidden="true"
             />
-            <div>
+
+            <div className="min-w-0" style={{ marginLeft: "12px" }}>
               <p className="text-sm font-bold text-success-foreground">
                 {selectedTrip.id === autoTripId
                   ? "Przypisano trwającą wyprawę"
                   : "Połów przypisany do wyprawy"}
               </p>
+
               <p className="mt-1 text-xs leading-5 text-text-secondary">
                 {selectedTrip.title}
               </p>
             </div>
           </div>
         )}
-      </FormSection>
+      </CatchFormSection>
 
-      <FormSection
+      <CatchFormSection
         number="04"
         title="Zdjęcie"
         description="Opcjonalne w szybkim zapisie."
-        isLast
       >
         <CatchPhotoField
           selectedImage={selectedImage}
@@ -178,49 +201,7 @@ export function QuickCatchForm({
           compact
           showLabel={false}
         />
-      </FormSection>
-    </div>
-  );
-}
-
-function FormSection({
-  number,
-  title,
-  description,
-  children,
-  isFirst = false,
-  isLast = false,
-}: {
-  number: string;
-  title: string;
-  description: string;
-  children: ReactNode;
-  isFirst?: boolean;
-  isLast?: boolean;
-}) {
-  return (
-    <section
-      className={[
-        isFirst ? "pt-0" : "border-t border-border pt-8",
-        isLast ? "pb-0" : "pb-8",
-      ].join(" ")}
-    >
-      <div className="mb-6 flex items-start gap-3.5">
-        <span className="flex h-7 min-w-7 items-center justify-center rounded-lg bg-primary-100 px-1.5 text-[10px] font-black tracking-[0.06em] text-primary-700">
-          {number}
-        </span>
-
-        <div>
-          <h3 className="font-display text-[17px] font-bold tracking-[-0.01em] text-text">
-            {title}
-          </h3>
-          <p className="mt-1 text-sm leading-5 text-text-secondary">
-            {description}
-          </p>
-        </div>
-      </div>
-
-      {children}
-    </section>
+      </CatchFormSection>
+    </CatchFormStack>
   );
 }

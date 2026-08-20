@@ -1,8 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
-
 import { CATCH_METHODS, FISH_SPECIES_OPTIONS } from "@/components/catches/constants";
+import {
+  CatchFormSection,
+  CatchFormStack,
+} from "@/components/catches/forms/CatchFormSection";
 import { CatchPhotoField } from "@/components/catches/forms/CatchPhotoField";
 import { CatchVisibilityField } from "@/components/catches/forms/CatchVisibilityField";
 import {
@@ -47,14 +49,19 @@ export function FullCatchForm({
   );
 
   return (
-    <div>
-      <FormSection
+    <CatchFormStack>
+      <CatchFormSection
         number="01"
         title="Podstawowe"
         description="Najważniejsze informacje o połowie."
-        isFirst
       >
-        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+        <div
+          className="grid sm:grid-cols-2"
+          style={{
+            columnGap: "24px",
+            rowGap: "24px",
+          }}
+        >
           <CatchSelect
             label="Gatunek ryby"
             value={form.fishName}
@@ -102,14 +109,20 @@ export function FullCatchForm({
             />
           </div>
         </div>
-      </FormSection>
+      </CatchFormSection>
 
-      <FormSection
+      <CatchFormSection
         number="02"
         title="Wynik"
         description="Pomiary ryby i użyta przynęta."
       >
-        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+        <div
+          className="grid sm:grid-cols-2"
+          style={{
+            columnGap: "24px",
+            rowGap: "24px",
+          }}
+        >
           <CatchInput
             label="Waga w kg"
             value={form.weight}
@@ -135,14 +148,20 @@ export function FullCatchForm({
             />
           </div>
         </div>
-      </FormSection>
+      </CatchFormSection>
 
-      <FormSection
+      <CatchFormSection
         number="03"
         title="Miejsce"
         description="Powiąż połów z łowiskiem lub wyprawą."
       >
-        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+        <div
+          className="grid sm:grid-cols-2"
+          style={{
+            columnGap: "24px",
+            rowGap: "24px",
+          }}
+        >
           <LakeSearchSelect
             lakes={lakes}
             value={form.lakeId}
@@ -167,9 +186,9 @@ export function FullCatchForm({
             ]}
           />
         </div>
-      </FormSection>
+      </CatchFormSection>
 
-      <FormSection
+      <CatchFormSection
         number="04"
         title="Zdjęcie i widoczność"
         description="Dodaj fotografię i zdecyduj, gdzie połów będzie widoczny."
@@ -182,8 +201,17 @@ export function FullCatchForm({
           showLabel={false}
         />
 
-        <div className="mt-6 border-t border-border pt-6">
-          <FieldLabel className="mb-3">Widoczność połowu</FieldLabel>
+        <div
+          className="border-t border-border"
+          style={{
+            marginTop: "24px",
+            paddingTop: "24px",
+          }}
+        >
+          <div style={{ marginBottom: "12px" }}>
+            <FieldLabel>Widoczność połowu</FieldLabel>
+          </div>
+
           <CatchVisibilityField
             isPublic={form.isPublic}
             hasLake={Boolean(form.lakeId)}
@@ -194,16 +222,21 @@ export function FullCatchForm({
             }
           />
         </div>
-      </FormSection>
+      </CatchFormSection>
 
-      <FormSection
+      <CatchFormSection
         number="05"
         title="Notatka"
         description="Prywatne informacje, które zobaczysz tylko Ty."
-        isLast
       >
-        <label className="block">
+        <label
+          className="grid"
+          style={{
+            rowGap: "10px",
+          }}
+        >
           <FieldLabel>Treść notatki</FieldLabel>
+
           <Textarea
             value={form.note}
             onChange={(event) =>
@@ -214,49 +247,7 @@ export function FullCatchForm({
             className="min-h-28 px-4 py-3.5 text-[15px]"
           />
         </label>
-      </FormSection>
-    </div>
-  );
-}
-
-function FormSection({
-  number,
-  title,
-  description,
-  children,
-  isFirst = false,
-  isLast = false,
-}: {
-  number: string;
-  title: string;
-  description: string;
-  children: ReactNode;
-  isFirst?: boolean;
-  isLast?: boolean;
-}) {
-  return (
-    <section
-      className={[
-        isFirst ? "pt-0" : "border-t border-border pt-8",
-        isLast ? "pb-0" : "pb-8",
-      ].join(" ")}
-    >
-      <div className="mb-6 flex items-start gap-3.5">
-        <span className="flex h-7 min-w-7 items-center justify-center rounded-lg bg-primary-100 px-1.5 text-[10px] font-black tracking-[0.06em] text-primary-700">
-          {number}
-        </span>
-
-        <div>
-          <h3 className="font-display text-[17px] font-bold tracking-[-0.01em] text-text">
-            {title}
-          </h3>
-          <p className="mt-1 text-sm leading-5 text-text-secondary">
-            {description}
-          </p>
-        </div>
-      </div>
-
-      {children}
-    </section>
+      </CatchFormSection>
+    </CatchFormStack>
   );
 }

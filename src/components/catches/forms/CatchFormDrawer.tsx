@@ -159,15 +159,6 @@ export function CatchFormDrawer({
         top: 0,
         behavior: "auto",
       });
-
-      const firstField =
-        contentRef.current?.querySelector<HTMLElement>(
-          'select:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled])'
-        );
-
-      firstField?.focus({
-        preventScroll: true,
-      });
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -241,9 +232,9 @@ export function CatchFormDrawer({
           </div>
 
           {canChangeMode && (
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div
-                className="inline-flex w-full rounded-control bg-surface-muted p-1 sm:w-auto"
+                className="grid w-full grid-cols-2 gap-1.5 rounded-control bg-surface-muted p-1.5 sm:w-auto"
                 role="tablist"
                 aria-label="Tryb formularza połowu"
               >
@@ -265,7 +256,7 @@ export function CatchFormDrawer({
               </div>
 
               {form.caughtAt && (
-                <p className="text-xs font-semibold text-text-muted">
+                <p className="shrink-0 text-xs font-semibold text-text-muted">
                   Data połowu: {formatDateTime(form.caughtAt)}
                 </p>
               )}
@@ -275,7 +266,7 @@ export function CatchFormDrawer({
 
         <div
           ref={contentRef}
-          className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-7 [scrollbar-gutter:stable] sm:px-8 sm:py-8"
+          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-7 [scrollbar-gutter:stable] sm:px-8 sm:py-8"
         >
           {isQuick ? (
             <QuickCatchForm
@@ -301,22 +292,24 @@ export function CatchFormDrawer({
         </div>
 
         <footer className="shrink-0 border-t border-border bg-surface px-5 py-4 shadow-[0_-8px_24px_rgba(13,30,51,0.035)] sm:px-8 sm:py-5">
-          <div className="flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end sm:gap-4">
             <Button
               type="button"
               variant="outline"
+              size="md"
               onClick={onClose}
               disabled={isLoading}
-              className="w-full sm:w-auto sm:min-w-32"
+              className="h-12 min-h-12 w-full sm:w-auto sm:min-w-36"
             >
               Anuluj
             </Button>
 
             <Button
               type="submit"
+              size="md"
               isLoading={isLoading}
               loadingLabel="Zapisywanie…"
-              className="w-full sm:w-auto sm:min-w-44"
+              className="h-12 min-h-12 w-full sm:w-auto sm:min-w-44"
             >
               {editingCatch
                 ? "Zapisz zmiany"
@@ -370,7 +363,7 @@ function ModeButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "min-h-10 flex-1 rounded-xl px-4 py-2 text-sm font-bold transition-[background-color,color,box-shadow] sm:min-w-36",
+        "h-11 min-h-11 whitespace-nowrap rounded-xl px-5 text-sm font-bold leading-none transition-[background-color,color,box-shadow] sm:min-w-[158px]",
         isActive
           ? "bg-surface text-primary shadow-[0_1px_3px_rgba(13,30,51,0.10)]"
           : "text-text-secondary hover:text-text",

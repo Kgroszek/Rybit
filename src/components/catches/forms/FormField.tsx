@@ -17,7 +17,7 @@ export function FieldLabel({
   return (
     <span
       className={cn(
-        "mb-2.5 block text-[13px] font-bold leading-5 text-text-secondary",
+        "block text-sm font-bold leading-5 text-text-secondary",
         className
       )}
     >
@@ -47,8 +47,14 @@ export function CatchInput({
   className,
 }: CatchInputProps) {
   return (
-    <label className="block min-w-0">
+    <label
+      className="grid min-w-0"
+      style={{
+        rowGap: "10px",
+      }}
+    >
       <FieldLabel required={required}>{label}</FieldLabel>
+
       <Input
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -84,7 +90,12 @@ export function CatchSelect({
   className,
 }: CatchSelectProps) {
   return (
-    <label className="block min-w-0">
+    <label
+      className="grid min-w-0"
+      style={{
+        rowGap: "10px",
+      }}
+    >
       <FieldLabel required={required}>{label}</FieldLabel>
 
       <select
@@ -106,6 +117,10 @@ export function CatchSelect({
   );
 }
 
+/**
+ * Legacy/shared group used outside the new Quick/Full section stack.
+ * Kept API-compatible, but follows the same spacing scale.
+ */
 export function CatchFormGroup({
   title,
   description,
@@ -116,12 +131,22 @@ export function CatchFormGroup({
   children: ReactNode;
 }) {
   return (
-    <section className="border-b border-border py-8 first:pt-0 last:border-none last:pb-0">
-      <div className="mb-6">
+    <section
+      className="grid border-b border-border last:border-none"
+      style={{
+        rowGap: "24px",
+        paddingBlock: "32px",
+      }}
+    >
+      <div>
         <h3 className="font-display text-lg font-bold tracking-[-0.015em] text-text">
           {title}
         </h3>
-        <p className="mt-1.5 text-sm leading-6 text-text-secondary">
+
+        <p
+          className="text-sm leading-6 text-text-secondary"
+          style={{ marginTop: "6px" }}
+        >
           {description}
         </p>
       </div>
