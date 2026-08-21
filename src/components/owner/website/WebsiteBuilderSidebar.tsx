@@ -77,7 +77,7 @@ export function WebsiteBuilderSidebar({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain [scrollbar-gutter:stable]">
         {controller.mode ===
           "sections" && (
           <WebsiteSectionsPanel

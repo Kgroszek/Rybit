@@ -285,7 +285,7 @@ export function WebsiteDesignPanel({
           />
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="mt-5 grid grid-cols-1 gap-3">
           <BuilderColorField
             label="Kolor marki"
             value={primaryColor}
@@ -304,7 +304,7 @@ export function WebsiteDesignPanel({
             Kolory zaawansowane
           </summary>
 
-          <div className="grid grid-cols-2 gap-3 border-t border-border p-4">
+          <div className="grid grid-cols-1 gap-3 border-t border-border p-4">
             <BuilderColorField
               label="Tło"
               value={backgroundColor}

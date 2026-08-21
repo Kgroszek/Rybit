@@ -180,7 +180,7 @@ export function BuilderColorField({
         {label}
       </BuilderFieldLabel>
 
-      <div className="flex h-11 items-center gap-2 rounded-control border border-border-strong bg-surface px-2.5 shadow-sm transition focus-within:border-primary focus-within:ring-4 focus-within:ring-primary-100">
+      <div className="flex min-w-0 w-full overflow-hidden h-11 items-center gap-2 rounded-control border border-border-strong bg-surface px-2.5 shadow-sm transition focus-within:border-primary focus-within:ring-4 focus-within:ring-primary-100">
         <input
           type="color"
           value={safeValue}
@@ -189,7 +189,7 @@ export function BuilderColorField({
               event.target.value.toUpperCase()
             )
           }
-          className="h-7 w-8 cursor-pointer border-0 bg-transparent p-0"
+          className="h-7 w-8 shrink-0 cursor-pointer border-0 bg-transparent p-0"
           aria-label={label}
         />
 
@@ -198,7 +198,7 @@ export function BuilderColorField({
           onChange={(event) =>
             onChange(event.target.value)
           }
-          className="min-w-0 flex-1 bg-transparent text-xs font-extrabold uppercase text-text outline-none"
+          className="w-0 min-w-0 flex-1 bg-transparent text-xs font-extrabold uppercase text-text outline-none"
         />
       </div>
     </label>
