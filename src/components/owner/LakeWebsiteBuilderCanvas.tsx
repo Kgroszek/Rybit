@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import type { PublicLakeWebsiteData } from "@/components/lake-websites/LakeWebsiteRenderer";
+import type { WebsiteBuilderDevice } from "@/components/owner/website/types";
+import { cn } from "@/lib/cn";
 
-export type LakeWebsiteBuilderDevice = "desktop" | "mobile";
+export type LakeWebsiteBuilderDevice =
+  WebsiteBuilderDevice;
 
 export function LakeWebsiteBuilderCanvas({
   lakeSlug,
@@ -17,14 +24,24 @@ export function LakeWebsiteBuilderCanvas({
   data: PublicLakeWebsiteData;
   selectedSectionId: string | null;
   device: LakeWebsiteBuilderDevice;
-  onSelectSection: (sectionId: string) => void;
+  onSelectSection: (
+    sectionId: string
+  ) => void;
 }) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [ready, setReady] = useState(false);
+  const iframeRef =
+    useRef<HTMLIFrameElement>(null);
+
+  const [ready, setReady] =
+    useState(false);
 
   useEffect(() => {
-    function handleMessage(event: MessageEvent) {
-      if (event.origin !== window.location.origin) {
+    function handleMessage(
+      event: MessageEvent
+    ) {
+      if (
+        event.origin !==
+        window.location.origin
+      ) {
         return;
       }
 
@@ -36,17 +53,26 @@ export function LakeWebsiteBuilderCanvas({
         | null;
 
       if (
-        payload?.type === "rybio:lake-builder-section-click" &&
+        payload?.type ===
+          "rybio:lake-builder-section-click" &&
         payload.sectionId
       ) {
-        onSelectSection(payload.sectionId);
+        onSelectSection(
+          payload.sectionId
+        );
       }
     }
 
-    window.addEventListener("message", handleMessage);
+    window.addEventListener(
+      "message",
+      handleMessage
+    );
 
     return () => {
-      window.removeEventListener("message", handleMessage);
+      window.removeEventListener(
+        "message",
+        handleMessage
+      );
     };
   }, [onSelectSection]);
 
@@ -57,38 +83,49 @@ export function LakeWebsiteBuilderCanvas({
 
     iframeRef.current?.contentWindow?.postMessage(
       {
-        type: "rybio:lake-builder-data",
+        type:
+          "rybio:lake-builder-data",
         data,
         selectedSectionId,
       },
       window.location.origin
     );
-  }, [data, ready, selectedSectionId]);
+  }, [
+    data,
+    ready,
+    selectedSectionId,
+  ]);
 
   return (
-    <div className="relative h-full min-w-0 overflow-hidden bg-[#dfe3e8]">
-      <div
-        className={`mx-auto h-full bg-white shadow-2xl transition-[width] duration-200 ${
-          device === "mobile"
-            ? "w-[390px] max-w-full"
-            : "w-full"
-        }`}
-      >
-        <iframe
-          ref={iframeRef}
-          title="Edytowana strona łowiska"
-          src={`/moje-lowiska/${lakeSlug}/strona/podglad`}
-          onLoad={() => setReady(true)}
-          className="h-full w-full border-0 bg-white"
-        />
+    <div className="relative h-full min-w-0 overflow-hidden bg-surface-strong">
+      <div className="h-full overflow-auto p-4 xl:p-6">
+        <div
+          className={cn(
+            "mx-auto h-full overflow-hidden bg-surface shadow-float transition-[width,border-radius,border-width] duration-200",
+            device === "mobile"
+              ? "w-[390px] max-w-full rounded-[28px] border-[10px] border-navy-950"
+              : "w-full max-w-[1500px] rounded-card border border-border"
+          )}
+        >
+          <iframe
+            ref={iframeRef}
+            title="Edytowana strona łowiska"
+            src={`/moje-lowiska/${lakeSlug}/strona/podglad`}
+            onLoad={() =>
+              setReady(true)
+            }
+            className="h-full w-full border-0 bg-surface"
+          />
+        </div>
       </div>
 
       {!ready && (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-100">
+        <div className="absolute inset-0 flex items-center justify-center bg-surface-strong">
           <div className="text-center">
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
-            <p className="mt-3 text-sm font-semibold text-slate-500">
-              Ładowanie strony…
+            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-border-strong border-t-primary" />
+
+            <p className="mt-3 text-sm font-bold text-text-secondary">
+              Ładowanie podglądu…
             </p>
           </div>
         </div>
