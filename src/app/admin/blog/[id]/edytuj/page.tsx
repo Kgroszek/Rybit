@@ -1,13 +1,18 @@
-import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import {
+  notFound,
+  redirect,
+} from "next/navigation";
 
-import { BlogPostEditor } from "@/components/admin/blog/BlogPostEditor";
+import {
+  BlogPostEditor,
+} from "@/components/admin/blog/BlogPostEditor";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { isAdminUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
-export const dynamic = "force-dynamic";
+export const dynamic =
+  "force-dynamic";
 
 type EditBlogPostPageProps = {
   params: Promise<{
@@ -18,12 +23,16 @@ type EditBlogPostPageProps = {
 export default async function EditBlogPostPage({
   params,
 }: EditBlogPostPageProps) {
-  const { id } = await params;
+  const { id } =
+    await params;
 
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
+
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } =
+    await supabase.auth.getUser();
 
   if (!user) {
     redirect("/login");
@@ -33,11 +42,32 @@ export default async function EditBlogPostPage({
     redirect("/dashboard");
   }
 
-  const post = await prisma.blogPost.findUnique({
-    where: {
-      id,
-    },
-  });
+  const post =
+    await prisma.blogPost.findUnique(
+      {
+        where: {
+          id,
+        },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          excerpt: true,
+          category: true,
+          tags: true,
+          coverImageUrl:
+            true,
+          content: true,
+          status: true,
+          isFeatured: true,
+          seoTitle: true,
+          seoDescription:
+            true,
+          authorName: true,
+          publishedAt: true,
+        },
+      }
+    );
 
   if (!post) {
     notFound();
@@ -45,27 +75,14 @@ export default async function EditBlogPostPage({
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">
-              Blog Rybio
-            </p>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950">
-              Edytuj artykuł
-            </h1>
-          </div>
-
-          <Link
-            href="/admin/blog"
-            className="text-sm font-semibold text-blue-600 transition hover:text-blue-700"
-          >
-            ← Wróć do artykułów
-          </Link>
-        </header>
-
-        <BlogPostEditor initialPost={post} />
-      </div>
+      <BlogPostEditor
+        initialPost={{
+          ...post,
+          publishedAt:
+            post.publishedAt?.toISOString() ??
+            null,
+        }}
+      />
     </DashboardLayout>
   );
 }

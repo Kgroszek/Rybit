@@ -1,606 +1,459 @@
 "use client";
 
-import { useMemo, useState, type KeyboardEvent } from "react";
-import { useRouter } from "next/navigation";
-
-import { BlogBlockEditor } from "@/components/admin/blog/BlogBlockEditor";
 import {
-  BLOG_CATEGORIES,
-  normalizeBlogTag,
-  parseBlogBlocks,
-  slugifyBlogValue,
-  type BlogBlock,
-  type BlogCategoryValue,
-} from "@/lib/blog";
+  useState,
+} from "react";
+import {
+  useRouter,
+} from "next/navigation";
 
-type BlogEditorInitialPost = {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  category: string;
-  tags: string[];
-  coverImageUrl: string | null;
-  content: unknown;
-  status: string;
-  isFeatured: boolean;
-  seoTitle: string | null;
-  seoDescription: string | null;
-} | null;
+import {
+  BlogBlockEditor,
+} from "@/components/admin/blog/BlogBlockEditor";
+import {
+  BlogEditorDialog,
+} from "@/components/admin/blog/BlogEditorDialog";
+import {
+  BlogEditorSidebar,
+} from "@/components/admin/blog/BlogEditorSidebar";
+import {
+  BlogEditorToolbar,
+} from "@/components/admin/blog/BlogEditorToolbar";
+import type {
+  BlogEditorInitialPost,
+} from "@/components/admin/blog/BlogEditorTypes";
+import {
+  BlogPreviewDialog,
+} from "@/components/admin/blog/BlogPreviewDialog";
+import {
+  useBlogPostEditor,
+} from "@/components/admin/blog/useBlogPostEditor";
+import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 
 export function BlogPostEditor({
   initialPost,
 }: {
-  initialPost?: BlogEditorInitialPost;
+  initialPost: BlogEditorInitialPost;
 }) {
   const router = useRouter();
 
-  const [title, setTitle] = useState(initialPost?.title ?? "");
-  const [slug, setSlug] = useState(initialPost?.slug ?? "");
-  const [slugTouched, setSlugTouched] = useState(Boolean(initialPost));
-  const [excerpt, setExcerpt] = useState(initialPost?.excerpt ?? "");
-  const [category, setCategory] = useState<BlogCategoryValue>(
-    BLOG_CATEGORIES.some((item) => item.value === initialPost?.category)
-      ? (initialPost?.category as BlogCategoryValue)
-      : "poradniki"
-  );
-  const [tags, setTags] = useState<string[]>(initialPost?.tags ?? []);
-  const [tagInput, setTagInput] = useState("");
-  const [coverImageUrl, setCoverImageUrl] = useState(
-    initialPost?.coverImageUrl ?? ""
-  );
-  const [blocks, setBlocks] = useState<BlogBlock[]>(() => {
-    const parsed = parseBlogBlocks(initialPost?.content);
-
-    if (parsed.length > 0) {
-      return parsed;
-    }
-
-    return [
-      {
-        id: `intro-${Date.now()}`,
-        type: "paragraph",
-        text: "",
-      },
-    ];
-  });
-  const [seoTitle, setSeoTitle] = useState(initialPost?.seoTitle ?? "");
-  const [seoDescription, setSeoDescription] = useState(
-    initialPost?.seoDescription ?? ""
-  );
-  const [isFeatured, setIsFeatured] = useState(
-    initialPost?.isFeatured ?? false
-  );
-  const [status, setStatus] = useState(initialPost?.status ?? "draft");
-  const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingCover, setIsUploadingCover] = useState(false);
-  const [message, setMessage] = useState("");
-
-  const isEditing = Boolean(initialPost?.id);
-
-  const cleanedBlocks = useMemo(() => {
-    return blocks
-      .map((block) => {
-        if (block.type === "list") {
-          return {
-            ...block,
-            items: block.items
-              .map((item) => item.trim())
-              .filter(Boolean),
-          };
-        }
-
-        if (block.type === "image") {
-          return {
-            ...block,
-            alt: block.alt.trim(),
-            caption: block.caption.trim(),
-          };
-        }
-
-        return {
-          ...block,
-          text: block.text.trim(),
-        };
-      })
-      .filter((block) => {
-        if (block.type === "image") {
-          return Boolean(block.url);
-        }
-
-        if (block.type === "list") {
-          return block.items.length > 0;
-        }
-
-        return Boolean(block.text);
-      });
-  }, [blocks]);
-
-  function handleTitleChange(value: string) {
-    setTitle(value);
-
-    if (!slugTouched) {
-      setSlug(slugifyBlogValue(value));
-    }
-  }
-
-  function addTag(rawValue = tagInput) {
-    const values = rawValue
-      .split(",")
-      .map(normalizeBlogTag)
-      .filter(Boolean);
-
-    if (values.length === 0) {
-      setTagInput("");
-      return;
-    }
-
-    setTags((current) => {
-      const next = [...current];
-
-      values.forEach((tag) => {
-        if (!next.includes(tag) && next.length < 12) {
-          next.push(tag);
-        }
-      });
-
-      return next;
+  const controller =
+    useBlogPostEditor({
+      initialPost,
     });
 
-    setTagInput("");
-  }
+  const [
+    leaveDialogOpen,
+    setLeaveDialogOpen,
+  ] = useState(false);
 
-  function handleTagKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Enter" || event.key === ",") {
-      event.preventDefault();
-      addTag();
-    }
+  const [
+    unpublishDialogOpen,
+    setUnpublishDialogOpen,
+  ] = useState(false);
 
-    if (
-      event.key === "Backspace" &&
-      !tagInput &&
-      tags.length > 0
-    ) {
-      setTags((current) => current.slice(0, -1));
-    }
-  }
-
-  async function handleCoverUpload(file: File) {
-    setIsUploadingCover(true);
-    setMessage("");
-
-    try {
-      const formData = new FormData();
-      formData.append("image", file);
-
-      const response = await fetch("/api/admin/blog/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = (await response.json().catch(() => null)) as
-        | {
-            url?: string;
-            message?: string;
-          }
-        | null;
-
-      if (!response.ok || !data?.url) {
-        throw new Error(
-          data?.message || "Nie udało się przesłać zdjęcia."
-        );
-      }
-
-      setCoverImageUrl(data.url);
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Nie udało się przesłać zdjęcia."
+  function requestBack() {
+    if (controller.isDirty) {
+      setLeaveDialogOpen(
+        true
       );
-    } finally {
-      setIsUploadingCover(false);
-    }
-  }
-
-  async function savePost(nextStatus: "draft" | "published") {
-    setMessage("");
-
-    const cleanTitle = title.trim();
-    const cleanSlug = slugifyBlogValue(slug);
-
-    if (!cleanTitle) {
-      setMessage("Podaj tytuł artykułu.");
       return;
     }
 
-    if (!cleanSlug) {
-      setMessage("Podaj poprawny slug artykułu.");
-      return;
-    }
+    router.push(
+      "/admin/blog"
+    );
+  }
 
-    if (cleanedBlocks.length === 0) {
-      setMessage("Dodaj przynajmniej jeden blok treści.");
-      return;
-    }
-
-    setIsSaving(true);
-
-    try {
-      const response = await fetch(
-        isEditing
-          ? `/api/admin/blog/posts/${initialPost?.id}`
-          : "/api/admin/blog/posts",
-        {
-          method: isEditing ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            title: cleanTitle,
-            slug: cleanSlug,
-            excerpt: excerpt.trim(),
-            category,
-            tags,
-            coverImageUrl: coverImageUrl || null,
-            content: cleanedBlocks,
-            status: nextStatus,
-            isFeatured,
-            seoTitle: seoTitle.trim(),
-            seoDescription: seoDescription.trim(),
-          }),
-        }
+  async function confirmUnpublish() {
+    const saved =
+      await controller.save(
+        "unpublish"
       );
 
-      const data = (await response.json().catch(() => null)) as
-        | {
-            id?: string;
-            message?: string;
-          }
-        | null;
-
-      if (!response.ok || !data?.id) {
-        throw new Error(
-          data?.message || "Nie udało się zapisać artykułu."
-        );
-      }
-
-      setStatus(nextStatus);
-      setSlug(cleanSlug);
-      setSlugTouched(true);
-      setMessage(
-        nextStatus === "published"
-          ? "Artykuł został opublikowany."
-          : "Szkic został zapisany."
+    if (saved) {
+      setUnpublishDialogOpen(
+        false
       );
-
-      if (!isEditing) {
-        router.replace(`/admin/blog/${data.id}/edytuj`);
-      }
-
-      router.refresh();
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : "Nie udało się zapisać artykułu."
-      );
-    } finally {
-      setIsSaving(false);
     }
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="space-y-6">
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
-            Artykuł
-          </p>
+    <div className="min-h-[calc(100dvh-80px)] bg-background">
+      <BlogEditorToolbar
+        title={
+          controller.snapshot
+            .title
+        }
+        isDirty={
+          controller.isDirty
+        }
+        publicationState={
+          controller.publicationState
+        }
+        publicationMode={
+          controller.publicationMode
+        }
+        savingAction={
+          controller.savingAction
+        }
+        message={
+          controller.message
+        }
+        onBack={requestBack}
+        onPreview={() =>
+          controller.setPreviewOpen(
+            true
+          )
+        }
+        onReset={
+          controller.resetToSaved
+        }
+        onSaveDraft={() =>
+          void controller.save(
+            "draft"
+          )
+        }
+        onPublish={() =>
+          void controller.save(
+            "publish"
+          )
+        }
+        onSavePublished={() =>
+          void controller.save(
+            "published"
+          )
+        }
+        onDismissMessage={() =>
+          controller.setMessage(
+            null
+          )
+        }
+      />
 
-          <div className="mt-4 grid gap-5">
-            <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">
-                Tytuł
-              </span>
-              <input
-                value={title}
-                onChange={(event) => handleTitleChange(event.target.value)}
-                placeholder="np. Jak rozpocząć łowienie metodą Method Feeder?"
-                className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-lg font-bold text-slate-950 outline-none transition placeholder:font-normal placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-              />
-            </label>
+      <div className="mx-auto grid w-full max-w-[1500px] gap-6 px-4 py-6 sm:px-6 lg:px-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+        <main className="min-w-0">
+          <div className="mx-auto max-w-[920px] rounded-panel border border-border bg-surface shadow-card">
+            <div className="border-b border-border px-5 py-7 sm:px-8 sm:py-9">
+              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-primary">
+                Artykuł
+              </p>
 
-            <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">
-                Slug
-              </span>
-              <div className="flex items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-50">
-                <span className="shrink-0 text-sm text-slate-400">
-                  /blog/
-                </span>
-                <input
-                  value={slug}
-                  onChange={(event) => {
-                    setSlug(event.target.value);
-                    setSlugTouched(true);
-                  }}
-                  onBlur={() => setSlug(slugifyBlogValue(slug))}
-                  className="h-12 min-w-0 flex-1 bg-transparent text-sm font-medium text-slate-700 outline-none"
-                />
-              </div>
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">
-                Krótki opis
-              </span>
               <textarea
-                value={excerpt}
-                onChange={(event) => setExcerpt(event.target.value)}
+                value={
+                  controller.snapshot
+                    .title
+                }
+                onChange={(event) =>
+                  controller.setTitle(
+                    event.target
+                      .value
+                  )
+                }
+                rows={2}
+                maxLength={220}
+                placeholder="Tytuł artykułu..."
+                className="mt-3 w-full resize-none bg-transparent font-display text-4xl font-extrabold leading-[1.08] tracking-[-0.045em] text-text outline-none placeholder:text-text-muted/45 sm:text-5xl"
+              />
+
+              <textarea
+                value={
+                  controller.snapshot
+                    .excerpt
+                }
+                onChange={(event) =>
+                  controller.patchSnapshot(
+                    {
+                      excerpt:
+                        event.target
+                          .value,
+                    }
+                  )
+                }
                 rows={3}
                 maxLength={320}
-                placeholder="Krótki opis widoczny na karcie artykułu i w Google..."
-                className="w-full resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
+                placeholder="Krótki lead — czego czytelnik dowie się z artykułu?"
+                className="mt-4 w-full resize-none bg-transparent text-lg leading-8 text-text-secondary outline-none placeholder:text-text-muted/60"
               />
-              <span className="mt-1 block text-right text-xs text-slate-400">
-                {excerpt.length}/320
-              </span>
-            </label>
+
+              <div className="mt-2 flex justify-end">
+                <span
+                  className={cn(
+                    "text-[10px] font-bold tabular-nums",
+                    controller
+                      .snapshot
+                      .excerpt
+                      .length > 280
+                      ? "text-warning-foreground"
+                      : "text-text-muted"
+                  )}
+                >
+                  {
+                    controller
+                      .snapshot
+                      .excerpt
+                      .length
+                  }
+                  /320
+                </span>
+              </div>
+
+              {controller.snapshot
+                .coverImageUrl && (
+                <img
+                  src={
+                    controller
+                      .snapshot
+                      .coverImageUrl
+                  }
+                  alt=""
+                  className="mt-7 max-h-[520px] w-full rounded-panel border border-border object-cover"
+                />
+              )}
+            </div>
+
+            <div className="px-4 py-6 sm:px-6 sm:py-8">
+              <div className="mx-auto max-w-[820px]">
+                <BlogBlockEditor
+                  blocks={
+                    controller.snapshot
+                      .blocks
+                  }
+                  selectedBlockId={
+                    controller.selectedBlockId
+                  }
+                  onSelect={
+                    controller.selectBlock
+                  }
+                  onChange={
+                    controller.replaceBlock
+                  }
+                  onAdd={
+                    controller.addBlock
+                  }
+                  onRemove={
+                    controller.removeBlock
+                  }
+                  onMove={
+                    controller.moveBlock
+                  }
+                  onDrag={
+                    controller.dragBlock
+                  }
+                  onUpload={
+                    controller.uploadContentImage
+                  }
+                />
+              </div>
+            </div>
           </div>
-        </section>
+        </main>
 
-        <BlogBlockEditor blocks={blocks} onChange={setBlocks} />
-
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-            SEO
-          </p>
-          <h2 className="mt-1 text-xl font-extrabold text-slate-950">
-            Widoczność w Google
-          </h2>
-
-          <div className="mt-5 grid gap-5">
-            <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">
-                SEO title
-              </span>
-              <input
-                value={seoTitle}
-                onChange={(event) => setSeoTitle(event.target.value)}
-                maxLength={70}
-                placeholder={title || "Tytuł artykułu | Rybio"}
-                className="h-12 w-full rounded-2xl border border-slate-200 px-4 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">
-                Meta description
-              </span>
-              <textarea
-                value={seoDescription}
-                onChange={(event) =>
-                  setSeoDescription(event.target.value)
-                }
-                rows={3}
-                maxLength={180}
-                placeholder={excerpt || "Opis artykułu widoczny w wynikach wyszukiwania."}
-                className="w-full resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-              />
-            </label>
-          </div>
-        </section>
+        <BlogEditorSidebar
+          controller={controller}
+          onRequestUnpublish={() =>
+            setUnpublishDialogOpen(
+              true
+            )
+          }
+        />
       </div>
 
-      <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">
-            Publikacja
-          </p>
-
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
-            <span className="text-sm font-semibold text-slate-600">
-              Status
-            </span>
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                status === "published"
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-amber-50 text-amber-700"
-              }`}
-            >
-              {status === "published" ? "Opublikowany" : "Szkic"}
-            </span>
-          </div>
-
-          {message && (
-            <div
-              className={`mt-4 rounded-2xl px-4 py-3 text-sm font-medium ${
-                message.includes("został")
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "bg-red-50 text-red-700"
-              }`}
-            >
-              {message}
-            </div>
-          )}
-
-          <div className="mt-4 grid gap-2">
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={() => void savePost("draft")}
-              className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
-            >
-              {isSaving ? "Zapisywanie..." : "Zapisz szkic"}
-            </button>
-
-            <button
-              type="button"
-              disabled={isSaving}
-              onClick={() => void savePost("published")}
-              className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSaving
-                ? "Zapisywanie..."
-                : status === "published"
-                  ? "Zapisz i opublikuj"
-                  : "Opublikuj artykuł"}
-            </button>
-
-            {status === "published" && slug && (
-              <a
-                href={`/blog/${slugifyBlogValue(slug)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-2xl bg-blue-50 px-4 py-3 text-center text-sm font-bold text-blue-700 transition hover:bg-blue-100"
-              >
-                Zobacz artykuł ↗
-              </a>
-            )}
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Organizacja
-          </p>
-
-          <div className="mt-4 space-y-5">
-            <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">
-                Kategoria
-              </span>
-              <select
-                value={category}
-                onChange={(event) =>
-                  setCategory(event.target.value as BlogCategoryValue)
-                }
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none focus:border-blue-500"
-              >
-                {BLOG_CATEGORIES.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div>
-              <span className="mb-2 block text-sm font-semibold text-slate-700">
-                Tagi
-              </span>
-
-              <div className="flex min-h-12 flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white p-2 focus-within:border-blue-500">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center gap-1 rounded-full bg-blue-50 py-1 pl-2.5 pr-1 text-xs font-semibold text-blue-700"
-                  >
-                    #{tag}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setTags((current) =>
-                          current.filter((item) => item !== tag)
-                        )
-                      }
-                      className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-blue-500 hover:bg-blue-100"
-                      aria-label={`Usuń tag ${tag}`}
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-
-                <input
-                  value={tagInput}
-                  onChange={(event) => setTagInput(event.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  onBlur={() => tagInput && addTag()}
-                  placeholder={tags.length === 0 ? "karp, lato, spinning..." : ""}
-                  className="h-8 min-w-[130px] flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-slate-400"
-                />
-              </div>
-
-              <p className="mt-2 text-xs leading-5 text-slate-400">
-                Enter lub przecinek dodaje tag. Maksymalnie 12.
-              </p>
-            </div>
-
-            <label className="flex cursor-pointer items-start gap-3 rounded-2xl bg-slate-50 p-4">
-              <input
-                type="checkbox"
-                checked={isFeatured}
-                onChange={(event) => setIsFeatured(event.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-blue-600"
-              />
-              <span>
-                <span className="block text-sm font-bold text-slate-700">
-                  Wyróżniony artykuł
-                </span>
-                <span className="mt-1 block text-xs leading-5 text-slate-500">
-                  Może pojawić się jako główny materiał na stronie bloga.
-                </span>
-              </span>
-            </label>
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-            Zdjęcie główne
-          </p>
-
-          {coverImageUrl ? (
-            <div className="mt-4">
-              <div className="overflow-hidden rounded-2xl bg-slate-100">
-                <img
-                  src={coverImageUrl}
-                  alt=""
-                  className="aspect-[16/10] w-full object-cover"
-                />
-              </div>
-
-              <button
+      <div className="sticky bottom-0 z-30 border-t border-border bg-surface/96 p-3 backdrop-blur-xl sm:hidden">
+        <div className="grid grid-cols-2 gap-2">
+          {controller.publicationState ===
+            "draft" ? (
+            <>
+              <Button
                 type="button"
-                onClick={() => setCoverImageUrl("")}
-                className="mt-3 text-xs font-semibold text-red-600"
+                variant="outline"
+                isLoading={
+                  controller.savingAction ===
+                  "draft"
+                }
+                loadingLabel="Zapisywanie…"
+                onClick={() =>
+                  void controller.save(
+                    "draft"
+                  )
+                }
               >
-                Usuń zdjęcie główne
-              </button>
-            </div>
+                Zapisz szkic
+              </Button>
+
+              <Button
+                type="button"
+                isLoading={
+                  controller.savingAction ===
+                  "publish"
+                }
+                loadingLabel="Zapisywanie…"
+                onClick={() =>
+                  void controller.save(
+                    "publish"
+                  )
+                }
+              >
+                {controller.publicationMode ===
+                "scheduled"
+                  ? "Zaplanuj"
+                  : "Opublikuj"}
+              </Button>
+            </>
           ) : (
-            <label className="mt-4 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center transition hover:bg-slate-100">
-              <span className="text-sm font-bold text-slate-700">
-                {isUploadingCover
-                  ? "Wysyłanie..."
-                  : "Dodaj zdjęcie główne"}
-              </span>
-              <span className="mt-1 text-xs text-slate-400">
-                JPG, PNG, WebP lub AVIF
-              </span>
-
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/avif"
-                disabled={isUploadingCover}
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-
-                  if (file) {
-                    void handleCoverUpload(file);
-                  }
-
-                  event.currentTarget.value = "";
-                }}
-              />
-            </label>
+            <Button
+              type="button"
+              fullWidth
+              className="col-span-2"
+              isLoading={
+                controller.savingAction ===
+                "published"
+              }
+              loadingLabel="Zapisywanie…"
+              disabled={
+                !controller.isDirty
+              }
+              onClick={() =>
+                void controller.save(
+                  "published"
+                )
+              }
+            >
+              Zapisz zmiany
+            </Button>
           )}
-        </section>
-      </aside>
+        </div>
+      </div>
+
+      <BlogPreviewDialog
+        open={
+          controller.previewOpen
+        }
+        snapshot={
+          controller.snapshot
+        }
+        device={
+          controller.previewDevice
+        }
+        onDeviceChange={
+          controller.setPreviewDevice
+        }
+        onClose={() =>
+          controller.setPreviewOpen(
+            false
+          )
+        }
+      />
+
+      <BlogEditorDialog
+        open={leaveDialogOpen}
+        onClose={() =>
+          setLeaveDialogOpen(
+            false
+          )
+        }
+        title="Opuścić edytor?"
+        description="Masz niezapisane zmiany w artykule."
+        size="sm"
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() =>
+                setLeaveDialogOpen(
+                  false
+                )
+              }
+            >
+              Zostań
+            </Button>
+
+            <Button
+              type="button"
+              variant="danger"
+              onClick={() =>
+                router.push(
+                  "/admin/blog"
+                )
+              }
+            >
+              Opuść bez
+              zapisywania
+            </Button>
+          </div>
+        }
+      >
+        <div className="p-5 sm:p-6">
+          <div className="rounded-card border border-warning-border bg-warning-subtle p-4 text-sm leading-6 text-text-secondary">
+            Ostatnio zapisana
+            wersja artykułu
+            pozostanie bez zmian.
+          </div>
+        </div>
+      </BlogEditorDialog>
+
+      <BlogEditorDialog
+        open={
+          unpublishDialogOpen
+        }
+        onClose={() =>
+          setUnpublishDialogOpen(
+            false
+          )
+        }
+        title="Cofnąć publikację?"
+        description="Artykuł przestanie być widoczny publicznie i wróci do szkiców."
+        size="sm"
+        busy={
+          controller.savingAction ===
+          "unpublish"
+        }
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={
+                controller.savingAction ===
+                "unpublish"
+              }
+              onClick={() =>
+                setUnpublishDialogOpen(
+                  false
+                )
+              }
+            >
+              Anuluj
+            </Button>
+
+            <Button
+              type="button"
+              variant="danger"
+              isLoading={
+                controller.savingAction ===
+                "unpublish"
+              }
+              loadingLabel="Wyłączanie…"
+              onClick={() =>
+                void confirmUnpublish()
+              }
+            >
+              Cofnij publikację
+            </Button>
+          </div>
+        }
+      >
+        <div className="p-5 sm:p-6">
+          <div className="rounded-card border border-warning-border bg-warning-subtle p-4 text-sm leading-6 text-text-secondary">
+            Treść, zdjęcia i SEO
+            zostaną zachowane.
+            Zmienia się wyłącznie
+            stan publikacji.
+          </div>
+        </div>
+      </BlogEditorDialog>
     </div>
   );
 }

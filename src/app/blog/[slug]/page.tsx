@@ -1,16 +1,32 @@
-import type { Metadata } from "next";
+import type {
+  Metadata,
+} from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-
-import { BlogArticleContent } from "@/components/blog/BlogArticleContent";
 import {
+  notFound,
+} from "next/navigation";
+
+import {
+  BlogArticleContent,
+} from "@/components/blog/BlogArticleContent";
+import {
+  BlogRelatedPosts,
+} from "@/components/blog/BlogRelatedPosts";
+import {
+  BlogTableOfContents,
+} from "@/components/blog/BlogTableOfContents";
+import {
+  formatBlogDate,
   getBlogCategoryLabel,
+  getBlogFaqItems,
   getBlogReadTime,
+  getBlogTableOfContents,
   parseBlogBlocks,
 } from "@/lib/blog";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+export const dynamic =
+  "force-dynamic";
 
 type BlogArticlePageProps = {
   params: Promise<{
@@ -21,34 +37,80 @@ type BlogArticlePageProps = {
 export async function generateMetadata({
   params,
 }: BlogArticlePageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const { slug } =
+    await params;
 
-  const post = await prisma.blogPost.findFirst({
-    where: {
-      slug,
-      status: "published",
-      publishedAt: {
-        lte: new Date(),
-      },
-    },
-  });
+  const post =
+    await prisma.blogPost.findFirst(
+      {
+        where: {
+          slug,
+          status:
+            "published",
+          publishedAt: {
+            lte: new Date(),
+          },
+        },
+        select: {
+          title: true,
+          excerpt: true,
+          seoTitle: true,
+          seoDescription:
+            true,
+          coverImageUrl:
+            true,
+          publishedAt: true,
+          updatedAt: true,
+          authorName: true,
+          tags: true,
+        },
+      }
+    );
 
   if (!post) {
     return {
-      title: "Artykuł | Rybio",
+      title:
+        "Artykuł | Rybio",
     };
   }
 
   return {
-    title: post.seoTitle || `${post.title} | Rybio`,
-    description: post.seoDescription || post.excerpt || undefined,
+    title:
+      post.seoTitle ||
+      `${post.title} | Rybio`,
+    description:
+      post.seoDescription ||
+      post.excerpt ||
+      undefined,
+    alternates: {
+      canonical: `/blog/${slug}`,
+    },
     openGraph: {
-      title: post.seoTitle || post.title,
-      description: post.seoDescription || post.excerpt || undefined,
-      images: post.coverImageUrl ? [post.coverImageUrl] : undefined,
+      title:
+        post.seoTitle ||
+        post.title,
+      description:
+        post.seoDescription ||
+        post.excerpt ||
+        undefined,
+      images:
+        post.coverImageUrl
+          ? [
+              post.coverImageUrl,
+            ]
+          : undefined,
       type: "article",
-      publishedTime: post.publishedAt?.toISOString(),
-      modifiedTime: post.updatedAt.toISOString(),
+      publishedTime:
+        post.publishedAt?.toISOString(),
+      modifiedTime:
+        post.updatedAt.toISOString(),
+      authors:
+        post.authorName
+          ? [
+              post.authorName,
+            ]
+          : ["Rybio"],
+      tags: post.tags,
     },
   };
 }
@@ -56,253 +118,332 @@ export async function generateMetadata({
 export default async function BlogArticlePage({
   params,
 }: BlogArticlePageProps) {
-  const { slug } = await params;
+  const { slug } =
+    await params;
+
   const now = new Date();
 
-  const post = await prisma.blogPost.findFirst({
-    where: {
-      slug,
-      status: "published",
-      publishedAt: {
-        lte: now,
-      },
-    },
-  });
+  const post =
+    await prisma.blogPost.findFirst(
+      {
+        where: {
+          slug,
+          status:
+            "published",
+          publishedAt: {
+            lte: now,
+          },
+        },
+      }
+    );
 
   if (!post) {
     notFound();
   }
 
-  const blocks = parseBlogBlocks(post.content);
-  const readTime = getBlogReadTime(blocks);
+  const blocks =
+    parseBlogBlocks(
+      post.content
+    );
 
-  const sameCategoryPosts = await prisma.blogPost.findMany({
-    where: {
-      id: {
-        not: post.id,
-      },
-      category: post.category,
-      status: "published",
-      publishedAt: {
-        lte: now,
-      },
-    },
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    take: 4,
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      coverImageUrl: true,
-      category: true,
-      publishedAt: true,
-    },
-  });
+  const readTime =
+    getBlogReadTime(blocks);
 
-  const sameCategoryIds = sameCategoryPosts.map((item) => item.id);
+  const toc =
+    getBlogTableOfContents(
+      blocks
+    );
 
-  const latestPosts = await prisma.blogPost.findMany({
-    where: {
-      id: {
-        notIn: [post.id, ...sameCategoryIds],
-      },
-      status: "published",
-      publishedAt: {
-        lte: now,
-      },
+  const faqItems =
+    getBlogFaqItems(
+      blocks
+    );
+
+  const related =
+    await prisma.blogPost.findMany(
+      {
+        where: {
+          id: {
+            not: post.id,
+          },
+          status:
+            "published",
+          publishedAt: {
+            lte: now,
+          },
+          OR:
+            post.tags.length > 0
+              ? [
+                  {
+                    category:
+                      post.category,
+                  },
+                  {
+                    tags: {
+                      hasSome:
+                        post.tags,
+                    },
+                  },
+                ]
+              : [
+                  {
+                    category:
+                      post.category,
+                  },
+                ],
+        },
+        orderBy: [
+          {
+            isFeatured:
+              "desc",
+          },
+          {
+            publishedAt:
+              "desc",
+          },
+        ],
+        take: 3,
+      }
+    );
+
+  const articleJsonLd = {
+    "@context":
+      "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    description:
+      post.seoDescription ||
+      post.excerpt ||
+      undefined,
+    image:
+      post.coverImageUrl ||
+      undefined,
+    datePublished:
+      post.publishedAt?.toISOString(),
+    dateModified:
+      post.updatedAt.toISOString(),
+    author: {
+      "@type":
+        post.authorName
+          ? "Person"
+          : "Organization",
+      name:
+        post.authorName ||
+        "Rybio",
     },
-    orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
-    take: 5,
-    select: {
-      id: true,
-      slug: true,
-      title: true,
-      coverImageUrl: true,
-      category: true,
-      publishedAt: true,
+    publisher: {
+      "@type":
+        "Organization",
+      name: "Rybio",
+      url: "https://rybio.pl",
     },
-  });
+    mainEntityOfPage:
+      `https://rybio.pl/blog/${post.slug}`,
+  };
+
+  const faqJsonLd =
+    faqItems.length > 0
+      ? {
+          "@context":
+            "https://schema.org",
+          "@type":
+            "FAQPage",
+          mainEntity:
+            faqItems.map(
+              (item) => ({
+                "@type":
+                  "Question",
+                name:
+                  item.question,
+                acceptedAnswer:
+                  {
+                    "@type":
+                      "Answer",
+                    text:
+                      item.answer,
+                  },
+              })
+            ),
+        }
+      : null;
 
   return (
-    <main className="bg-white">
-      <div className="mx-auto grid w-full max-w-[1500px] gap-10 px-4 py-8 sm:px-6 sm:py-10 lg:px-8 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start">
-        <article className="min-w-0">
-          <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-400">
-            <Link href="/" className="transition hover:text-blue-600">
-              Rybio
-            </Link>
-            <span>/</span>
-            <Link href="/blog" className="transition hover:text-blue-600">
-              Wiedza
-            </Link>
-            <span>/</span>
-            <Link
-              href={`/blog?category=${post.category}`}
-              className="transition hover:text-blue-600"
-            >
-              {getBlogCategoryLabel(post.category)}
-            </Link>
-          </nav>
+    <main className="min-h-screen bg-background">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html:
+            JSON.stringify(
+              articleJsonLd
+            ).replace(
+              /</g,
+              "\\u003c"
+            ),
+        }}
+      />
 
-          <header className="mt-5 border-b border-slate-100 pb-7">
-            <span className="inline-flex rounded-full bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700">
-              {getBlogCategoryLabel(post.category)}
-            </span>
+      {faqJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html:
+              JSON.stringify(
+                faqJsonLd
+              ).replace(
+                /</g,
+                "\\u003c"
+              ),
+          }}
+        />
+      )}
 
-            <h1 className="mt-4 max-w-5xl text-3xl font-extrabold tracking-tight text-slate-950 sm:text-5xl sm:leading-[1.08]">
-              {post.title}
-            </h1>
+      <article>
+        <header className="border-b border-border bg-surface">
+          <div className="mx-auto w-full max-w-[1180px] px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12">
+            <nav className="flex flex-wrap items-center gap-2 text-xs font-bold text-text-muted">
+              <Link
+                href="/blog"
+                className="transition hover:text-primary-700"
+              >
+                Wiedza
+              </Link>
 
-            {post.excerpt && (
-              <p className="mt-5 max-w-4xl text-lg leading-8 text-slate-500">
-                {post.excerpt}
-              </p>
-            )}
+              <span>/</span>
 
-            <div className="mt-6 flex flex-wrap items-center gap-3 text-sm font-medium text-slate-400">
-              <span>{post.authorName || "Rybio"}</span>
-              <span>•</span>
+              <Link
+                href={`/blog?category=${post.category}`}
+                className="transition hover:text-primary-700"
+              >
+                {getBlogCategoryLabel(
+                  post.category
+                )}
+              </Link>
+            </nav>
 
-              {post.publishedAt && (
-                <>
-                  <span>{formatBlogDate(post.publishedAt)}</span>
-                  <span>•</span>
-                </>
+            <div className="mt-6 max-w-[980px]">
+              <span className="inline-flex rounded-full border border-primary-200 bg-primary-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.11em] text-primary-700">
+                {getBlogCategoryLabel(
+                  post.category
+                )}
+              </span>
+
+              <h1 className="mt-4 font-display text-4xl font-extrabold leading-[1.04] tracking-[-0.045em] text-text sm:text-5xl lg:text-6xl">
+                {post.title}
+              </h1>
+
+              {post.excerpt && (
+                <p className="mt-5 max-w-3xl text-lg leading-8 text-text-secondary sm:text-xl">
+                  {
+                    post.excerpt
+                  }
+                </p>
               )}
 
-              <span>{readTime} min czytania</span>
-            </div>
+              <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm font-semibold text-text-muted">
+                <span className="font-bold text-text-secondary">
+                  {post.authorName ||
+                    "Rybio"}
+                </span>
 
-            {post.tags.length > 0 && (
-              <div className="mt-5 flex flex-wrap gap-2">
-                {post.tags.map((tag) => (
-                  <Link
-                    key={tag}
-                    href={`/blog?tag=${encodeURIComponent(tag)}`}
-                    className="rounded-full bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-500 ring-1 ring-slate-200 transition hover:text-blue-600"
-                  >
-                    #{tag}
-                  </Link>
-                ))}
+                {post.publishedAt && (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="h-1 w-1 rounded-full bg-border-strong"
+                    />
+
+                    <time
+                      dateTime={post.publishedAt.toISOString()}
+                    >
+                      {formatBlogDate(
+                        post.publishedAt
+                      )}
+                    </time>
+                  </>
+                )}
+
+                <span
+                  aria-hidden="true"
+                  className="h-1 w-1 rounded-full bg-border-strong"
+                />
+
+                <span>
+                  {readTime} min
+                  czytania
+                </span>
               </div>
-            )}
-          </header>
+            </div>
+          </div>
+        </header>
 
-          {post.coverImageUrl && (
-            <div className="mt-7 overflow-hidden rounded-3xl bg-slate-100">
+        {post.coverImageUrl && (
+          <div className="mx-auto w-full max-w-[1320px] px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+            <div className="overflow-hidden rounded-panel border border-border bg-surface-muted shadow-card">
               <img
-                src={post.coverImageUrl}
+                src={
+                  post.coverImageUrl
+                }
                 alt={post.title}
                 className="max-h-[760px] w-full object-cover"
               />
             </div>
-          )}
-
-          <div className="py-10 sm:py-12">
-            <BlogArticleContent blocks={blocks} />
           </div>
-        </article>
+        )}
 
-        <aside className="space-y-8 xl:sticky xl:top-24">
-          {latestPosts.length > 0 && (
-            <ArticleSidebarSection
-              eyebrow="Najnowsze"
-              posts={latestPosts}
+        <div className="mx-auto grid w-full max-w-[1180px] gap-10 px-4 py-10 sm:px-6 sm:py-12 lg:px-8 xl:grid-cols-[220px_minmax(0,1fr)] xl:items-start">
+          <aside className="hidden xl:sticky xl:top-24 xl:block">
+            <BlogTableOfContents
+              items={toc}
             />
-          )}
+          </aside>
 
-          {sameCategoryPosts.length > 0 && (
-            <ArticleSidebarSection
-              eyebrow={`Więcej w: ${getBlogCategoryLabel(post.category)}`}
-              posts={sameCategoryPosts}
+          <div className="min-w-0">
+            {toc.length >= 2 && (
+              <details className="mb-8 rounded-card border border-border bg-surface p-4 xl:hidden">
+                <summary className="cursor-pointer text-sm font-extrabold text-text">
+                  Spis treści
+                </summary>
+
+                <div className="mt-3">
+                  <BlogTableOfContents
+                    items={toc}
+                  />
+                </div>
+              </details>
+            )}
+
+            <BlogArticleContent
+              blocks={blocks}
             />
-          )}
-        </aside>
+
+            {post.tags.length >
+              0 && (
+              <div className="mx-auto mt-12 flex w-full max-w-[760px] flex-wrap gap-2 border-t border-border pt-6">
+                {post.tags.map(
+                  (tag) => (
+                    <Link
+                      key={tag}
+                      href={`/blog?tag=${encodeURIComponent(
+                        tag
+                      )}`}
+                      className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text-secondary transition hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700"
+                    >
+                      #{tag}
+                    </Link>
+                  )
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </article>
+
+      <div className="mx-auto w-full max-w-[1180px] px-4 pb-12 sm:px-6 sm:pb-16 lg:px-8">
+        <BlogRelatedPosts
+          posts={related}
+          title="Powiązane artykuły"
+        />
       </div>
     </main>
   );
-}
-
-type SidebarPost = {
-  id: string;
-  slug: string;
-  title: string;
-  coverImageUrl: string | null;
-  category: string;
-  publishedAt: Date | null;
-};
-
-function ArticleSidebarSection({
-  eyebrow,
-  posts,
-}: {
-  eyebrow: string;
-  posts: SidebarPost[];
-}) {
-  return (
-    <section className="border-t-2 border-slate-950 pt-4">
-      <div className="mb-2">
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-slate-950">
-          {eyebrow}
-        </p>
-      </div>
-
-      <div className="divide-y divide-slate-100">
-        {posts.map((post) => (
-          <SidebarArticle key={post.id} post={post} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function SidebarArticle({ post }: { post: SidebarPost }) {
-  return (
-    <Link
-      href={`/blog/${post.slug}`}
-      className="group grid grid-cols-[92px_minmax(0,1fr)] gap-3 py-4 first:pt-3"
-    >
-      <div className="aspect-[4/3] overflow-hidden rounded-xl bg-slate-100">
-        {post.coverImageUrl ? (
-          <img
-            src={post.coverImageUrl}
-            alt=""
-            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-xl text-slate-300">
-            🎣
-          </div>
-        )}
-      </div>
-
-      <div className="min-w-0">
-        <h3 className="line-clamp-3 text-sm font-bold leading-5 text-slate-900 transition group-hover:text-blue-600">
-          {post.title}
-        </h3>
-
-        {post.publishedAt && (
-          <p className="mt-2 text-xs font-medium text-slate-400">
-            {formatShortDate(post.publishedAt)}
-          </p>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-function formatBlogDate(date: Date) {
-  return new Intl.DateTimeFormat("pl-PL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(date);
-}
-
-function formatShortDate(date: Date) {
-  return new Intl.DateTimeFormat("pl-PL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(date);
 }

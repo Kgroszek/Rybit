@@ -1,78 +1,279 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import {
+  useRouter,
+} from "next/navigation";
+
+import {
+  BlogEditorDialog,
+} from "@/components/admin/blog/BlogEditorDialog";
+import { MoreIcon } from "@/components/icons/MoreIcon";
+import { PencilIcon } from "@/components/icons/PencilIcon";
+import { TrashIcon } from "@/components/icons/TrashIcon";
+import { Button } from "@/components/ui/Button";
 
 export function BlogAdminListActions({
   id,
   slug,
-  status,
+  publicVisible,
 }: {
   id: string;
   slug: string;
-  status: string;
+  publicVisible: boolean;
 }) {
   const router = useRouter();
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  async function handleDelete() {
-    const confirmed = window.confirm(
-      "Czy na pewno chcesz usunąć ten artykuł? Tej operacji nie można cofnąć."
+  const rootRef =
+    useRef<HTMLDivElement | null>(
+      null
     );
 
-    if (!confirmed) {
+  const [open, setOpen] =
+    useState(false);
+
+  const [
+    deleteOpen,
+    setDeleteOpen,
+  ] = useState(false);
+
+  const [
+    deleting,
+    setDeleting,
+  ] = useState(false);
+
+  const [
+    error,
+    setError,
+  ] = useState("");
+
+  useEffect(() => {
+    if (!open) {
       return;
     }
 
-    setIsDeleting(true);
+    function closeOnOutside(
+      event: MouseEvent
+    ) {
+      if (
+        rootRef.current &&
+        !rootRef.current.contains(
+          event.target as Node
+        )
+      ) {
+        setOpen(false);
+      }
+    }
+
+    function closeOnEscape(
+      event: KeyboardEvent
+    ) {
+      if (
+        event.key === "Escape"
+      ) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener(
+      "mousedown",
+      closeOnOutside
+    );
+
+    document.addEventListener(
+      "keydown",
+      closeOnEscape
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        closeOnOutside
+      );
+
+      document.removeEventListener(
+        "keydown",
+        closeOnEscape
+      );
+    };
+  }, [open]);
+
+  async function handleDelete() {
+    setDeleting(true);
+    setError("");
 
     try {
-      const response = await fetch(`/api/admin/blog/posts/${id}`, {
-        method: "DELETE",
-      });
+      const response =
+        await fetch(
+          `/api/admin/blog/posts/${encodeURIComponent(
+            id
+          )}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+      const data =
+        (await response
+          .json()
+          .catch(() => null)) as
+          | {
+              message?: string;
+            }
+          | null;
 
       if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        window.alert(
-          data?.message || "Nie udało się usunąć artykułu."
+        throw new Error(
+          data?.message ||
+            "Nie udało się usunąć artykułu."
         );
-        return;
       }
 
+      setDeleteOpen(false);
       router.refresh();
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "Nie udało się usunąć artykułu."
+      );
     } finally {
-      setIsDeleting(false);
+      setDeleting(false);
     }
   }
 
   return (
-    <div className="flex flex-wrap justify-end gap-2">
-      {status === "published" && (
-        <Link
-          href={`/blog/${slug}`}
-          target="_blank"
-          className="rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+    <>
+      <div
+        ref={rootRef}
+        className="relative"
+      >
+        <button
+          type="button"
+          onClick={() =>
+            setOpen(
+              (current) =>
+                !current
+            )
+          }
+          aria-haspopup="menu"
+          aria-expanded={open}
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700"
+          aria-label="Akcje artykułu"
         >
-          Podgląd ↗
-        </Link>
-      )}
+          <MoreIcon className="h-4 w-4" />
+        </button>
 
-      <Link
-        href={`/admin/blog/${id}/edytuj`}
-        className="rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-200"
-      >
-        Edytuj
-      </Link>
+        {open && (
+          <div
+            role="menu"
+            className="absolute right-0 top-12 z-50 w-52 overflow-hidden rounded-control border border-border bg-surface p-1.5 shadow-float"
+          >
+            {publicVisible && (
+              <Link
+                href={`/blog/${slug}`}
+                target="_blank"
+                role="menuitem"
+                onClick={() =>
+                  setOpen(false)
+                }
+                className="flex min-h-10 items-center rounded-xl px-3 py-2 text-sm font-bold text-text-secondary transition hover:bg-primary-50 hover:text-primary-700"
+              >
+                Otwórz artykuł ↗
+              </Link>
+            )}
 
-      <button
-        type="button"
-        onClick={() => void handleDelete()}
-        disabled={isDeleting}
-        className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+            <Link
+              href={`/admin/blog/${id}/edytuj`}
+              role="menuitem"
+              onClick={() =>
+                setOpen(false)
+              }
+              className="flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-sm font-bold text-text-secondary transition hover:bg-surface-muted hover:text-text"
+            >
+              <PencilIcon className="h-4 w-4" />
+              Edytuj
+            </Link>
+
+            <div className="my-1 h-px bg-border" />
+
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false);
+                setDeleteOpen(true);
+              }}
+              className="flex min-h-10 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-bold text-danger-foreground transition hover:bg-danger-subtle"
+            >
+              <TrashIcon className="h-4 w-4" />
+              Usuń
+            </button>
+          </div>
+        )}
+      </div>
+
+      <BlogEditorDialog
+        open={deleteOpen}
+        onClose={() =>
+          setDeleteOpen(false)
+        }
+        title="Usunąć artykuł?"
+        description="Tej operacji nie można cofnąć."
+        size="sm"
+        busy={deleting}
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={deleting}
+              onClick={() =>
+                setDeleteOpen(
+                  false
+                )
+              }
+            >
+              Anuluj
+            </Button>
+
+            <Button
+              type="button"
+              variant="danger"
+              isLoading={
+                deleting
+              }
+              loadingLabel="Usuwanie…"
+              onClick={() =>
+                void handleDelete()
+              }
+            >
+              Usuń artykuł
+            </Button>
+          </div>
+        }
       >
-        {isDeleting ? "Usuwanie..." : "Usuń"}
-      </button>
-    </div>
+        <div className="p-5 sm:p-6">
+          <div className="rounded-card border border-danger-border bg-danger-subtle p-4">
+            <p className="text-sm font-extrabold text-danger-foreground">
+              Artykuł zniknie z
+              panelu i z publicznej
+              strony.
+            </p>
+
+            {error && (
+              <p className="mt-3 text-sm leading-6 text-danger-foreground">
+                {error}
+              </p>
+            )}
+          </div>
+        </div>
+      </BlogEditorDialog>
+    </>
   );
 }

@@ -1,15 +1,16 @@
-import { Prisma } from "@prisma/client";
+import {
+  Prisma,
+} from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import {
-  isBlogCategory,
-  normalizeBlogTag,
-  parseBlogBlocks,
-  slugifyBlogValue,
-} from "@/lib/blog";
-import { isAdminUser } from "@/lib/auth";
+  getBlogAdmin,
+  getBlogAuthorName,
+} from "@/lib/blog-admin-auth";
+import {
+  parseBlogPostInput,
+} from "@/lib/blog-post-input";
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
 
 type BlogPostRouteProps = {
   params: Promise<{
@@ -19,213 +20,258 @@ type BlogPostRouteProps = {
 
 export async function PUT(
   request: Request,
-  { params }: BlogPostRouteProps
+  {
+    params,
+  }: BlogPostRouteProps
 ) {
-  const { id } = await params;
-  const auth = await getAdmin();
+  const { id } =
+    await params;
+
+  const auth =
+    await getBlogAdmin();
 
   if (!auth.ok) {
     return auth.response;
   }
 
-  try {
-    const existing = await prisma.blogPost.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        id: true,
-        publishedAt: true,
-      },
-    });
-
-    if (!existing) {
-      return NextResponse.json(
-        { message: "Nie znaleziono artykułu." },
-        { status: 404 }
-      );
-    }
-
-    const body = (await request.json()) as Record<string, unknown>;
-
-    const title =
-      typeof body.title === "string" ? body.title.trim() : "";
-    const slug =
-      typeof body.slug === "string"
-        ? slugifyBlogValue(body.slug)
-        : "";
-    const category =
-      typeof body.category === "string" ? body.category : "";
-    const status = body.status === "published" ? "published" : "draft";
-    const content = parseBlogBlocks(body.content);
-
-    if (!title || !slug) {
-      return NextResponse.json(
-        { message: "Tytuł i slug są wymagane." },
-        { status: 400 }
-      );
-    }
-
-    if (!isBlogCategory(category)) {
-      return NextResponse.json(
-        { message: "Wybierz poprawną kategorię." },
-        { status: 400 }
-      );
-    }
-
-    if (content.length === 0) {
-      return NextResponse.json(
-        { message: "Artykuł musi zawierać treść." },
-        { status: 400 }
-      );
-    }
-
-    const isFeatured = Boolean(body.isFeatured);
-
-    const post = await prisma.blogPost.update({
-      where: {
-        id,
-      },
-      data: {
-        title,
-        slug,
-        excerpt: cleanOptionalText(body.excerpt),
-        category,
-        tags: normalizeTags(body.tags),
-        coverImageUrl: cleanOptionalText(body.coverImageUrl),
-        content: content as Prisma.InputJsonValue,
-        status,
-        isFeatured,
-        seoTitle: cleanOptionalText(body.seoTitle),
-        seoDescription: cleanOptionalText(body.seoDescription),
-        publishedAt:
-          status === "published"
-            ? existing.publishedAt ?? new Date()
-            : null,
-      },
-    });
-
-    if (isFeatured) {
-      await prisma.blogPost.updateMany({
+  const existing =
+    await prisma.blogPost.findUnique(
+      {
         where: {
-          id: {
-            not: post.id,
-          },
-          isFeatured: true,
+          id,
         },
-        data: {
-          isFeatured: false,
+        select: {
+          id: true,
+          publishedAt: true,
+          authorName: true,
         },
-      });
-    }
+      }
+    );
+
+  if (!existing) {
+    return NextResponse.json(
+      {
+        message:
+          "Nie znaleziono artykułu.",
+      },
+      {
+        status: 404,
+      }
+    );
+  }
+
+  let body: unknown;
+
+  try {
+    body =
+      await request.json();
+  } catch {
+    return NextResponse.json(
+      {
+        message:
+          "Nieprawidłowy format danych.",
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  const parsed =
+    parseBlogPostInput(body);
+
+  if (!parsed.ok) {
+    return NextResponse.json(
+      {
+        message:
+          parsed.message,
+      },
+      {
+        status: 400,
+      }
+    );
+  }
+
+  const data = parsed.data;
+
+  try {
+    const post =
+      await prisma.$transaction(
+        async (tx) => {
+          const updated =
+            await tx.blogPost.update(
+              {
+                where: {
+                  id,
+                },
+                data: {
+                  title:
+                    data.title,
+                  slug:
+                    data.slug,
+                  excerpt:
+                    data.excerpt,
+                  category:
+                    data.category,
+                  tags:
+                    data.tags,
+                  coverImageUrl:
+                    data.coverImageUrl,
+                  content:
+                    data.content as Prisma.InputJsonValue,
+                  status:
+                    data.status,
+                  isFeatured:
+                    data.isFeatured,
+                  seoTitle:
+                    data.seoTitle,
+                  seoDescription:
+                    data.seoDescription,
+                  authorName:
+                    data.authorName ||
+                    existing.authorName ||
+                    getBlogAuthorName(
+                      auth.user
+                    ),
+                  publishedAt:
+                    data.status ===
+                    "published"
+                      ? data.publishedAt ??
+                        existing.publishedAt ??
+                        new Date()
+                      : data.publishedAt,
+                },
+              }
+            );
+
+          if (
+            updated.isFeatured
+          ) {
+            await tx.blogPost.updateMany(
+              {
+                where: {
+                  id: {
+                    not:
+                      updated.id,
+                  },
+                  isFeatured:
+                    true,
+                },
+                data: {
+                  isFeatured:
+                    false,
+                },
+              }
+            );
+          }
+
+          return updated;
+        }
+      );
 
     return NextResponse.json({
       id: post.id,
       slug: post.slug,
+      status:
+        post.status,
+      publishedAt:
+        post.publishedAt?.toISOString() ??
+        null,
+      authorName:
+        post.authorName,
     });
   } catch (error) {
     if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error instanceof
+        Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
       return NextResponse.json(
-        { message: "Artykuł z takim slugiem już istnieje." },
-        { status: 409 }
+        {
+          message:
+            "Artykuł z takim slugiem już istnieje.",
+        },
+        {
+          status: 409,
+        }
       );
     }
 
-    console.error("[admin/blog/posts/:id] PUT", error);
+    console.error(
+      "[admin/blog/posts/:id] PUT",
+      error
+    );
 
     return NextResponse.json(
-      { message: "Nie udało się zapisać artykułu." },
-      { status: 500 }
+      {
+        message:
+          "Nie udało się zapisać artykułu.",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
 
 export async function DELETE(
   _request: Request,
-  { params }: BlogPostRouteProps
+  {
+    params,
+  }: BlogPostRouteProps
 ) {
-  const { id } = await params;
-  const auth = await getAdmin();
+  const { id } =
+    await params;
+
+  const auth =
+    await getBlogAdmin();
 
   if (!auth.ok) {
     return auth.response;
   }
 
   try {
-    await prisma.blogPost.delete({
-      where: {
-        id,
-      },
-    });
+    await prisma.blogPost.delete(
+      {
+        where: {
+          id,
+        },
+      }
+    );
 
     return NextResponse.json({
       success: true,
     });
   } catch (error) {
     if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error instanceof
+        Prisma.PrismaClientKnownRequestError &&
       error.code === "P2025"
     ) {
       return NextResponse.json(
-        { message: "Nie znaleziono artykułu." },
-        { status: 404 }
+        {
+          message:
+            "Nie znaleziono artykułu.",
+        },
+        {
+          status: 404,
+        }
       );
     }
 
-    console.error("[admin/blog/posts/:id] DELETE", error);
+    console.error(
+      "[admin/blog/posts/:id] DELETE",
+      error
+    );
 
     return NextResponse.json(
-      { message: "Nie udało się usunąć artykułu." },
-      { status: 500 }
+      {
+        message:
+          "Nie udało się usunąć artykułu.",
+      },
+      {
+        status: 500,
+      }
     );
   }
-}
-
-async function getAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user || !isAdminUser(user)) {
-    return {
-      ok: false as const,
-      response: NextResponse.json(
-        { message: "Brak uprawnień." },
-        { status: 403 }
-      ),
-    };
-  }
-
-  return {
-    ok: true as const,
-    user,
-  };
-}
-
-function cleanOptionalText(value: unknown) {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const clean = value.trim();
-  return clean || null;
-}
-
-function normalizeTags(value: unknown) {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return Array.from(
-    new Set(
-      value
-        .filter((item): item is string => typeof item === "string")
-        .map(normalizeBlogTag)
-        .filter(Boolean)
-    )
-  ).slice(0, 12);
 }
