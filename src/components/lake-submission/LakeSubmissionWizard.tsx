@@ -61,10 +61,7 @@ export function LakeSubmissionWizard() {
       !controller.isLastStep
     ) {
       controller.goToNextStep();
-      return;
     }
-
-    void controller.submit();
   }
 
   return (
@@ -333,6 +330,9 @@ export function LakeSubmissionWizard() {
             }
             onNext={
               controller.goToNextStep
+            }
+            onSubmit={() =>
+              void controller.submit()
             }
           />
         </div>

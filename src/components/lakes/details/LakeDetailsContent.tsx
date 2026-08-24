@@ -187,10 +187,20 @@ export function LakeDetailsContent({ lake, mode }: LakeDetailsContentProps) {
               </div>
             ))}
           </div>
+        ) : lake.rulesUrl ? (
+          <div className="rounded-control border border-primary-200 bg-primary-50 px-4 py-4 sm:px-5">
+            <p className="text-sm font-extrabold text-primary-800">
+              Regulamin dostępny online
+            </p>
+
+            <p className="mt-1.5 max-w-2xl text-sm leading-6 text-text-secondary">
+              Zasady łowiska są dostępne w pełnym regulaminie pod przyciskiem „Otwórz regulamin”.
+            </p>
+          </div>
         ) : (
           <EmptyState
             title="Brak dodanych zasad"
-            description={lake.rulesUrl ? "Pełny regulamin jest dostępny pod przyciskiem powyżej." : "W profilu nie uzupełniono jeszcze zasad obowiązujących na łowisku."}
+            description="W profilu nie uzupełniono jeszcze zasad obowiązujących na łowisku."
             className="min-h-40"
           />
         )}

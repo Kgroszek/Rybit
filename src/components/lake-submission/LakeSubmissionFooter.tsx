@@ -10,6 +10,7 @@ export function LakeSubmissionFooter({
   onCancel,
   onPrevious,
   onNext,
+  onSubmit,
 }: {
   isFirstStep: boolean;
   isLastStep: boolean;
@@ -18,6 +19,7 @@ export function LakeSubmissionFooter({
   onCancel: () => void;
   onPrevious: () => void;
   onNext: () => void;
+  onSubmit: () => void;
 }) {
   const busy =
     isLoading ||
@@ -51,6 +53,7 @@ export function LakeSubmissionFooter({
 
           {!isLastStep ? (
             <Button
+              key="next-step"
               type="button"
               disabled={busy}
               className={
@@ -64,7 +67,8 @@ export function LakeSubmissionFooter({
             </Button>
           ) : (
             <Button
-              type="submit"
+              key="submit-lake"
+              type="button"
               isLoading={
                 isLoading
               }
@@ -77,6 +81,7 @@ export function LakeSubmissionFooter({
                   ? "col-span-2"
                   : ""
               }
+              onClick={onSubmit}
             >
               {isProcessingImages
                 ? "Przygotowywanie zdjęć…"
