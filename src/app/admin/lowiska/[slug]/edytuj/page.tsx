@@ -1,11 +1,35 @@
-import Link from "next/link";
-import { redirect, notFound } from "next/navigation";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { LakeEditForm } from "@/components/dashboard/LakeEditForm";
-import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
-import { isAdminUser } from "@/lib/auth";
-import { normalizeFishingMethods } from "@/lib/fishing-methods";
+import {
+  notFound,
+  redirect,
+} from "next/navigation";
+
+import {
+  AdminInfoItem,
+} from "@/components/admin/shared/AdminInfoItem";
+import {
+  DashboardLayout,
+} from "@/components/dashboard/DashboardLayout";
+import {
+  LakeEditForm,
+} from "@/components/dashboard/LakeEditForm";
+import {
+  ButtonLink,
+} from "@/components/ui/Button";
+import {
+  Card,
+} from "@/components/ui/Card";
+import {
+  PageHeader,
+} from "@/components/ui/PageHeader";
+import {
+  requireAdmin,
+} from "@/lib/auth";
+import {
+  normalizeFishingMethods,
+} from "@/lib/fishing-methods";
+import {
+  prisma,
+} from "@/lib/prisma";
 
 type EditLakePageProps = {
   params: Promise<{
@@ -13,70 +37,80 @@ type EditLakePageProps = {
   }>;
 };
 
-function isVisibleTextItem(item: string, hiddenPrefix: string) {
+function isVisibleTextItem(
+  item: string,
+  hiddenPrefix: string
+) {
   return !item
     .toLowerCase()
     .trim()
-    .startsWith(hiddenPrefix.toLowerCase());
+    .startsWith(
+      hiddenPrefix.toLowerCase()
+    );
 }
 
 export default async function EditLakePage({
   params,
 }: EditLakePageProps) {
-  const supabase = await createClient();
+  const admin =
+    await requireAdmin();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    redirect("/login");
-  }
-
-  if (!isAdminUser(user)) {
+  if (!admin) {
     redirect("/dashboard");
   }
 
-  const { slug } = await params;
+  const { slug } =
+    await params;
 
-  const lake = await prisma.lake.findUnique({
-    where: {
-      slug,
-    },
-    include: {
-      fishSpecies: {
-        orderBy: {
-          name: "asc",
+  const lake =
+    await prisma.lake.findUnique({
+      where: {
+        slug,
+      },
+      include: {
+        fishSpecies: {
+          orderBy: {
+            name: "asc",
+          },
+        },
+        fishRecords: {
+          orderBy: {
+            weightKg:
+              "desc",
+          },
+        },
+        gearRequirements: {
+          orderBy: {
+            id: "asc",
+          },
+        },
+        priceList: {
+          orderBy: {
+            id: "asc",
+          },
+        },
+        rules: {
+          orderBy: {
+            id: "asc",
+          },
+        },
+        images: {
+          orderBy: {
+            createdAt:
+              "desc",
+          },
+        },
+        _count: {
+          select: {
+            catches: true,
+            favourites:
+              true,
+            ratings: true,
+            owners: true,
+          },
         },
       },
-      fishRecords: {
-        orderBy: {
-          weightKg: "desc",
-        },
-      },
-      gearRequirements: {
-        orderBy: {
-          id: "asc",
-        },
-      },
-      priceList: {
-        orderBy: {
-          id: "asc",
-        },
-      },
-      rules: {
-        orderBy: {
-          id: "asc",
-        },
-      },
-      images: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-    },
-  });
+    });
 
   if (!lake) {
     notFound();
@@ -85,178 +119,261 @@ export default async function EditLakePage({
   const priceListText =
     lake.priceListText ||
     lake.priceList
-      .map((item) => item.text)
+      .map(
+        (item) =>
+          item.text
+      )
       .filter((item) =>
-        isVisibleTextItem(item, "link do cennika")
+        isVisibleTextItem(
+          item,
+          "link do cennika"
+        )
       )
       .join("\n");
 
   const rulesText =
     lake.rulesText ||
     lake.rules
-      .map((item) => item.text)
+      .map(
+        (item) =>
+          item.text
+      )
       .filter((item) =>
-        isVisibleTextItem(item, "link do regulaminu")
+        isVisibleTextItem(
+          item,
+          "link do regulaminu"
+        )
       )
       .join("\n");
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <p className="mb-3 inline-flex rounded-full bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700">
-                Panel administratora
-              </p>
-
-              <h1 className="text-3xl font-black tracking-tight text-slate-950">
-                Edycja łowiska
-              </h1>
-
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
-                Popraw dane łowiska, lokalizację, udogodnienia,
-                kontakt, cennik, regulamin oraz zdjęcia.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Link
+      <div className="space-y-8 pb-8">
+        <PageHeader
+          eyebrow="Treść · Łowiska"
+          title="Edycja łowiska"
+          description="Zarządzaj publicznymi danymi łowiska, metodami, udogodnieniami, rekordami, wymaganiami i zdjęciami."
+          actions={
+            <>
+              <ButtonLink
                 href="/admin/lowiska"
-                className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-center text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+                variant="outline"
               >
-                Wróć do listy łowisk
-              </Link>
+                Wróć do listy
+              </ButtonLink>
 
-              <Link
+              <ButtonLink
                 href={`/lowiska-w-polsce/${lake.slug}`}
-                className="rounded-2xl bg-blue-50 px-5 py-3 text-center text-sm font-bold text-blue-700 transition hover:bg-blue-100"
+                variant="ghost"
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                Podgląd publiczny
-              </Link>
+                Podgląd publiczny ↗
+              </ButtonLink>
+            </>
+          }
+        />
+
+        <Card className="p-5 sm:p-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.14em] text-primary">
+                Publiczne łowisko
+              </p>
+
+              <h2 className="mt-2 font-display text-xl font-extrabold tracking-[-0.025em] text-text">
+                {lake.name}
+              </h2>
+
+              <p className="mt-1 text-sm text-text-secondary">
+                {lake.city}, woj.{" "}
+                {lake.voivodeship}
+              </p>
             </div>
+
+            <p className="break-all text-xs font-semibold text-text-muted">
+              /{lake.slug}
+            </p>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <InfoBox
-              label="Nazwa"
-              value={lake.name}
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <AdminInfoItem
+              label="Połowy"
+              value={
+                lake._count
+                  .catches
+              }
             />
 
-            <InfoBox
-              label="Miasto"
-              value={lake.city}
+            <AdminInfoItem
+              label="Ulubione"
+              value={
+                lake._count
+                  .favourites
+              }
             />
 
-            <InfoBox
-              label="Województwo"
-              value={lake.voivodeship}
+            <AdminInfoItem
+              label="Oceny"
+              value={
+                lake._count
+                  .ratings
+              }
             />
 
-            <InfoBox
-              label="Slug"
-              value={lake.slug}
+            <AdminInfoItem
+              label="Właściciele"
+              value={
+                lake._count
+                  .owners
+              }
             />
           </div>
-        </section>
+        </Card>
 
         <LakeEditForm
           lake={{
             id: lake.id,
-            name: lake.name,
-            slug: lake.slug,
-            description: lake.description,
-            ownerType: lake.ownerType,
-            fishingType: lake.fishingType,
-            fishingMethods: normalizeFishingMethods(lake.fishingMethods),
-            fish: lake.fish,
+            name:
+              lake.name,
+            slug:
+              lake.slug,
+            description:
+              lake.description,
+            ownerType:
+              lake.ownerType,
+            fishingType:
+              lake.fishingType,
+            fishingMethods:
+              normalizeFishingMethods(
+                lake.fishingMethods
+              ),
+            fish:
+              lake.fish,
 
-            lat: String(lake.lat),
-            lng: String(lake.lng),
-
-            street: lake.street,
-            city: lake.city,
-            postalCode: lake.postalCode,
-            voivodeship: lake.voivodeship,
-
-            area: lake.area,
-            averageDepth: lake.averageDepth,
-            bottomType: lake.bottomType,
-            waterType: lake.waterType,
-
-            cottages: lake.cottages,
-            campfire: lake.campfire,
-            noKill: lake.noKill,
-            tent: lake.tent,
-            parking: lake.parking,
-            pier: lake.pier,
-            toilet: lake.toilet,
-            sanitaryFacilities: lake.sanitaryFacilities,
-            shop: lake.shop,
-            nightFishing: lake.nightFishing,
-            boatRental: lake.boatRental,
-            camperCaravan: lake.camperCaravan,
-            electricityHookup: lake.electricityHookup,
-            gearRental: lake.gearRental,
-            shelter: lake.shelter,
-            coveredSpots: lake.coveredSpots,
-            playground: lake.playground,
-            cardPayment: lake.cardPayment,
-
-            priceListText,
-            priceListUrl: lake.priceListUrl || "",
-
-            rulesText,
-            rulesUrl: lake.rulesUrl || "",
-
-            isOpenAllDay: lake.isOpenAllDay,
-            openingHours: lake.openingHours || "",
-
-            fishRecords: lake.fishRecords.map((record) => ({
-              id: record.id,
-              fishName: record.fishName,
-              weightKg: record.weightKg,
-            })),
-
-            gearRequirements: lake.gearRequirements.map(
-              (requirement) => ({
-                id: requirement.id,
-                text: requirement.text,
-              })
+            lat: String(
+              lake.lat
+            ),
+            lng: String(
+              lake.lng
             ),
 
-            images: lake.images.map((image) => ({
-              id: image.id,
-              url: image.url,
-            })),
+            street:
+              lake.street,
+            city:
+              lake.city,
+            postalCode:
+              lake.postalCode,
+            voivodeship:
+              lake.voivodeship,
 
-            contactName: lake.contactName,
-            contactPhone: lake.contactPhone,
-            contactEmail: lake.contactEmail,
-            contactWebsite: lake.contactWebsite,
+            area:
+              lake.area,
+            averageDepth:
+              lake.averageDepth,
+            bottomType:
+              lake.bottomType,
+            waterType:
+              lake.waterType,
+
+            cottages:
+              lake.cottages,
+            campfire:
+              lake.campfire,
+            noKill:
+              lake.noKill,
+            tent:
+              lake.tent,
+            parking:
+              lake.parking,
+            pier:
+              lake.pier,
+            toilet:
+              lake.toilet,
+            sanitaryFacilities:
+              lake.sanitaryFacilities,
+            shop:
+              lake.shop,
+            nightFishing:
+              lake.nightFishing,
+            boatRental:
+              lake.boatRental,
+            camperCaravan:
+              lake.camperCaravan,
+            electricityHookup:
+              lake.electricityHookup,
+            gearRental:
+              lake.gearRental,
+            shelter:
+              lake.shelter,
+            coveredSpots:
+              lake.coveredSpots,
+            playground:
+              lake.playground,
+            cardPayment:
+              lake.cardPayment,
+
+            priceListText,
+            priceListUrl:
+              lake.priceListUrl ||
+              "",
+
+            rulesText,
+            rulesUrl:
+              lake.rulesUrl ||
+              "",
+
+            isOpenAllDay:
+              lake.isOpenAllDay,
+            openingHours:
+              lake.openingHours ||
+              "",
+
+            fishRecords:
+              lake.fishRecords.map(
+                (record) => ({
+                  id:
+                    record.id,
+                  fishName:
+                    record.fishName,
+                  weightKg:
+                    record.weightKg,
+                })
+              ),
+
+            gearRequirements:
+              lake.gearRequirements.map(
+                (
+                  requirement
+                ) => ({
+                  id:
+                    requirement.id,
+                  text:
+                    requirement.text,
+                })
+              ),
+
+            images:
+              lake.images.map(
+                (image) => ({
+                  id:
+                    image.id,
+                  url:
+                    image.url,
+                })
+              ),
+
+            contactName:
+              lake.contactName,
+            contactPhone:
+              lake.contactPhone,
+            contactEmail:
+              lake.contactEmail,
+            contactWebsite:
+              lake.contactWebsite,
           }}
         />
       </div>
     </DashboardLayout>
-  );
-}
-
-function InfoBox({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
-        {label}
-      </p>
-
-      <p className="mt-2 break-words text-sm font-bold text-slate-700">
-        {value || "Brak"}
-      </p>
-    </div>
   );
 }

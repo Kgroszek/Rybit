@@ -1,227 +1,424 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { isAdminUser } from "@/lib/auth";
+import {
+  redirect,
+} from "next/navigation";
 
-function formatDate(date?: string | null) {
-  if (!date) {
-    return "Brak";
-  }
+import {
+  AdminEmptyState,
+} from "@/components/admin/shared/AdminEmptyState";
+import {
+  AdminFilterToolbar,
+} from "@/components/admin/shared/AdminFilterToolbar";
+import {
+  AdminMetricCard,
+} from "@/components/admin/shared/AdminMetricCard";
+import {
+  AdminPagination,
+} from "@/components/admin/shared/AdminPagination";
+import {
+  DashboardLayout,
+} from "@/components/dashboard/DashboardLayout";
+import {
+  ButtonLink,
+} from "@/components/ui/Button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
+import {
+  PageHeader,
+} from "@/components/ui/PageHeader";
+import {
+  clampAdminPage,
+  formatAdminDate,
+  getAdminPagination,
+} from "@/lib/admin/admin-formatters";
+import {
+  getAdminUserDisplayName,
+  getAllAdminUsers,
+} from "@/lib/admin/admin-users";
+import {
+  requireAdmin,
+} from "@/lib/auth";
 
-  return new Intl.DateTimeFormat("pl-PL", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
-}
+export const dynamic =
+  "force-dynamic";
 
-export default async function AdminUsersPage() {
-  const supabase = await createClient();
+const PER_PAGE = 50;
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
+type PageProps = {
+  searchParams: Promise<{
+    q?: string;
+    emailStatus?: string;
+    page?: string;
+  }>;
+};
 
-  if (userError || !user) {
-    redirect("/login");
-  }
+export default async function AdminUsersPage({
+  searchParams,
+}: PageProps) {
+  const admin =
+    await requireAdmin();
 
-  if (!isAdminUser(user)) {
+  if (!admin) {
     redirect("/dashboard");
   }
 
-  const supabaseAdmin = createAdminClient();
+  const params =
+    await searchParams;
 
-  const { data, error } =
-    await supabaseAdmin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    });
+  const query =
+    params.q?.trim() ?? "";
 
-  const users = data?.users ?? [];
+  const emailStatus =
+    params.emailStatus ===
+      "confirmed" ||
+    params.emailStatus ===
+      "unconfirmed"
+      ? params.emailStatus
+      : "";
 
-  const sortedUsers = [...users].sort((a, b) => {
-    return (
-      new Date(b.created_at).getTime() -
-      new Date(a.created_at).getTime()
+  const requestedPage =
+    clampAdminPage(params.page);
+
+  let users = [];
+  let loadError = "";
+
+  try {
+    users =
+      await getAllAdminUsers();
+  } catch (error) {
+    loadError =
+      error instanceof Error
+        ? error.message
+        : "Nie udało się pobrać użytkowników.";
+  }
+
+  const confirmedCount =
+    users.filter(
+      (user) =>
+        Boolean(
+          user.email_confirmed_at
+        )
+    ).length;
+
+  const unconfirmedCount =
+    users.length -
+    confirmedCount;
+
+  const normalizedQuery =
+    query.toLocaleLowerCase(
+      "pl-PL"
     );
-  });
 
-  const confirmedUsers = users.filter(
-    (item) => item.email_confirmed_at
-  ).length;
+  const filteredUsers =
+    users
+      .filter((user) => {
+        if (
+          emailStatus ===
+            "confirmed" &&
+          !user.email_confirmed_at
+        ) {
+          return false;
+        }
 
-  const unconfirmedUsers =
-    users.length - confirmedUsers;
+        if (
+          emailStatus ===
+            "unconfirmed" &&
+          user.email_confirmed_at
+        ) {
+          return false;
+        }
+
+        if (!normalizedQuery) {
+          return true;
+        }
+
+        const searchable = [
+          user.id,
+          user.email ?? "",
+          getAdminUserDisplayName(
+            user
+          ),
+        ]
+          .join(" ")
+          .toLocaleLowerCase(
+            "pl-PL"
+          );
+
+        return searchable.includes(
+          normalizedQuery
+        );
+      })
+      .sort(
+        (a, b) =>
+          new Date(
+            b.created_at
+          ).getTime() -
+          new Date(
+            a.created_at
+          ).getTime()
+      );
+
+  const pagination =
+    getAdminPagination(
+      filteredUsers.length,
+      requestedPage,
+      PER_PAGE
+    );
+
+  const pageUsers =
+    filteredUsers.slice(
+      pagination.skip,
+      pagination.skip +
+        PER_PAGE
+    );
 
   return (
-    <div className="space-y-8">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="mb-3 inline-flex rounded-full bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700">
-              Panel administratora
-            </p>
+    <DashboardLayout>
+      <div className="space-y-8 pb-8">
+        <PageHeader
+          eyebrow="System"
+          title="Użytkownicy"
+          description="Przeglądaj konta z Supabase Auth, status potwierdzenia e-maila oraz ostatnie logowania."
+          actions={
+            <ButtonLink
+              href="/admin"
+              variant="outline"
+            >
+              Panel admina
+            </ButtonLink>
+          }
+        />
 
-            <h1 className="text-3xl font-black tracking-tight text-slate-950">
-              Zarejestrowani użytkownicy
-            </h1>
-
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
-              Lista kont zarejestrowanych w Rybio. Dane
-              pobierane są z Supabase Auth.
-            </p>
-          </div>
-
-          <Link
-            href="/admin"
-            className="w-fit rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+        {loadError && (
+          <div
+            role="alert"
+            className="rounded-card border border-danger-border bg-danger-subtle px-4 py-3 text-sm font-semibold text-danger-foreground"
           >
-            Wróć do panelu admina
-          </Link>
-        </div>
-      </section>
-
-      {error && (
-        <div className="rounded-3xl border border-red-100 bg-red-50 p-5 text-sm font-bold text-red-700">
-          Nie udało się pobrać użytkowników:{" "}
-          {error.message}
-        </div>
-      )}
-
-      <section className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          label="Wszyscy użytkownicy"
-          value={users.length}
-        />
-
-        <StatCard
-          label="Potwierdzone e-maile"
-          value={confirmedUsers}
-        />
-
-        <StatCard
-          label="Niepotwierdzone e-maile"
-          value={unconfirmedUsers}
-        />
-      </section>
-
-      <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-        <h2 className="text-xl font-black text-slate-950">
-          Lista użytkowników
-        </h2>
-
-        <div className="mt-5 overflow-hidden rounded-2xl border border-slate-200">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-[0.14em] text-slate-400">
-                <tr>
-                  <th className="px-4 py-3">
-                    Użytkownik
-                  </th>
-
-                  <th className="px-4 py-3">
-                    E-mail
-                  </th>
-
-                  <th className="px-4 py-3">
-                    Status e-maila
-                  </th>
-
-                  <th className="px-4 py-3">
-                    Utworzono
-                  </th>
-
-                  <th className="px-4 py-3">
-                    Ostatnie logowanie
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-slate-200 bg-white">
-                {sortedUsers.map((item) => {
-                  const profileName =
-                    typeof item.user_metadata?.name ===
-                    "string"
-                      ? item.user_metadata.name
-                      : typeof item.user_metadata
-                            ?.full_name === "string"
-                        ? item.user_metadata.full_name
-                        : "Użytkownik";
-
-                  return (
-                    <tr key={item.id}>
-                      <td className="px-4 py-3 font-bold text-slate-950">
-                        {profileName}
-                      </td>
-
-                      <td className="px-4 py-3 text-slate-600">
-                        {item.email || "Brak"}
-                      </td>
-
-                      <td className="px-4 py-3">
-                        {item.email_confirmed_at ? (
-                          <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
-                            Potwierdzony
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
-                            Niepotwierdzony
-                          </span>
-                        )}
-                      </td>
-
-                      <td className="px-4 py-3 text-slate-600">
-                        {formatDate(item.created_at)}
-                      </td>
-
-                      <td className="px-4 py-3 text-slate-600">
-                        {formatDate(
-                          item.last_sign_in_at
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-
-                {sortedUsers.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-4 py-10 text-center text-sm font-bold text-slate-500"
-                    >
-                      Brak użytkowników.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            Nie udało się pobrać użytkowników:{" "}
+            {loadError}
           </div>
-        </div>
-      </section>
-    </div>
+        )}
+
+        <section className="grid gap-4 sm:grid-cols-3">
+          <AdminMetricCard
+            label="Wszyscy użytkownicy"
+            value={users.length}
+          />
+
+          <AdminMetricCard
+            label="Potwierdzone e-maile"
+            value={
+              confirmedCount
+            }
+          />
+
+          <AdminMetricCard
+            label="Niepotwierdzone e-maile"
+            value={
+              unconfirmedCount
+            }
+            emphasis={
+              unconfirmedCount >
+              0
+            }
+          />
+        </section>
+
+        <AdminFilterToolbar
+          action="/admin/uzytkownicy"
+          query={query}
+          queryPlaceholder="Szukaj po nazwie, e-mailu lub ID..."
+          selectFields={[
+            {
+              name:
+                "emailStatus",
+              label:
+                "Status e-maila",
+              value:
+                emailStatus,
+              options: [
+                {
+                  value: "",
+                  label:
+                    "Wszystkie statusy",
+                },
+                {
+                  value:
+                    "confirmed",
+                  label:
+                    "Potwierdzony",
+                },
+                {
+                  value:
+                    "unconfirmed",
+                  label:
+                    "Niepotwierdzony",
+                },
+              ],
+            },
+          ]}
+          resetHref="/admin/uzytkownicy"
+        />
+
+        {pageUsers.length >
+        0 ? (
+          <>
+            <Card className="overflow-hidden">
+              <CardHeader className="border-b border-border pb-5">
+                <CardTitle>
+                  Lista użytkowników
+                </CardTitle>
+
+                <CardDescription>
+                  {
+                    filteredUsers.length
+                  }{" "}
+                  wyników. Na stronie
+                  maksymalnie{" "}
+                  {PER_PAGE}.
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="py-0">
+                <div className="hidden grid-cols-[minmax(180px,1fr)_minmax(240px,1.3fr)_160px_170px_170px] gap-4 border-b border-border py-3 text-[9px] font-black uppercase tracking-[0.12em] text-text-muted xl:grid">
+                  <span>
+                    Użytkownik
+                  </span>
+                  <span>
+                    E-mail
+                  </span>
+                  <span>
+                    Status
+                  </span>
+                  <span>
+                    Utworzono
+                  </span>
+                  <span>
+                    Ostatnie
+                    logowanie
+                  </span>
+                </div>
+
+                <div className="divide-y divide-border">
+                  {pageUsers.map(
+                    (user) => (
+                      <article
+                        key={
+                          user.id
+                        }
+                        className="grid gap-4 py-5 xl:grid-cols-[minmax(180px,1fr)_minmax(240px,1.3fr)_160px_170px_170px] xl:items-center"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-extrabold text-text">
+                            {getAdminUserDisplayName(
+                              user
+                            )}
+                          </p>
+
+                          <p className="mt-1 truncate text-[10px] text-text-muted">
+                            ID:{" "}
+                            {
+                              user.id
+                            }
+                          </p>
+                        </div>
+
+                        <p className="break-all text-sm text-text-secondary">
+                          {user.email ||
+                            "Brak"}
+                        </p>
+
+                        <div>
+                          <span
+                            className={
+                              user.email_confirmed_at
+                                ? "inline-flex rounded-full border border-success-border bg-success-subtle px-2.5 py-1 text-[11px] font-bold text-success-foreground"
+                                : "inline-flex rounded-full border border-warning-border bg-warning-subtle px-2.5 py-1 text-[11px] font-bold text-warning-foreground"
+                            }
+                          >
+                            {user.email_confirmed_at
+                              ? "Potwierdzony"
+                              : "Niepotwierdzony"}
+                          </span>
+                        </div>
+
+                        <UserDate
+                          label="Utworzono"
+                          value={
+                            user.created_at
+                          }
+                        />
+
+                        <UserDate
+                          label="Ostatnie logowanie"
+                          value={
+                            user.last_sign_in_at
+                          }
+                        />
+                      </article>
+                    )
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <AdminPagination
+              pathname="/admin/uzytkownicy"
+              page={
+                pagination.page
+              }
+              totalPages={
+                pagination.totalPages
+              }
+              params={{
+                q:
+                  query ||
+                  undefined,
+                emailStatus:
+                  emailStatus ||
+                  undefined,
+              }}
+            />
+          </>
+        ) : (
+          <AdminEmptyState
+            title="Brak użytkowników"
+            description={
+              loadError
+                ? "Nie udało się pobrać listy kont."
+                : "Nie znaleziono użytkowników pasujących do aktualnych filtrów."
+            }
+          />
+        )}
+      </div>
+    </DashboardLayout>
   );
 }
 
-function StatCard({
+function UserDate({
   label,
   value,
 }: {
   label: string;
-  value: number;
+  value:
+    | string
+    | null
+    | undefined;
 }) {
   return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-bold text-slate-500">
+    <div>
+      <p className="text-[9px] font-black uppercase tracking-[0.1em] text-text-muted xl:hidden">
         {label}
       </p>
 
-      <p className="mt-3 text-4xl font-black text-slate-950">
-        {value}
+      <p className="mt-1 text-xs font-semibold text-text-secondary xl:mt-0">
+        {formatAdminDate(
+          value
+        )}
       </p>
     </div>
   );

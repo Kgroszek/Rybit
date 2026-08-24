@@ -1,15 +1,30 @@
 import Link from "next/link";
-import { unstable_cache } from "next/cache";
-import { redirect } from "next/navigation";
-import type { ReactNode } from "react";
+import {
+  redirect,
+} from "next/navigation";
+import type {
+  ReactNode,
+} from "react";
 
-import { DashboardTopbar } from "./DashboardTopbar";
-import { MobileBottomNav } from "./MobileBottomNav";
-import { Sidebar } from "./Sidebar";
+import {
+  DashboardTopbar,
+} from "./DashboardTopbar";
+import {
+  MobileBottomNav,
+} from "./MobileBottomNav";
+import {
+  Sidebar,
+} from "./Sidebar";
 
-import { isAdminUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import {
+  isAdminUser,
+} from "@/lib/auth";
+import {
+  prisma,
+} from "@/lib/prisma";
+import {
+  createClient,
+} from "@/lib/supabase/server";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -22,67 +37,70 @@ type AdminNotificationCounts = {
   pendingOwnerClaimsCount: number;
 };
 
-const emptyAdminNotificationCounts: AdminNotificationCounts = {
-  pendingSubmissionsCount: 0,
-  pendingCorrectionsCount: 0,
-  pendingCatchReportsCount: 0,
-  pendingOwnerClaimsCount: 0,
-};
-
-const getAdminNotificationCounts =
-  unstable_cache(
-    async (): Promise<AdminNotificationCounts> => {
-      const [
-        pendingSubmissionsCount,
-        pendingCorrectionsCount,
-        pendingCatchReportsCount,
-        pendingOwnerClaimsCount,
-      ] = await Promise.all([
-        prisma.lakeSubmission.count({
-          where: {
-            status: "pending",
-          },
-        }),
-        prisma.lakeCorrectionReport.count({
-          where: {
-            status: "pending",
-          },
-        }),
-        prisma.fishingCatchReport.count({
-          where: {
-            status: "pending",
-          },
-        }),
-        prisma.lakeOwnerClaim.count({
-          where: {
-            status: "pending",
-          },
-        }),
-      ]);
-
-      return {
-        pendingSubmissionsCount,
-        pendingCorrectionsCount,
-        pendingCatchReportsCount,
-        pendingOwnerClaimsCount,
-      };
-    },
-    [
-      "dashboard-admin-notification-counts",
-    ],
-    {
-      revalidate: 30,
-    }
-  );
-
-function getUserDisplayName(user: {
-  email?: string | null;
-  user_metadata?: {
-    name?: unknown;
-    full_name?: unknown;
-    display_name?: unknown;
+const emptyAdminNotificationCounts: AdminNotificationCounts =
+  {
+    pendingSubmissionsCount: 0,
+    pendingCorrectionsCount: 0,
+    pendingCatchReportsCount: 0,
+    pendingOwnerClaimsCount: 0,
   };
-}) {
+
+async function getAdminNotificationCounts(): Promise<AdminNotificationCounts> {
+  const [
+    pendingSubmissionsCount,
+    pendingCorrectionsCount,
+    pendingCatchReportsCount,
+    pendingRankingCatchesCount,
+    pendingOwnerClaimsCount,
+  ] = await Promise.all([
+    prisma.lakeSubmission.count({
+      where: {
+        status: "pending",
+      },
+    }),
+    prisma.lakeCorrectionReport.count({
+      where: {
+        status: "pending",
+      },
+    }),
+    prisma.fishingCatchReport.count({
+      where: {
+        status: "pending",
+      },
+    }),
+    prisma.fishingCatch.count({
+      where: {
+        isPublic: true,
+        rankingStatus: "pending",
+      },
+    }),
+    prisma.lakeOwnerClaim.count({
+      where: {
+        status: "pending",
+      },
+    }),
+  ]);
+
+  return {
+    pendingSubmissionsCount,
+    pendingCorrectionsCount,
+    pendingCatchReportsCount:
+      pendingCatchReportsCount +
+      pendingRankingCatchesCount,
+    pendingOwnerClaimsCount,
+  };
+}
+
+function getUserDisplayName(
+  user: {
+    email?: string | null;
+    user_metadata?: {
+      name?: unknown;
+      full_name?: unknown;
+      display_name?: unknown;
+    };
+  }
+) {
   if (
     typeof user.user_metadata
       ?.name === "string"
@@ -115,7 +133,8 @@ export async function DashboardLayout({
 
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } =
+    await supabase.auth.getUser();
 
   if (!user) {
     redirect("/login");
@@ -158,7 +177,9 @@ export async function DashboardLayout({
               userName={getUserDisplayName(
                 user
               )}
-              userEmail={user.email}
+              userEmail={
+                user.email
+              }
             />
 
             {children}
@@ -184,7 +205,8 @@ export async function DashboardLayout({
                     href="/polityka-prywatnosci"
                     className="font-semibold transition-colors hover:text-primary"
                   >
-                    Polityka prywatności
+                    Polityka
+                    prywatności
                   </Link>
 
                   <a

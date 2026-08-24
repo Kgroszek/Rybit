@@ -1,502 +1,839 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { AdminSubmissionActions } from "@/components/dashboard/AdminSubmissionActions";
-import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
-import { isAdminUser } from "@/lib/auth";
+import type { ReactNode } from "react";
+import type {
+  Prisma,
+} from "@prisma/client";
+import {
+  redirect,
+} from "next/navigation";
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("pl-PL", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
+import {
+  AdminLakeSubmissionActions,
+} from "@/components/admin/moderation/AdminLakeSubmissionActions";
+import {
+  AdminEmptyState,
+} from "@/components/admin/shared/AdminEmptyState";
+import {
+  AdminFilterToolbar,
+} from "@/components/admin/shared/AdminFilterToolbar";
+import {
+  AdminInfoItem,
+} from "@/components/admin/shared/AdminInfoItem";
+import {
+  AdminMetricCard,
+} from "@/components/admin/shared/AdminMetricCard";
+import {
+  AdminPagination,
+} from "@/components/admin/shared/AdminPagination";
+import {
+  AdminStatusBadge,
+} from "@/components/admin/shared/AdminStatusBadge";
+import {
+  AdminStatusTabs,
+} from "@/components/admin/shared/AdminStatusTabs";
+import {
+  DashboardLayout,
+} from "@/components/dashboard/DashboardLayout";
+import {
+  ButtonLink,
+} from "@/components/ui/Button";
+import {
+  Card,
+} from "@/components/ui/Card";
+import {
+  PageHeader,
+} from "@/components/ui/PageHeader";
+import {
+  clampAdminPage,
+  formatAdminDate,
+  getAdminPagination,
+} from "@/lib/admin/admin-formatters";
+import {
+  getAdminCatchMethodLabel,
+  getAdminFishingTypeLabel,
+  getAdminOwnerTypeLabel,
+} from "@/lib/admin/admin-status";
+import {
+  requireAdmin,
+} from "@/lib/auth";
+import {
+  prisma,
+} from "@/lib/prisma";
 
-function getOwnerTypeLabel(type: string) {
-  if (type === "commercial") return "Komercyjne";
-  if (type === "pzw") return "PZW";
+export const dynamic =
+  "force-dynamic";
 
-  return "Inne";
-}
+const PER_PAGE = 15;
 
-function getFishingTypeLabel(type: string) {
-  if (type === "general") return "Ogólne";
-  if (type === "spinning") return "Spinningowe";
-  if (type === "carp") return "Karpiowe";
+type AdminLakeSubmissionsPageProps = {
+  searchParams: Promise<{
+    status?: string;
+    q?: string;
+    page?: string;
+  }>;
+};
 
-  return "Inne";
-}
+const AMENITIES = [
+  ["cottages", "Domki"],
+  ["campfire", "Ognisko"],
+  ["noKill", "No Kill"],
+  ["tent", "Namiot"],
+  ["parking", "Parking"],
+  ["pier", "Pomost"],
+  ["toilet", "Toaleta"],
+  [
+    "sanitaryFacilities",
+    "Sanitariaty",
+  ],
+  ["shop", "Sklep"],
+  [
+    "nightFishing",
+    "Wędkowanie nocne",
+  ],
+  [
+    "boatRental",
+    "Wypożyczalnia łodzi",
+  ],
+  [
+    "camperCaravan",
+    "Kamper / przyczepa",
+  ],
+  [
+    "electricityHookup",
+    "Przyłącze z prądem",
+  ],
+  [
+    "gearRental",
+    "Wypożyczalnia sprzętu",
+  ],
+  ["shelter", "Altana"],
+  [
+    "coveredSpots",
+    "Zadaszone stanowiska",
+  ],
+  [
+    "playground",
+    "Plac zabaw",
+  ],
+  [
+    "cardPayment",
+    "Płatność kartą",
+  ],
+] as const;
 
-export default async function LakeSubmissionsAdminPage() {
-  const supabase = await createClient();
+export default async function LakeSubmissionsAdminPage({
+  searchParams,
+}: AdminLakeSubmissionsPageProps) {
+  const admin =
+    await requireAdmin();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    redirect("/login");
-  }
-
-  if (!isAdminUser(user)) {
+  if (!admin) {
     redirect("/dashboard");
   }
 
+  const params =
+    await searchParams;
+
+  const status =
+    normalizeStatus(
+      params.status
+    );
+
+  const query =
+    params.q?.trim() ?? "";
+
+  const requestedPage =
+    clampAdminPage(params.page);
+
+  const baseSearch: Prisma.LakeSubmissionWhereInput =
+    query
+      ? {
+          OR: [
+            {
+              name: {
+                contains:
+                  query,
+                mode:
+                  "insensitive",
+              },
+            },
+            {
+              city: {
+                contains:
+                  query,
+                mode:
+                  "insensitive",
+              },
+            },
+            {
+              voivodeship: {
+                contains:
+                  query,
+                mode:
+                  "insensitive",
+              },
+            },
+            {
+              fish: {
+                contains:
+                  query,
+                mode:
+                  "insensitive",
+              },
+            },
+          ],
+        }
+      : {};
+
+  const where: Prisma.LakeSubmissionWhereInput =
+    {
+      ...baseSearch,
+      ...(status !== "all"
+        ? {
+            status,
+          }
+        : {}),
+    };
+
   const [
-    pendingSubmissions,
-    allSubmissionsCount,
+    allCount,
+    pendingCount,
     approvedCount,
     rejectedCount,
+    filteredCount,
   ] = await Promise.all([
-    prisma.lakeSubmission.findMany({
+    prisma.lakeSubmission.count(),
+    prisma.lakeSubmission.count({
       where: {
         status: "pending",
       },
+    }),
+    prisma.lakeSubmission.count({
+      where: {
+        status:
+          "approved",
+      },
+    }),
+    prisma.lakeSubmission.count({
+      where: {
+        status:
+          "rejected",
+      },
+    }),
+    prisma.lakeSubmission.count({
+      where,
+    }),
+  ]);
+
+  const pagination =
+    getAdminPagination(
+      filteredCount,
+      requestedPage,
+      PER_PAGE
+    );
+
+  const submissions =
+    await prisma.lakeSubmission.findMany({
+      where,
       orderBy: {
         createdAt: "desc",
       },
+      skip: pagination.skip,
+      take: PER_PAGE,
       include: {
         images: {
           orderBy: {
             createdAt: "desc",
           },
         },
+        fishRecords: {
+          orderBy: {
+            weightKg: "desc",
+          },
+        },
+        gearRequirements: {
+          orderBy: {
+            createdAt: "asc",
+          },
+        },
       },
-    }),
-
-    prisma.lakeSubmission.count(),
-
-    prisma.lakeSubmission.count({
-      where: {
-        status: "approved",
-      },
-    }),
-
-    prisma.lakeSubmission.count({
-      where: {
-        status: "rejected",
-      },
-    }),
-  ]);
+    });
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <p className="mb-3 inline-flex rounded-full bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700">
-                Panel administratora
-              </p>
-
-              <h1 className="text-3xl font-black tracking-tight text-slate-950">
-                Zgłoszenia łowisk
-              </h1>
-
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
-                Sprawdzaj propozycje łowisk przesłane przez użytkowników.
-                Dopiero po akceptacji łowisko pojawi się publicznie w bazie
-                Rybio.
-              </p>
-            </div>
-
-            <Link
+      <div className="space-y-8 pb-8">
+        <PageHeader
+          eyebrow="Moderacja"
+          title="Zgłoszenia łowisk"
+          description="Przeglądaj propozycje użytkowników, sprawdzaj szczegóły i podejmuj decyzje bez przeciążania widoku wszystkimi danymi naraz."
+          actions={
+            <ButtonLink
               href="/admin"
-              className="w-fit rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              variant="outline"
             >
-              Wróć do panelu admina
-            </Link>
-          </div>
-        </section>
+              Panel admina
+            </ButtonLink>
+          }
+        />
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
+          <AdminMetricCard
             label="Oczekujące"
-            value={pendingSubmissions.length}
-            variant="warning"
+            value={pendingCount}
+            emphasis={
+              pendingCount > 0
+            }
           />
 
-          <StatCard
+          <AdminMetricCard
             label="Zaakceptowane"
             value={approvedCount}
-            variant="success"
           />
 
-          <StatCard
+          <AdminMetricCard
             label="Odrzucone"
             value={rejectedCount}
-            variant="danger"
           />
 
-          <StatCard
-            label="Wszystkie zgłoszenia"
-            value={allSubmissionsCount}
-            variant="neutral"
+          <AdminMetricCard
+            label="Wszystkie"
+            value={allCount}
           />
         </section>
 
-        {pendingSubmissions.length > 0 ? (
-          <div className="space-y-4">
-            {pendingSubmissions.map((submission) => (
-              <article
-                key={submission.id}
-                className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
-              >
-                <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-3 flex flex-wrap gap-2">
-                      <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">
-                        Oczekuje
-                      </span>
+        <div className="space-y-3">
+          <AdminStatusTabs
+            pathname="/admin/zgloszenia-lowisk"
+            paramName="status"
+            activeValue={status}
+            params={{
+              q:
+                query ||
+                undefined,
+            }}
+            items={[
+              {
+                value:
+                  "pending",
+                label:
+                  "Oczekujące",
+                count:
+                  pendingCount,
+              },
+              {
+                value:
+                  "approved",
+                label:
+                  "Zaakceptowane",
+                count:
+                  approvedCount,
+              },
+              {
+                value:
+                  "rejected",
+                label:
+                  "Odrzucone",
+                count:
+                  rejectedCount,
+              },
+              {
+                value: "all",
+                label:
+                  "Wszystkie",
+                count: allCount,
+              },
+            ]}
+          />
 
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-black ${
-                          submission.ownerType === "commercial"
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-blue-50 text-blue-700"
-                        }`}
-                      >
-                        {getOwnerTypeLabel(submission.ownerType)}
-                      </span>
+          <AdminFilterToolbar
+            action="/admin/zgloszenia-lowisk"
+            query={query}
+            queryPlaceholder="Szukaj łowiska, miasta, województwa lub ryb..."
+            hiddenFields={{
+              status:
+                status !==
+                "all"
+                  ? status
+                  : undefined,
+            }}
+            resetHref={
+              status === "all"
+                ? "/admin/zgloszenia-lowisk"
+                : `/admin/zgloszenia-lowisk?status=${status}`
+            }
+          />
+        </div>
 
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
-                        {getFishingTypeLabel(submission.fishingType)}
-                      </span>
-                    </div>
+        {submissions.length >
+        0 ? (
+          <>
+            <div className="space-y-3">
+              {submissions.map(
+                (
+                  submission
+                ) => {
+                  const activeAmenities =
+                    AMENITIES.filter(
+                      ([key]) =>
+                        Boolean(
+                          submission[
+                            key
+                          ]
+                        )
+                    );
 
-                    <h2 className="break-words text-xl font-black text-slate-950">
-                      {submission.name}
-                    </h2>
-
-                    <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-600">
-                      {submission.description}
-                    </p>
-
-                    <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-2 xl:grid-cols-4">
-                      <InfoBox
-                        label="Ryby"
-                        value={submission.fish}
-                      />
-
-                      <InfoBox
-                        label="Adres"
-                        value={`${submission.street}, ${submission.postalCode} ${submission.city}`}
-                      />
-
-                      <InfoBox
-                        label="Województwo"
-                        value={submission.voivodeship}
-                      />
-
-                      <InfoBox
-                        label="GPS"
-                        value={`${submission.lat}, ${submission.lng}`}
-                      />
-                    </div>
-
-                    <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-2 xl:grid-cols-4">
-                      <InfoBox
-                        label="Powierzchnia"
-                        value={submission.area || "Brak danych"}
-                      />
-
-                      <InfoBox
-                        label="Średnia głębokość"
-                        value={submission.averageDepth || "Brak danych"}
-                      />
-
-                      <InfoBox
-                        label="Rodzaj dna"
-                        value={submission.bottomType || "Brak danych"}
-                      />
-
-                      <InfoBox
-                        label="Typ wody"
-                        value={submission.waterType || "Brak danych"}
-                      />
-                    </div>
-
-                    <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-2 xl:grid-cols-4">
-                      <InfoBox
-                        label="Kontakt"
-                        value={submission.contactName || "Brak danych"}
-                      />
-
-                      <InfoBox
-                        label="Telefon"
-                        value={submission.contactPhone || "Brak danych"}
-                      />
-
-                      <InfoBox
-                        label="E-mail"
-                        value={submission.contactEmail || "Brak danych"}
-                      />
-
-                      <InfoBox
-                        label="Strona"
-                        value={submission.contactWebsite || "Brak danych"}
-                      />
-                    </div>
-
-                    <div className="mt-4 grid gap-3 text-sm text-slate-600 md:grid-cols-2 xl:grid-cols-4">
-                      <InfoBox
-                        label="Data zgłoszenia"
-                        value={formatDate(submission.createdAt)}
-                      />
-
-                      <InfoBox
-                        label="ID użytkownika"
-                        value={submission.userId || "Brak"}
-                      />
-
-                      <InfoBox
-                        label="Slug"
-                        value={submission.slug || "Brak"}
-                      />
-
-                      <InfoBox
-                        label="Zdjęcia"
-                        value={String(submission.images.length)}
-                      />
-                    </div>
-
-                    {(submission.priceListText ||
-                      submission.priceListUrl ||
-                      submission.rulesText ||
-                      submission.rulesUrl) && (
-                      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-                        <TextBox
-                          label="Cennik"
-                          text={submission.priceListText}
-                          url={submission.priceListUrl}
-                        />
-
-                        <TextBox
-                          label="Regulamin"
-                          text={submission.rulesText}
-                          url={submission.rulesUrl}
-                        />
-                      </div>
-                    )}
-
-                    <div className="mt-4">
-                      <p className="mb-3 text-sm font-black text-slate-950">
-                        Udogodnienia
-                      </p>
-
-                      <div className="flex flex-wrap gap-2">
-                        <AmenityBadge
-                          active={submission.cottages}
-                          label="Domki"
-                        />
-
-                        <AmenityBadge
-                          active={submission.campfire}
-                          label="Ognisko"
-                        />
-
-                        <AmenityBadge
-                          active={submission.noKill}
-                          label="No Kill"
-                        />
-
-                        <AmenityBadge
-                          active={submission.tent}
-                          label="Namiot"
-                        />
-
-                        <AmenityBadge
-                          active={submission.parking}
-                          label="Parking"
-                        />
-
-                        <AmenityBadge
-                          active={submission.pier}
-                          label="Pomost"
-                        />
-
-                        <AmenityBadge
-                          active={submission.toilet}
-                          label="Toaleta"
-                        />
-
-                        <AmenityBadge
-                          active={submission.shop}
-                          label="Sklep"
-                        />
-
-                        <AmenityBadge
-                          active={submission.nightFishing}
-                          label="Wędkowanie nocne"
-                        />
-
-                        <AmenityBadge
-                          active={submission.boatRental}
-                          label="Wypożyczalnia łodzi"
-                        />
-
-                        <AmenityBadge
-                          active={submission.gearRental}
-                          label="Wypożyczalnia sprzętu"
-                        />
-
-                        <AmenityBadge
-                          active={submission.shelter}
-                          label="Altana"
-                        />
-
-                        <AmenityBadge
-                          active={submission.coveredSpots}
-                          label="Zadaszone stanowiska"
-                        />
-
-                        <AmenityBadge
-                          active={submission.playground}
-                          label="Plac zabaw"
-                        />
-
-                        <AmenityBadge
-                          active={submission.cardPayment}
-                          label="Płatność kartą"
-                        />
-                      </div>
-
-                      {!hasAnyAmenity(submission) && (
-                        <p className="rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-500">
-                          Brak zaznaczonych udogodnień.
-                        </p>
-                      )}
-                    </div>
-
-                    {submission.images.length > 0 && (
-                      <div className="mt-5">
-                        <div className="mb-3 flex items-center justify-between gap-3">
-                          <p className="text-sm font-black text-slate-950">
-                            Zdjęcia zgłoszenia
-                          </p>
-
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
-                            {submission.images.length} zdjęć
-                          </span>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                          {submission.images.map((image) => (
-                            <a
-                              key={image.id}
-                              href={image.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-100"
-                            >
-                              <img
-                                src={image.url}
-                                alt={`Zdjęcie łowiska ${submission.name}`}
-                                className="h-36 w-full object-cover transition duration-300 group-hover:scale-105"
-                              />
-                            </a>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex w-full shrink-0 flex-col gap-3 sm:flex-row xl:w-[280px] xl:flex-col">
-                    <Link
-                      href={`/admin/zgloszenia-lowisk/${submission.id}/edytuj`}
-                      className="rounded-2xl bg-slate-950 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-slate-800"
+                  return (
+                    <Card
+                      key={
+                        submission.id
+                      }
+                      className="overflow-hidden"
                     >
-                      Edytuj
-                    </Link>
+                      <details className="group">
+                        <summary className="cursor-pointer list-none p-5 marker:hidden sm:p-6">
+                          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <AdminStatusBadge
+                                  status={
+                                    submission.status
+                                  }
+                                />
 
-                    <AdminSubmissionActions
-                      submissionId={submission.id}
-                    />
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.1em] text-text-muted">
+                                  {getAdminOwnerTypeLabel(
+                                    submission.ownerType
+                                  )}
+                                </span>
+
+                                <span className="text-[10px] font-black uppercase tracking-[0.1em] text-text-muted">
+                                  {getAdminFishingTypeLabel(
+                                    submission.fishingType
+                                  )}
+                                </span>
+                              </div>
+
+                              <h2 className="mt-3 font-display text-xl font-extrabold tracking-[-0.025em] text-text">
+                                {
+                                  submission.name
+                                }
+                              </h2>
+
+                              <p className="mt-1 text-sm text-text-secondary">
+                                {
+                                  submission.city
+                                }
+                                , woj.{" "}
+                                {
+                                  submission.voivodeship
+                                }
+                              </p>
+
+                              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-text-muted">
+                                <span>
+                                  {
+                                    submission.images.length
+                                  }{" "}
+                                  zdjęć
+                                </span>
+
+                                <span>
+                                  {
+                                    activeAmenities.length
+                                  }{" "}
+                                  udogodnień
+                                </span>
+
+                                <span>
+                                  {formatAdminDate(
+                                    submission.createdAt
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-xs font-extrabold text-primary-700">
+                                Szczegóły
+                              </span>
+
+                              <span
+                                aria-hidden="true"
+                                className="text-lg font-black text-text-muted transition group-open:rotate-45"
+                              >
+                                +
+                              </span>
+                            </div>
+                          </div>
+                        </summary>
+
+                        <div className="border-t border-border bg-surface-muted px-5 py-6 sm:px-6">
+                          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
+                            <div className="min-w-0 space-y-7">
+                              <AdminDetailSection
+                                title="Podstawowe informacje"
+                              >
+                                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                  <AdminInfoItem
+                                    label="Ryby"
+                                    value={
+                                      submission.fish
+                                    }
+                                  />
+
+                                  <AdminInfoItem
+                                    label="Adres"
+                                    value={`${submission.street}, ${submission.postalCode} ${submission.city}`}
+                                  />
+
+                                  <AdminInfoItem
+                                    label="GPS"
+                                    value={`${submission.lat}, ${submission.lng}`}
+                                  />
+
+                                  <AdminInfoItem
+                                    label="Metody"
+                                    value={
+                                      submission.fishingMethods.length >
+                                      0
+                                        ? submission.fishingMethods
+                                            .map(
+                                              getAdminCatchMethodLabel
+                                            )
+                                            .join(
+                                              ", "
+                                            )
+                                        : "Brak"
+                                    }
+                                  />
+                                </div>
+
+                                <div className="mt-3 rounded-control bg-surface px-4 py-4 text-sm leading-6 text-text-secondary">
+                                  <p className="text-[9px] font-black uppercase tracking-[0.12em] text-text-muted">
+                                    Opis
+                                  </p>
+
+                                  <p className="mt-2 whitespace-pre-line break-words">
+                                    {
+                                      submission.description
+                                    }
+                                  </p>
+                                </div>
+                              </AdminDetailSection>
+
+                              <AdminDetailSection
+                                title="Charakterystyka"
+                              >
+                                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                                  <AdminInfoItem
+                                    label="Powierzchnia"
+                                    value={
+                                      submission.area ||
+                                      "Brak"
+                                    }
+                                  />
+
+                                  <AdminInfoItem
+                                    label="Średnia głębokość"
+                                    value={
+                                      submission.averageDepth ||
+                                      "Brak"
+                                    }
+                                  />
+
+                                  <AdminInfoItem
+                                    label="Dno"
+                                    value={
+                                      submission.bottomType ||
+                                      "Brak"
+                                    }
+                                  />
+
+                                  <AdminInfoItem
+                                    label="Typ wody"
+                                    value={
+                                      submission.waterType ||
+                                      "Brak"
+                                    }
+                                  />
+                                </div>
+                              </AdminDetailSection>
+
+                              <AdminDetailSection
+                                title="Cennik i regulamin"
+                              >
+                                <div className="grid gap-3 lg:grid-cols-2">
+                                  <AdminTextBlock
+                                    label="Cennik"
+                                    text={
+                                      submission.priceListText
+                                    }
+                                    url={
+                                      submission.priceListUrl
+                                    }
+                                  />
+
+                                  <AdminTextBlock
+                                    label="Regulamin"
+                                    text={
+                                      submission.rulesText
+                                    }
+                                    url={
+                                      submission.rulesUrl
+                                    }
+                                  />
+                                </div>
+                              </AdminDetailSection>
+
+                              <AdminDetailSection
+                                title="Udogodnienia"
+                              >
+                                {activeAmenities.length >
+                                0 ? (
+                                  <div className="flex flex-wrap gap-2">
+                                    {activeAmenities.map(
+                                      ([
+                                        key,
+                                        label,
+                                      ]) => (
+                                        <span
+                                          key={
+                                            key
+                                          }
+                                          className="rounded-full border border-success-border bg-success-subtle px-3 py-1.5 text-xs font-bold text-success-foreground"
+                                        >
+                                          {
+                                            label
+                                          }
+                                        </span>
+                                      )
+                                    )}
+                                  </div>
+                                ) : (
+                                  <p className="text-sm text-text-muted">
+                                    Brak
+                                    zaznaczonych
+                                    udogodnień.
+                                  </p>
+                                )}
+                              </AdminDetailSection>
+
+                              {(submission.fishRecords.length >
+                                0 ||
+                                submission.gearRequirements.length >
+                                  0) && (
+                                <AdminDetailSection
+                                  title="Rekordy i wymagania"
+                                >
+                                  <div className="grid gap-4 lg:grid-cols-2">
+                                    <AdminListBox
+                                      label="Rekordowe ryby"
+                                      items={submission.fishRecords.map(
+                                        (
+                                          record
+                                        ) =>
+                                          `${record.fishName} — ${record.weightKg.toFixed(
+                                            2
+                                          )} kg`
+                                      )}
+                                    />
+
+                                    <AdminListBox
+                                      label="Wymagany sprzęt"
+                                      items={submission.gearRequirements.map(
+                                        (
+                                          requirement
+                                        ) =>
+                                          requirement.text
+                                      )}
+                                    />
+                                  </div>
+                                </AdminDetailSection>
+                              )}
+
+                              {submission.images.length >
+                                0 && (
+                                <AdminDetailSection
+                                  title="Zdjęcia"
+                                >
+                                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                                    {submission.images.map(
+                                      (
+                                        image
+                                      ) => (
+                                        <a
+                                          key={
+                                            image.id
+                                          }
+                                          href={
+                                            image.url
+                                          }
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="group overflow-hidden rounded-card border border-border bg-surface"
+                                        >
+                                          <img
+                                            src={
+                                              image.url
+                                            }
+                                            alt={`Zdjęcie łowiska ${submission.name}`}
+                                            className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105"
+                                          />
+                                        </a>
+                                      )
+                                    )}
+                                  </div>
+                                </AdminDetailSection>
+                              )}
+                            </div>
+
+                            <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
+                              <Card className="p-4">
+                                <p className="text-[10px] font-black uppercase tracking-[0.13em] text-text-muted">
+                                  Kontakt
+                                </p>
+
+                                <div className="mt-3 grid gap-2">
+                                  <AdminInfoItem
+                                    label="Nazwa"
+                                    value={
+                                      submission.contactName ||
+                                      "Brak"
+                                    }
+                                  />
+
+                                  <AdminInfoItem
+                                    label="Telefon"
+                                    value={
+                                      submission.contactPhone ||
+                                      "Brak"
+                                    }
+                                  />
+
+                                  <AdminInfoItem
+                                    label="E-mail"
+                                    value={
+                                      submission.contactEmail ||
+                                      "Brak"
+                                    }
+                                  />
+
+                                  <AdminInfoItem
+                                    label="Strona"
+                                    value={
+                                      submission.contactWebsite ||
+                                      "Brak"
+                                    }
+                                  />
+                                </div>
+                              </Card>
+
+                              <Card className="p-4">
+                                <p className="text-[10px] font-black uppercase tracking-[0.13em] text-text-muted">
+                                  Akcje
+                                </p>
+
+                                <div className="mt-3 grid gap-2">
+                                  <ButtonLink
+                                    href={`/admin/zgloszenia-lowisk/${submission.id}/edytuj`}
+                                    variant="dark"
+                                    size="sm"
+                                    fullWidth
+                                  >
+                                    Edytuj dane
+                                  </ButtonLink>
+
+                                  {submission.status ===
+                                    "pending" && (
+                                    <AdminLakeSubmissionActions
+                                      submissionId={
+                                        submission.id
+                                      }
+                                      submissionName={
+                                        submission.name
+                                      }
+                                    />
+                                  )}
+                                </div>
+                              </Card>
+                            </aside>
+                          </div>
+                        </div>
+                      </details>
+                    </Card>
+                  );
+                }
+              )}
+            </div>
+
+            <AdminPagination
+              pathname="/admin/zgloszenia-lowisk"
+              page={
+                pagination.page
+              }
+              totalPages={
+                pagination.totalPages
+              }
+              params={{
+                status:
+                  status !==
+                  "all"
+                    ? status
+                    : undefined,
+                q:
+                  query ||
+                  undefined,
+              }}
+            />
+          </>
         ) : (
-          <div className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-            <h2 className="text-xl font-black text-slate-950">
-              Brak oczekujących zgłoszeń
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Gdy użytkownik zgłosi nowe łowisko, pojawi się ono tutaj.
-            </p>
-
-            <Link
-              href="/admin"
-              className="mt-5 inline-flex rounded-2xl bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-700"
-            >
-              Wróć do panelu admina
-            </Link>
-          </div>
+          <AdminEmptyState
+            title="Brak zgłoszeń"
+            description="Nie ma zgłoszeń pasujących do wybranego statusu i wyszukiwania."
+          />
         )}
       </div>
     </DashboardLayout>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  variant,
+function normalizeStatus(
+  value:
+    | string
+    | undefined
+) {
+  if (
+    value === "approved" ||
+    value === "rejected" ||
+    value === "all"
+  ) {
+    return value;
+  }
+
+  return "pending";
+}
+
+function AdminDetailSection({
+  title,
+  children,
 }: {
-  label: string;
-  value: number;
-  variant: "warning" | "success" | "danger" | "neutral";
+  title: string;
+  children:
+    ReactNode;
 }) {
-  const classes = {
-    warning: "border-amber-100 bg-amber-50 text-amber-700",
-    success: "border-emerald-100 bg-emerald-50 text-emerald-700",
-    danger: "border-red-100 bg-red-50 text-red-700",
-    neutral: "border-slate-200 bg-white text-slate-950",
-  };
-
   return (
-    <div
-      className={`rounded-3xl border p-5 shadow-sm ${classes[variant]}`}
-    >
-      <p className="text-sm font-bold">
-        {label}
-      </p>
+    <section>
+      <h3 className="text-[10px] font-black uppercase tracking-[0.14em] text-text-muted">
+        {title}
+      </h3>
 
-      <p className="mt-3 text-4xl font-black">
-        {value}
-      </p>
-    </div>
+      <div className="mt-3">
+        {children}
+      </div>
+    </section>
   );
 }
 
-function InfoBox({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
-        {label}
-      </p>
-
-      <p className="mt-2 break-words text-sm font-bold text-slate-700">
-        {value}
-      </p>
-    </div>
-  );
-}
-
-function TextBox({
+function AdminTextBlock({
   label,
   text,
   url,
@@ -506,85 +843,63 @@ function TextBox({
   url: string | null;
 }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+    <div className="rounded-control bg-surface px-4 py-4">
+      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-text-muted">
         {label}
       </p>
 
-      {text ? (
-        <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-700">
-          {text}
-        </p>
-      ) : (
-        <p className="mt-2 text-sm font-bold text-slate-500">
-          Brak treści.
-        </p>
-      )}
+      <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-text-secondary">
+        {text || "Brak treści."}
+      </p>
 
       {url && (
         <a
           href={url}
           target="_blank"
-          rel="noreferrer"
-          className="mt-3 inline-flex text-sm font-bold text-blue-600 hover:text-blue-700"
+          rel="noopener noreferrer"
+          className="mt-3 inline-flex text-xs font-extrabold text-primary-700 hover:text-primary-900"
         >
-          Otwórz link
+          Otwórz link ↗
         </a>
       )}
     </div>
   );
 }
 
-function AmenityBadge({
-  active,
+function AdminListBox({
   label,
+  items,
 }: {
-  active: boolean;
   label: string;
-}) {
-  if (!active) {
-    return null;
-  }
-
-  return (
-    <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">
-      {label}
-    </span>
-  );
-}
-
-function hasAnyAmenity(submission: {
-  cottages: boolean;
-  campfire: boolean;
-  noKill: boolean;
-  tent: boolean;
-  parking: boolean;
-  pier: boolean;
-  toilet: boolean;
-  shop: boolean;
-  nightFishing: boolean;
-  boatRental: boolean;
-  gearRental: boolean;
-  shelter: boolean;
-  coveredSpots: boolean;
-  playground: boolean;
-  cardPayment: boolean;
+  items: string[];
 }) {
   return (
-    submission.cottages ||
-    submission.campfire ||
-    submission.noKill ||
-    submission.tent ||
-    submission.parking ||
-    submission.pier ||
-    submission.toilet ||
-    submission.shop ||
-    submission.nightFishing ||
-    submission.boatRental ||
-    submission.gearRental ||
-    submission.shelter ||
-    submission.coveredSpots ||
-    submission.playground ||
-    submission.cardPayment
+    <div className="rounded-control bg-surface px-4 py-4">
+      <p className="text-[9px] font-black uppercase tracking-[0.12em] text-text-muted">
+        {label}
+      </p>
+
+      {items.length > 0 ? (
+        <ul className="mt-2 grid gap-2 text-sm text-text-secondary">
+          {items.map(
+            (
+              item,
+              index
+            ) => (
+              <li
+                key={`${item}-${index}`}
+                className="border-t border-border pt-2 first:border-t-0 first:pt-0"
+              >
+                {item}
+              </li>
+            )
+          )}
+        </ul>
+      ) : (
+        <p className="mt-2 text-sm text-text-muted">
+          Brak.
+        </p>
+      )}
+    </div>
   );
 }

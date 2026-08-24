@@ -1,468 +1,1113 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { CatchReportAdminActions } from "@/components/dashboard/CatchReportAdminActions";
-import { PendingCatchModerationSection } from "@/components/dashboard/PendingCatchModerationSection";
-import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
-import { isAdminUser } from "@/lib/auth";
+import type {
+  Prisma,
+} from "@prisma/client";
+import {
+  redirect,
+} from "next/navigation";
 
-const BUCKET_NAME = "catch-images";
+import {
+  AdminCatchModerationActions,
+} from "@/components/admin/moderation/AdminCatchModerationActions";
+import {
+  AdminCatchReportActions,
+} from "@/components/admin/moderation/AdminCatchReportActions";
+import {
+  AdminEmptyState,
+} from "@/components/admin/shared/AdminEmptyState";
+import {
+  AdminFilterToolbar,
+} from "@/components/admin/shared/AdminFilterToolbar";
+import {
+  AdminInfoItem,
+} from "@/components/admin/shared/AdminInfoItem";
+import {
+  AdminMetricCard,
+} from "@/components/admin/shared/AdminMetricCard";
+import {
+  AdminPagination,
+} from "@/components/admin/shared/AdminPagination";
+import {
+  AdminStatusBadge,
+} from "@/components/admin/shared/AdminStatusBadge";
+import {
+  AdminStatusTabs,
+} from "@/components/admin/shared/AdminStatusTabs";
+import {
+  DashboardLayout,
+} from "@/components/dashboard/DashboardLayout";
+import {
+  ButtonLink,
+} from "@/components/ui/Button";
+import {
+  Card,
+} from "@/components/ui/Card";
+import {
+  PageHeader,
+} from "@/components/ui/PageHeader";
+import {
+  clampAdminPage,
+  formatAdminDate,
+  formatAdminLength,
+  formatAdminWeight,
+  getAdminPagination,
+} from "@/lib/admin/admin-formatters";
+import {
+  getAdminCatchMethodLabel,
+} from "@/lib/admin/admin-status";
+import {
+  requireAdmin,
+} from "@/lib/auth";
+import {
+  prisma,
+} from "@/lib/prisma";
+import {
+  createClient,
+} from "@/lib/supabase/server";
 
-function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("pl-PL", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
-}
+export const dynamic =
+  "force-dynamic";
 
-function getStatusLabel(status: string) {
-  if (status === "pending") return "Oczekuje";
-  if (status === "accepted") return "Połów ukryty";
-  if (status === "approved") return "Zaakceptowane";
-  if (status === "resolved") return "Rozwiązane";
-  if (status === "rejected") return "Odrzucone";
-  if (status === "hidden") return "Ukryty";
-  if (status === "private") return "Prywatny";
+const BUCKET_NAME =
+  "catch-images";
+const PER_PAGE = 12;
 
-  return status;
-}
+type PageProps = {
+  searchParams: Promise<{
+    widok?: string;
+    status?: string;
+    q?: string;
+    page?: string;
+  }>;
+};
 
-function getStatusClass(status: string) {
-  if (status === "pending") {
-    return "bg-amber-50 text-amber-700";
-  }
+export default async function AdminCatchReportsPage({
+  searchParams,
+}: PageProps) {
+  const admin =
+    await requireAdmin();
 
-  if (
-    status === "accepted" ||
-    status === "approved" ||
-    status === "resolved"
-  ) {
-    return "bg-emerald-50 text-emerald-700";
-  }
-
-  if (status === "rejected") {
-    return "bg-red-50 text-red-700";
-  }
-
-  if (status === "hidden") {
-    return "bg-slate-200 text-slate-700";
-  }
-
-  return "bg-slate-100 text-slate-600";
-}
-
-function formatWeight(weight: number | null) {
-  if (weight === null) {
-    return "Brak";
-  }
-
-  return `${weight.toFixed(2)} kg`;
-}
-
-function formatLength(length: number | null) {
-  if (length === null) {
-    return "Brak";
-  }
-
-  return `${length.toFixed(0)} cm`;
-}
-
-export default async function AdminCatchReportsPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    redirect("/login");
-  }
-
-  if (!isAdminUser(user)) {
+  if (!admin) {
     redirect("/dashboard");
   }
 
-  const reports = await prisma.fishingCatchReport.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      fishingCatch: {
-        include: {
-          lake: {
-            select: {
-              slug: true,
-              name: true,
-              city: true,
-              voivodeship: true,
-            },
-          },
+  const params =
+    await searchParams;
+
+  const view =
+    params.widok ===
+    "zgloszenia"
+      ? "zgloszenia"
+      : "moderacja";
+
+  const status =
+    normalizeReportStatus(
+      params.status
+    );
+
+  const query =
+    params.q?.trim() ?? "";
+
+  const requestedPage =
+    clampAdminPage(params.page);
+
+  const [
+    pendingRankingCount,
+    pendingReportsCount,
+    resolvedReportsCount,
+    rejectedReportsCount,
+    allReportsCount,
+  ] = await Promise.all([
+    prisma.fishingCatch.count({
+      where: {
+        isPublic: true,
+        rankingStatus:
+          "pending",
+      },
+    }),
+    prisma.fishingCatchReport.count({
+      where: {
+        status: "pending",
+      },
+    }),
+    prisma.fishingCatchReport.count({
+      where: {
+        status: {
+          in: [
+            "accepted",
+            "approved",
+            "resolved",
+          ],
         },
       },
-    },
-  });
-
-  const reportsWithPreview = await Promise.all(
-    reports.map(async (report) => {
-      let previewImageUrl = report.fishingCatch.imageUrl;
-
-      if (report.fishingCatch.imagePath) {
-        const { data } = await supabase.storage
-          .from(BUCKET_NAME)
-          .createSignedUrl(report.fishingCatch.imagePath, 60 * 60);
-
-        previewImageUrl =
-          data?.signedUrl ?? report.fishingCatch.imageUrl;
-      }
-
-      return {
-        ...report,
-        previewImageUrl,
-      };
-    })
-  );
-
-  const pendingReportsCount = reports.filter(
-    (report) => report.status === "pending"
-  ).length;
-
-  const hiddenCount = reports.filter(
-    (report) =>
-      report.status === "accepted" ||
-      report.status === "approved" ||
-      report.status === "resolved"
-  ).length;
-
-  const rejectedCount = reports.filter(
-    (report) => report.status === "rejected"
-  ).length;
+    }),
+    prisma.fishingCatchReport.count({
+      where: {
+        status:
+          "rejected",
+      },
+    }),
+    prisma.fishingCatchReport.count(),
+  ]);
 
   return (
     <DashboardLayout>
-      <div className="space-y-8">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div>
-              <p className="mb-3 inline-flex rounded-full bg-blue-50 px-4 py-2 text-sm font-bold text-blue-700">
-                Panel administratora
-              </p>
-
-              <h1 className="text-3xl font-black tracking-tight text-slate-950">
-                Moderacja połowów
-              </h1>
-
-              <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-500">
-                Zatwierdzaj nowe połowy zgłoszone do rankingów oraz
-                obsługuj zgłoszenia dotyczące już opublikowanych połowów.
-              </p>
-            </div>
-
-            <Link
+      <div className="space-y-8 pb-8">
+        <PageHeader
+          eyebrow="Moderacja"
+          title="Połowy"
+          description="Weryfikuj nowe połowy zgłoszone do rankingów oraz obsługuj zgłoszenia dotyczące wyników już opublikowanych."
+          actions={
+            <ButtonLink
               href="/admin"
-              className="w-fit rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              variant="outline"
             >
-              Wróć do panelu admina
-            </Link>
-          </div>
-        </section>
+              Panel admina
+            </ButtonLink>
+          }
+        />
 
-        <PendingCatchModerationSection />
-
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-500">
-                Zgłoszenia użytkowników
-              </p>
-
-              <h2 className="mt-2 text-2xl font-black text-slate-950">
-                Zgłoszenia dotyczące opublikowanych połowów
-              </h2>
-
-              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-                Tutaj znajdują się zgłoszenia dotyczące połowów, które
-                zostały wcześniej opublikowane w rankingach łowisk.
-              </p>
-            </div>
-
-            <span className="w-fit rounded-full bg-blue-50 px-4 py-2 text-sm font-black text-blue-700">
-              {reports.length} zgłoszeń
-            </span>
-          </div>
-        </section>
-
-        <section className="grid gap-4 sm:grid-cols-3">
-          <StatCard
-            label="Oczekujące zgłoszenia"
-            value={pendingReportsCount}
-            variant="warning"
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <AdminMetricCard
+            label="Do zatwierdzenia"
+            value={
+              pendingRankingCount
+            }
+            emphasis={
+              pendingRankingCount >
+              0
+            }
           />
 
-          <StatCard
-            label="Ukryte połowy"
-            value={hiddenCount}
-            variant="success"
+          <AdminMetricCard
+            label="Zgłoszenia oczekujące"
+            value={
+              pendingReportsCount
+            }
+            emphasis={
+              pendingReportsCount >
+              0
+            }
           />
 
-          <StatCard
+          <AdminMetricCard
+            label="Obsłużone zgłoszenia"
+            value={
+              resolvedReportsCount
+            }
+          />
+
+          <AdminMetricCard
             label="Odrzucone zgłoszenia"
-            value={rejectedCount}
-            variant="danger"
+            value={
+              rejectedReportsCount
+            }
           />
         </section>
 
-        {reportsWithPreview.length > 0 ? (
-          <section className="space-y-5">
-            {reportsWithPreview.map((report) => (
-              <article
-                key={report.id}
-                className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
-              >
-                <div className="grid gap-0 xl:grid-cols-[280px_1fr]">
-                  <div className="bg-slate-100">
-                    {report.previewImageUrl ? (
-                      <a
-                        href={report.previewImageUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block h-full"
-                      >
-                        <img
-                          src={report.previewImageUrl}
-                          alt={`Połów: ${report.fishingCatch.fishName}`}
-                          className="h-64 w-full object-cover transition duration-300 hover:scale-105 xl:h-full"
-                        />
-                      </a>
-                    ) : (
-                      <div className="flex h-64 items-center justify-center text-sm font-bold text-slate-400 xl:h-full">
-                        Brak zdjęcia
-                      </div>
-                    )}
-                  </div>
+        <AdminStatusTabs
+          pathname="/admin/zgloszenia-polowow"
+          paramName="widok"
+          activeValue={view}
+          params={{}}
+          items={[
+            {
+              value:
+                "moderacja",
+              label:
+                "Do weryfikacji",
+              count:
+                pendingRankingCount,
+            },
+            {
+              value:
+                "zgloszenia",
+              label:
+                "Zgłoszone połowy",
+              count:
+                pendingReportsCount,
+            },
+          ]}
+        />
 
-                  <div className="p-5 sm:p-6">
-                    <div className="mb-5 flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                      <div className="min-w-0">
-                        <div className="mb-3 flex flex-wrap gap-2">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-black ${getStatusClass(
-                              report.status
-                            )}`}
-                          >
-                            {getStatusLabel(report.status)}
-                          </span>
-
-                          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
-                            {formatDate(report.createdAt)}
-                          </span>
-                        </div>
-
-                        <h2 className="break-words text-2xl font-black text-slate-950">
-                          {report.fishingCatch.fishName}
-                        </h2>
-
-                        <p className="mt-1 break-words text-sm text-slate-500">
-                          Zgłoszone przez:{" "}
-                          {report.userEmail || report.userId}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col gap-3 sm:flex-row xl:shrink-0">
-                        {report.fishingCatch.lake?.slug && (
-                          <>
-                            <Link
-                              href={`/lowiska/${report.fishingCatch.lake.slug}`}
-                              className="rounded-2xl bg-slate-100 px-4 py-2 text-center text-sm font-bold text-slate-700 transition hover:bg-slate-200"
-                            >
-                              Łowisko w panelu
-                            </Link>
-
-                            <Link
-                              href={`/lowiska-w-polsce/${report.fishingCatch.lake.slug}`}
-                              className="rounded-2xl bg-blue-50 px-4 py-2 text-center text-sm font-bold text-blue-700 transition hover:bg-blue-100"
-                            >
-                              Podgląd publiczny
-                            </Link>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                      <InfoTile
-                        label="Waga"
-                        value={formatWeight(
-                          report.fishingCatch.weight
-                        )}
-                      />
-
-                      <InfoTile
-                        label="Długość"
-                        value={formatLength(
-                          report.fishingCatch.length
-                        )}
-                      />
-
-                      <InfoTile
-                        label="Łowisko"
-                        value={
-                          report.fishingCatch.lakeName ||
-                          report.fishingCatch.lake?.name ||
-                          "Brak"
-                        }
-                      />
-
-                      <InfoTile
-                        label="Użytkownik"
-                        value={
-                          report.fishingCatch.userName ||
-                          "Użytkownik"
-                        }
-                      />
-                    </div>
-
-                    <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                      <InfoTile
-                        label="Metoda"
-                        value={
-                          report.fishingCatch.method ||
-                          "Brak"
-                        }
-                      />
-
-                      <InfoTile
-                        label="Przynęta"
-                        value={
-                          report.fishingCatch.bait ||
-                          "Brak"
-                        }
-                      />
-
-                      <InfoTile
-                        label="Data połowu"
-                        value={formatDate(
-                          report.fishingCatch.caughtAt
-                        )}
-                      />
-
-                      <InfoTile
-                        label="Status rankingu"
-                        value={getStatusLabel(
-                          report.fishingCatch.rankingStatus
-                        )}
-                      />
-                    </div>
-
-                    <div className="mt-4 rounded-2xl bg-red-50 p-4">
-                      <p className="text-xs font-black uppercase tracking-[0.14em] text-red-400">
-                        Uzasadnienie zgłoszenia
-                      </p>
-
-                      <p className="mt-2 whitespace-pre-line break-words text-sm font-semibold leading-6 text-red-700">
-                        {report.reason}
-                      </p>
-                    </div>
-
-                    {report.fishingCatch.note && (
-                      <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
-                          Notatka przy połowie
-                        </p>
-
-                        <p className="mt-2 whitespace-pre-line break-words text-sm leading-6 text-slate-700">
-                          {report.fishingCatch.note}
-                        </p>
-                      </div>
-                    )}
-
-                    {report.adminNote && (
-                      <div className="mt-4 rounded-2xl bg-blue-50 p-4">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-400">
-                          Notatka admina
-                        </p>
-
-                        <p className="mt-2 whitespace-pre-line break-words text-sm font-semibold leading-6 text-blue-700">
-                          {report.adminNote}
-                        </p>
-                      </div>
-                    )}
-
-                    {report.status === "pending" && (
-                      <div className="mt-5">
-                        <CatchReportAdminActions
-                          reportId={report.id}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </article>
-            ))}
-          </section>
+        {view ===
+        "moderacja" ? (
+          <PendingCatchList
+            query={query}
+            requestedPage={
+              requestedPage
+            }
+          />
         ) : (
-          <section className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-            <h2 className="text-xl font-black text-slate-950">
-              Brak zgłoszeń dotyczących połowów
-            </h2>
-
-            <p className="mt-2 text-sm leading-6 text-slate-500">
-              Gdy użytkownik zgłosi nieprawidłowy połów z rankingu,
-              pojawi się on tutaj.
-            </p>
-          </section>
+          <ReportedCatchList
+            query={query}
+            status={status}
+            requestedPage={
+              requestedPage
+            }
+            counts={{
+              all:
+                allReportsCount,
+              pending:
+                pendingReportsCount,
+              resolved:
+                resolvedReportsCount,
+              rejected:
+                rejectedReportsCount,
+            }}
+          />
         )}
       </div>
     </DashboardLayout>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  variant,
+async function PendingCatchList({
+  query,
+  requestedPage,
 }: {
-  label: string;
-  value: number;
-  variant: "warning" | "success" | "danger";
+  query: string;
+  requestedPage: number;
 }) {
-  const classes = {
-    warning: "border-amber-100 bg-amber-50 text-amber-700",
-    success:
-      "border-emerald-100 bg-emerald-50 text-emerald-700",
-    danger: "border-red-100 bg-red-50 text-red-700",
-  };
+  const where: Prisma.FishingCatchWhereInput =
+    {
+      isPublic: true,
+      rankingStatus:
+        "pending",
+      ...(query
+        ? {
+            OR: [
+              {
+                fishName: {
+                  contains:
+                    query,
+                  mode:
+                    "insensitive",
+                },
+              },
+              {
+                lakeName: {
+                  contains:
+                    query,
+                  mode:
+                    "insensitive",
+                },
+              },
+              {
+                userName: {
+                  contains:
+                    query,
+                  mode:
+                    "insensitive",
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+  const total =
+    await prisma.fishingCatch.count({
+      where,
+    });
+
+  const pagination =
+    getAdminPagination(
+      total,
+      requestedPage,
+      PER_PAGE
+    );
+
+  const catches =
+    await prisma.fishingCatch.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip: pagination.skip,
+      take: PER_PAGE,
+      include: {
+        lake: {
+          select: {
+            name: true,
+            slug: true,
+            city: true,
+            voivodeship: true,
+          },
+        },
+      },
+    });
+
+  const supabase =
+    await createClient();
+
+  const withPreview =
+    await Promise.all(
+      catches.map(
+        async (
+          catchItem
+        ) => ({
+          ...catchItem,
+          previewImageUrl:
+            await getSignedImageUrl(
+              supabase,
+              catchItem.imagePath,
+              catchItem.imageUrl
+            ),
+        })
+      )
+    );
 
   return (
-    <div
-      className={`rounded-3xl border p-5 shadow-sm ${classes[variant]}`}
-    >
-      <p className="text-sm font-bold">{label}</p>
-      <p className="mt-3 text-4xl font-black">{value}</p>
-    </div>
+    <section className="space-y-4">
+      <AdminFilterToolbar
+        action="/admin/zgloszenia-polowow"
+        query={query}
+        queryPlaceholder="Szukaj ryby, użytkownika lub łowiska..."
+        hiddenFields={{
+          widok:
+            "moderacja",
+        }}
+        resetHref="/admin/zgloszenia-polowow"
+      />
+
+      {withPreview.length >
+      0 ? (
+        <>
+          <div className="space-y-3">
+            {withPreview.map(
+              (
+                catchItem
+              ) => (
+                <Card
+                  key={
+                    catchItem.id
+                  }
+                  className="overflow-hidden"
+                >
+                  <details className="group">
+                    <summary className="cursor-pointer list-none marker:hidden">
+                      <div className="grid gap-0 sm:grid-cols-[150px_minmax(0,1fr)]">
+                        <div className="bg-surface-muted">
+                          {catchItem.previewImageUrl ? (
+                            <img
+                              src={
+                                catchItem.previewImageUrl
+                              }
+                              alt={`Połów: ${catchItem.fishName}`}
+                              className="h-40 w-full object-cover sm:h-full"
+                            />
+                          ) : (
+                            <div className="flex h-32 items-center justify-center text-xs font-bold text-text-muted sm:h-full">
+                              Brak
+                              zdjęcia
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="p-5 sm:p-6">
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="min-w-0">
+                              <AdminStatusBadge
+                                status="pending"
+                              />
+
+                              <h2 className="mt-3 font-display text-xl font-extrabold tracking-[-0.025em] text-text">
+                                {
+                                  catchItem.fishName
+                                }
+                              </h2>
+
+                              <p className="mt-1 text-sm text-text-secondary">
+                                {catchItem.userName ||
+                                  catchItem.userId}
+                                {" · "}
+                                {catchItem.lakeName ||
+                                  catchItem.lake?.name ||
+                                  "Brak łowiska"}
+                              </p>
+
+                              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold text-text-muted">
+                                <span>
+                                  {formatAdminWeight(
+                                    catchItem.weight
+                                  )}
+                                </span>
+
+                                <span>
+                                  {formatAdminLength(
+                                    catchItem.length
+                                  )}
+                                </span>
+
+                                <span>
+                                  {getAdminCatchMethodLabel(
+                                    catchItem.method
+                                  )}
+                                </span>
+
+                                <span>
+                                  {formatAdminDate(
+                                    catchItem.caughtAt
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-extrabold text-primary-700">
+                                Szczegóły
+                              </span>
+
+                              <span
+                                aria-hidden="true"
+                                className="text-lg font-black text-text-muted transition group-open:rotate-45"
+                              >
+                                +
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </summary>
+
+                    <div className="border-t border-border bg-surface-muted px-5 py-6 sm:px-6">
+                      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+                        <div className="min-w-0">
+                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <AdminInfoItem
+                              label="Waga"
+                              value={formatAdminWeight(
+                                catchItem.weight
+                              )}
+                            />
+
+                            <AdminInfoItem
+                              label="Długość"
+                              value={formatAdminLength(
+                                catchItem.length
+                              )}
+                            />
+
+                            <AdminInfoItem
+                              label="Metoda"
+                              value={getAdminCatchMethodLabel(
+                                catchItem.method
+                              )}
+                            />
+
+                            <AdminInfoItem
+                              label="Przynęta"
+                              value={
+                                catchItem.bait ||
+                                "Brak"
+                              }
+                            />
+                          </div>
+
+                          {catchItem.note && (
+                            <div className="mt-4 rounded-control border border-border bg-surface px-4 py-4">
+                              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-text-muted">
+                                Notatka
+                                użytkownika
+                              </p>
+
+                              <p className="mt-2 whitespace-pre-line text-sm leading-6 text-text-secondary">
+                                {
+                                  catchItem.note
+                                }
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <aside className="space-y-3">
+                          {catchItem.lake?.slug && (
+                            <Card className="p-4">
+                              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-text-muted">
+                                Łowisko
+                              </p>
+
+                              <div className="mt-3 grid gap-2">
+                                <ButtonLink
+                                  href={`/admin/lowiska/${catchItem.lake.slug}/edytuj`}
+                                  variant="outline"
+                                  size="sm"
+                                  fullWidth
+                                >
+                                  Edytuj łowisko
+                                </ButtonLink>
+
+                                <ButtonLink
+                                  href={`/lowiska-w-polsce/${catchItem.lake.slug}`}
+                                  variant="ghost"
+                                  size="sm"
+                                  fullWidth
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  Podgląd
+                                  publiczny ↗
+                                </ButtonLink>
+                              </div>
+                            </Card>
+                          )}
+
+                          <Card className="p-4">
+                            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.12em] text-text-muted">
+                              Decyzja
+                            </p>
+
+                            <AdminCatchModerationActions
+                              catchId={
+                                catchItem.id
+                              }
+                              fishName={
+                                catchItem.fishName
+                              }
+                            />
+                          </Card>
+                        </aside>
+                      </div>
+                    </div>
+                  </details>
+                </Card>
+              )
+            )}
+          </div>
+
+          <AdminPagination
+            pathname="/admin/zgloszenia-polowow"
+            page={
+              pagination.page
+            }
+            totalPages={
+              pagination.totalPages
+            }
+            params={{
+              widok:
+                "moderacja",
+              q:
+                query ||
+                undefined,
+            }}
+          />
+        </>
+      ) : (
+        <AdminEmptyState
+          title="Brak połowów oczekujących"
+          description="Wszystkie publiczne połowy zgłoszone do rankingu zostały już zweryfikowane."
+        />
+      )}
+    </section>
   );
 }
 
-function InfoTile({
-  label,
-  value,
+async function ReportedCatchList({
+  query,
+  status,
+  requestedPage,
+  counts,
 }: {
-  label: string;
-  value: string;
+  query: string;
+  status: string;
+  requestedPage: number;
+  counts: {
+    all: number;
+    pending: number;
+    resolved: number;
+    rejected: number;
+  };
 }) {
-  return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-400">
-        {label}
-      </p>
+  const statusWhere =
+    status === "resolved"
+      ? {
+          status: {
+            in: [
+              "accepted",
+              "approved",
+              "resolved",
+            ],
+          },
+        }
+      : status === "all"
+        ? {}
+        : {
+            status,
+          };
 
-      <p className="mt-2 break-words text-sm font-bold text-slate-700">
-        {value}
-      </p>
-    </div>
+  const where: Prisma.FishingCatchReportWhereInput =
+    {
+      ...statusWhere,
+      ...(query
+        ? {
+            OR: [
+              {
+                reason: {
+                  contains:
+                    query,
+                  mode:
+                    "insensitive",
+                },
+              },
+              {
+                userEmail: {
+                  contains:
+                    query,
+                  mode:
+                    "insensitive",
+                },
+              },
+              {
+                fishingCatch: {
+                  is: {
+                    OR: [
+                      {
+                        fishName: {
+                          contains:
+                            query,
+                          mode:
+                            "insensitive",
+                        },
+                      },
+                      {
+                        lakeName: {
+                          contains:
+                            query,
+                          mode:
+                            "insensitive",
+                        },
+                      },
+                      {
+                        userName: {
+                          contains:
+                            query,
+                          mode:
+                            "insensitive",
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+  const total =
+    await prisma.fishingCatchReport.count({
+      where,
+    });
+
+  const pagination =
+    getAdminPagination(
+      total,
+      requestedPage,
+      PER_PAGE
+    );
+
+  const reports =
+    await prisma.fishingCatchReport.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip: pagination.skip,
+      take: PER_PAGE,
+      include: {
+        fishingCatch: {
+          include: {
+            lake: {
+              select: {
+                slug: true,
+                name: true,
+                city: true,
+                voivodeship: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+  const supabase =
+    await createClient();
+
+  const withPreview =
+    await Promise.all(
+      reports.map(
+        async (report) => ({
+          ...report,
+          previewImageUrl:
+            await getSignedImageUrl(
+              supabase,
+              report.fishingCatch
+                .imagePath,
+              report.fishingCatch
+                .imageUrl
+            ),
+        })
+      )
+    );
+
+  return (
+    <section className="space-y-4">
+      <AdminStatusTabs
+        pathname="/admin/zgloszenia-polowow"
+        paramName="status"
+        activeValue={status}
+        params={{
+          widok:
+            "zgloszenia",
+          q:
+            query ||
+            undefined,
+        }}
+        items={[
+          {
+            value: "pending",
+            label:
+              "Oczekujące",
+            count:
+              counts.pending,
+          },
+          {
+            value:
+              "resolved",
+            label:
+              "Obsłużone",
+            count:
+              counts.resolved,
+          },
+          {
+            value:
+              "rejected",
+            label:
+              "Odrzucone",
+            count:
+              counts.rejected,
+          },
+          {
+            value: "all",
+            label:
+              "Wszystkie",
+            count:
+              counts.all,
+          },
+        ]}
+      />
+
+      <AdminFilterToolbar
+        action="/admin/zgloszenia-polowow"
+        query={query}
+        queryPlaceholder="Szukaj ryby, łowiska, użytkownika lub powodu..."
+        hiddenFields={{
+          widok:
+            "zgloszenia",
+          status:
+            status !== "all"
+              ? status
+              : undefined,
+        }}
+        resetHref={`/admin/zgloszenia-polowow?widok=zgloszenia${
+          status !== "all"
+            ? `&status=${status}`
+            : ""
+        }`}
+      />
+
+      {withPreview.length >
+      0 ? (
+        <>
+          <div className="space-y-3">
+            {withPreview.map(
+              (report) => (
+                <Card
+                  key={report.id}
+                  className="overflow-hidden"
+                >
+                  <details className="group">
+                    <summary className="cursor-pointer list-none marker:hidden">
+                      <div className="grid gap-0 sm:grid-cols-[150px_minmax(0,1fr)]">
+                        <div className="bg-surface-muted">
+                          {report.previewImageUrl ? (
+                            <img
+                              src={
+                                report.previewImageUrl
+                              }
+                              alt={`Połów: ${report.fishingCatch.fishName}`}
+                              className="h-40 w-full object-cover sm:h-full"
+                            />
+                          ) : (
+                            <div className="flex h-32 items-center justify-center text-xs font-bold text-text-muted sm:h-full">
+                              Brak
+                              zdjęcia
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="p-5 sm:p-6">
+                          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                            <div className="min-w-0">
+                              <AdminStatusBadge
+                                status={
+                                  report.status
+                                }
+                              />
+
+                              <h2 className="mt-3 font-display text-xl font-extrabold tracking-[-0.025em] text-text">
+                                {
+                                  report.fishingCatch.fishName
+                                }
+                              </h2>
+
+                              <p className="mt-1 text-sm text-text-secondary">
+                                Zgłosił:{" "}
+                                {report.userEmail ||
+                                  report.userId}
+                              </p>
+
+                              <p className="mt-2 line-clamp-1 text-xs text-danger-foreground">
+                                {
+                                  report.reason
+                                }
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs text-text-muted">
+                                {formatAdminDate(
+                                  report.createdAt
+                                )}
+                              </span>
+
+                              <span className="text-xs font-extrabold text-primary-700">
+                                Szczegóły
+                              </span>
+
+                              <span
+                                aria-hidden="true"
+                                className="text-lg font-black text-text-muted transition group-open:rotate-45"
+                              >
+                                +
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </summary>
+
+                    <div className="border-t border-border bg-surface-muted px-5 py-6 sm:px-6">
+                      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_280px]">
+                        <div className="min-w-0 space-y-4">
+                          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                            <AdminInfoItem
+                              label="Waga"
+                              value={formatAdminWeight(
+                                report.fishingCatch.weight
+                              )}
+                            />
+
+                            <AdminInfoItem
+                              label="Długość"
+                              value={formatAdminLength(
+                                report.fishingCatch.length
+                              )}
+                            />
+
+                            <AdminInfoItem
+                              label="Metoda"
+                              value={getAdminCatchMethodLabel(
+                                report.fishingCatch.method
+                              )}
+                            />
+
+                            <AdminInfoItem
+                              label="Łowisko"
+                              value={
+                                report.fishingCatch.lakeName ||
+                                report.fishingCatch.lake?.name ||
+                                "Brak"
+                              }
+                            />
+                          </div>
+
+                          <div className="rounded-control border border-danger-border bg-danger-subtle px-4 py-4">
+                            <p className="text-[9px] font-black uppercase tracking-[0.12em] text-danger-foreground">
+                              Uzasadnienie
+                              zgłoszenia
+                            </p>
+
+                            <p className="mt-2 whitespace-pre-line text-sm font-semibold leading-6 text-danger-foreground">
+                              {
+                                report.reason
+                              }
+                            </p>
+                          </div>
+
+                          {report.fishingCatch.note && (
+                            <div className="rounded-control border border-border bg-surface px-4 py-4">
+                              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-text-muted">
+                                Notatka przy
+                                połowie
+                              </p>
+
+                              <p className="mt-2 whitespace-pre-line text-sm leading-6 text-text-secondary">
+                                {
+                                  report.fishingCatch.note
+                                }
+                              </p>
+                            </div>
+                          )}
+
+                          {report.adminNote && (
+                            <div className="rounded-control border border-primary-200 bg-primary-50 px-4 py-4">
+                              <p className="text-[9px] font-black uppercase tracking-[0.12em] text-primary-700">
+                                Notatka
+                                administratora
+                              </p>
+
+                              <p className="mt-2 whitespace-pre-line text-sm leading-6 text-text-secondary">
+                                {
+                                  report.adminNote
+                                }
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <aside className="space-y-3">
+                          {report.fishingCatch.lake?.slug && (
+                            <Card className="p-4">
+                              <p className="text-[10px] font-black uppercase tracking-[0.12em] text-text-muted">
+                                Łowisko
+                              </p>
+
+                              <div className="mt-3 grid gap-2">
+                                <ButtonLink
+                                  href={`/admin/lowiska/${report.fishingCatch.lake.slug}/edytuj`}
+                                  variant="outline"
+                                  size="sm"
+                                  fullWidth
+                                >
+                                  Edytuj łowisko
+                                </ButtonLink>
+
+                                <ButtonLink
+                                  href={`/lowiska-w-polsce/${report.fishingCatch.lake.slug}`}
+                                  variant="ghost"
+                                  size="sm"
+                                  fullWidth
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  Podgląd
+                                  publiczny ↗
+                                </ButtonLink>
+                              </div>
+                            </Card>
+                          )}
+
+                          {report.status ===
+                            "pending" && (
+                            <Card className="p-4">
+                              <p className="mb-3 text-[10px] font-black uppercase tracking-[0.12em] text-text-muted">
+                                Decyzja
+                              </p>
+
+                              <AdminCatchReportActions
+                                reportId={
+                                  report.id
+                                }
+                                fishName={
+                                  report.fishingCatch.fishName
+                                }
+                              />
+                            </Card>
+                          )}
+                        </aside>
+                      </div>
+                    </div>
+                  </details>
+                </Card>
+              )
+            )}
+          </div>
+
+          <AdminPagination
+            pathname="/admin/zgloszenia-polowow"
+            page={
+              pagination.page
+            }
+            totalPages={
+              pagination.totalPages
+            }
+            params={{
+              widok:
+                "zgloszenia",
+              status:
+                status !== "all"
+                  ? status
+                  : undefined,
+              q:
+                query ||
+                undefined,
+            }}
+          />
+        </>
+      ) : (
+        <AdminEmptyState
+          title="Brak zgłoszeń dotyczących połowów"
+          description="Nie znaleziono zgłoszeń pasujących do aktualnych filtrów."
+        />
+      )}
+    </section>
   );
+}
+
+async function getSignedImageUrl(
+  supabase: Awaited<
+    ReturnType<
+      typeof createClient
+    >
+  >,
+  imagePath:
+    | string
+    | null,
+  fallback:
+    | string
+    | null
+) {
+  if (!imagePath) {
+    return fallback;
+  }
+
+  const { data } =
+    await supabase.storage
+      .from(BUCKET_NAME)
+      .createSignedUrl(
+        imagePath,
+        60 * 60
+      );
+
+  return (
+    data?.signedUrl ??
+    fallback
+  );
+}
+
+function normalizeReportStatus(
+  value:
+    | string
+    | undefined
+) {
+  if (
+    value === "resolved" ||
+    value === "rejected" ||
+    value === "all"
+  ) {
+    return value;
+  }
+
+  return "pending";
 }
