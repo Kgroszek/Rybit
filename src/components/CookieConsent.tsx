@@ -1,58 +1,35 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
-type CookiePreferences = {
-  necessary: true;
-  analytics: boolean;
-  marketing: boolean;
-};
-
-const STORAGE_KEY = "rybio-cookie-consent";
-const CONSENT_VERSION = "1.0";
-
-const defaultPreferences: CookiePreferences = {
-  necessary: true,
-  analytics: false,
-  marketing: false,
-};
+import {
+  DEFAULT_COOKIE_PREFERENCES,
+  getCookieConsent,
+  hasCookieConsent,
+  saveCookieConsent,
+  type CookiePreferences,
+} from "@/lib/cookie-consent";
 
 export function CookieConsent() {
   const [isVisible, setIsVisible] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [preferences, setPreferences] =
-    useState<CookiePreferences>(defaultPreferences);
+    useState<CookiePreferences>(DEFAULT_COOKIE_PREFERENCES);
 
   useEffect(() => {
-    const savedConsent = localStorage.getItem(STORAGE_KEY);
+    const savedConsent = getCookieConsent();
 
     if (!savedConsent) {
       setIsVisible(true);
       return;
     }
 
-    try {
-      const parsedConsent = JSON.parse(savedConsent);
-
-      if (parsedConsent.version !== CONSENT_VERSION) {
-        setIsVisible(true);
-      }
-    } catch {
-      localStorage.removeItem(STORAGE_KEY);
-      setIsVisible(true);
-    }
+    setPreferences(savedConsent.preferences);
   }, []);
 
   const saveConsent = (selectedPreferences: CookiePreferences) => {
-    const consentData = {
-      version: CONSENT_VERSION,
-      preferences: selectedPreferences,
-      createdAt: new Date().toISOString(),
-    };
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(consentData));
-    window.dispatchEvent(new Event("cookie-consent-updated"));
-
+    saveCookieConsent(selectedPreferences);
     setPreferences(selectedPreferences);
     setIsVisible(false);
     setShowSettings(false);
@@ -111,12 +88,12 @@ export function CookieConsent() {
                   dopasowywać treści.
                 </p>
 
-                <a
+                <Link
                   href="/polityka-prywatnosci"
                   className="mt-3 inline-block text-sm font-semibold text-[#0F4C5C] hover:underline"
                 >
                   Przeczytaj politykę prywatności
-                </a>
+                </Link>
               </div>
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -235,8 +212,8 @@ function CookieOption({
   onChange,
 }: CookieOptionProps) {
   return (
-    <div className="mx-auto w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-2xl">
-      <div>
+    <div className="flex items-start justify-between gap-5 rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="min-w-0">
         <h3 className="text-sm font-bold text-slate-900">{title}</h3>
         <p className="mt-1 text-sm leading-5 text-slate-600">{description}</p>
       </div>
@@ -249,6 +226,7 @@ function CookieOption({
           checked ? "bg-[#0F4C5C]" : "bg-slate-300"
         } ${disabled ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
         aria-pressed={checked}
+        aria-label={`${title}: ${checked ? "włączone" : "wyłączone"}`}
       >
         <span
           className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${
@@ -260,26 +238,4 @@ function CookieOption({
   );
 }
 
-export function getCookieConsent() {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const savedConsent = localStorage.getItem(STORAGE_KEY);
-
-  if (!savedConsent) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(savedConsent);
-  } catch {
-    return null;
-  }
-}
-
-export function hasCookieConsent(type: "analytics" | "marketing") {
-  const consent = getCookieConsent();
-
-  return Boolean(consent?.preferences?.[type]);
-}
+export { getCookieConsent, hasCookieConsent };

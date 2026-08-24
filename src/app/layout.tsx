@@ -4,9 +4,9 @@ import { Geist, Geist_Mono, Manrope } from "next/font/google";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 
+import { ConsentAwareGoogleAnalytics } from "@/components/analytics/ConsentAwareGoogleAnalytics";
 import { CookieConsent } from "@/components/CookieConsent";
 import { ToastProvider } from "@/components/ui/ToastProvider";
-import { GoogleAnalytics } from "@next/third-parties/google";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,10 +55,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col">
         <ToastProvider>{children}</ToastProvider>
 
-        {process.env.NEXT_PUBLIC_GA_ID ? (
-          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
-        ) : null}
-
+        <ConsentAwareGoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
         <CookieConsent />
       </body>
     </html>
