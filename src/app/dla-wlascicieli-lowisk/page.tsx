@@ -16,21 +16,41 @@ import { LAKE_WEBSITE_TEMPLATES } from "@/lib/lake-websites";
 export const metadata: Metadata = {
   title: "System rezerwacji i strona internetowa dla łowiska | Rybio",
   description:
-    "Prowadzisz łowisko? Zarządzaj stanowiskami i rezerwacjami oraz stwórz profesjonalną stronę internetową łowiska z gotowego szablonu w Rybio.",
+    "Zarządzaj stanowiskami i rezerwacjami łowiska, aktualizuj profil i stwórz profesjonalną stronę internetową łowiska w panelu Rybio.",
   keywords: [
     "system rezerwacji dla łowiska",
     "system rezerwacji stanowisk wędkarskich",
+    "kalendarz rezerwacji łowiska",
     "strona internetowa dla łowiska",
     "strona dla łowiska wędkarskiego",
-    "oprogramowanie dla łowisk",
-    "zarządzanie łowiskiem",
     "panel właściciela łowiska",
+    "zarządzanie łowiskiem",
+    "oprogramowanie dla łowisk",
   ],
+  alternates: {
+    canonical: "/dla-wlascicieli-lowisk",
+  },
   openGraph: {
+    title: "Rybio dla właścicieli łowisk – rezerwacje i własna strona",
+    description:
+      "Zarządzaj stanowiskami, rezerwacjami, profilem i stroną internetową łowiska w jednym panelu.",
+    type: "website",
+    url: "https://rybio.pl/dla-wlascicieli-lowisk",
+    images: [
+      {
+        url: "/photos/pulpit-lowiska.webp",
+        width: 1600,
+        height: 1000,
+        alt: "Panel właściciela łowiska w Rybio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
     title: "Rybio dla właścicieli łowisk",
     description:
-      "Rezerwacje stanowisk, zarządzanie profilem i profesjonalna strona internetowa łowiska w jednym miejscu.",
-    type: "website",
+      "System rezerwacji stanowisk i strona internetowa łowiska w jednym panelu.",
+    images: ["/photos/pulpit-lowiska.webp"],
   },
 };
 
@@ -72,10 +92,56 @@ const faq = [
   },
 ];
 
+
+const faqStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.answer,
+    },
+  })),
+};
+
+const serviceStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "Service",
+  name: "Rybio dla właścicieli łowisk",
+  url: "https://rybio.pl/dla-wlascicieli-lowisk",
+  serviceType:
+    "System rezerwacji stanowisk i narzędzia do prowadzenia strony internetowej łowiska",
+  provider: {
+    "@type": "Organization",
+    name: "Rybio",
+    url: "https://rybio.pl",
+  },
+  areaServed: {
+    "@type": "Country",
+    name: "Polska",
+  },
+};
+
+
 export default function ForLakeOwnersPage() {
   return (
     <main className="min-h-screen overflow-hidden bg-white text-slate-950">
       <PublicHeader subtitle="Narzędzia dla właścicieli łowisk" />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(serviceStructuredData),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqStructuredData),
+        }}
+      />
 
       <section className="relative overflow-hidden border-b border-slate-200 bg-slate-950 text-white">
         <div className="absolute left-0 top-0 h-[520px] w-[520px] rounded-full bg-blue-600/20 blur-3xl" />
@@ -93,9 +159,9 @@ export default function ForLakeOwnersPage() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              Zarządzaj stanowiskami i rezerwacjami w jednym panelu, aktualizuj informacje
-              o łowisku i stwórz własną stronę internetową bez budowania jej od zera.
-              Rybio daje właścicielom łowisk narzędzia potrzebne do prowadzenia obiektu online.
+              Zarządzaj stanowiskami, rezerwacjami i profilem łowiska w jednym
+              panelu. Gdy chcesz zadbać również o obecność online, przygotuj własną
+              stronę internetową łowiska bez budowania jej od zera.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -138,7 +204,7 @@ export default function ForLakeOwnersPage() {
           <div>
             <Eyebrow>System rezerwacji dla łowiska</Eyebrow>
             <h2 className="mt-4 max-w-xl text-3xl font-black tracking-[-0.035em] sm:text-4xl lg:text-5xl">
-              Prosty panel zamiast notesu, Excela i wiadomości na Messengerze.
+              System rezerwacji stanowisk zamiast notesu, Excela i wiadomości.
             </h2>
             <p className="mt-6 max-w-xl text-base leading-8 text-slate-600">
               Sprawdzasz termin i od razu widzisz, które stanowiska są wolne, zajęte lub zablokowane.
@@ -363,30 +429,14 @@ function OwnerHeroPreview() {
 function ReservationsPanelPreview() {
   return (
     <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-3 shadow-[0_32px_80px_-35px_rgba(15,23,42,.45)] sm:p-5">
-      <div className="overflow-hidden rounded-[1.55rem] bg-white">
-        <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">Rezerwacje</p>
-            <h3 className="mt-2 text-2xl font-black">21 sierpnia 2026</h3>
-            <p className="mt-1 text-sm text-slate-500">Sprawdź dostępność i przypisz rezerwację do stanowiska.</p>
-          </div>
-          <span className="w-fit rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-black text-white">+ Dodaj rezerwację</span>
-        </div>
-
-        <div className="grid gap-3 p-5 sm:grid-cols-2 md:grid-cols-3 sm:p-6">
-          <ReservationDetail number="01" status="Wolne" type="free" detail="Kliknij, aby dodać rezerwację" />
-          <ReservationDetail number="02" status="Zajęte" type="busy" detail="Jan Kowalski · 08:00–16:00" />
-          <ReservationDetail number="03" status="Wolne" type="free" detail="Kliknij, aby dodać rezerwację" />
-          <ReservationDetail number="04" status="Blokada" type="blocked" detail="Prace techniczne" />
-          <ReservationDetail number="05" status="Wolne" type="free" detail="Kliknij, aby dodać rezerwację" />
-          <ReservationDetail number="06" status="Zajęte" type="busy" detail="Marek Nowak · doba" />
-        </div>
-
-        <div className="grid gap-3 border-t border-slate-100 p-5 sm:grid-cols-3 sm:p-6">
-          <PanelStat label="Wolne" value="3" />
-          <PanelStat label="Zajęte" value="2" />
-          <PanelStat label="Blokady" value="1" />
-        </div>
+      <div className="overflow-hidden rounded-[1.55rem] border border-white/10 bg-white">
+        <img
+          src="/photos/kalendarz-rezerwacji.webp"
+          alt="Kalendarz rezerwacji stanowisk w panelu właściciela Rybio"
+          loading="lazy"
+          decoding="async"
+          className="block h-auto w-full"
+        />
       </div>
     </div>
   );
@@ -395,50 +445,14 @@ function ReservationsPanelPreview() {
 function WebsiteBuilderPreview() {
   return (
     <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-3 shadow-[0_32px_80px_-35px_rgba(15,23,42,.45)] sm:p-5">
-      <div className="grid overflow-hidden rounded-[1.55rem] bg-white md:grid-cols-[220px_1fr]">
-        <div className="border-b border-slate-200 bg-slate-50 p-4 md:border-b-0 md:border-r">
-          <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400">Edycja strony</p>
-          <div className="mt-4 space-y-2">
-            {[
-              ["Hero", "active"],
-              ["O łowisku", ""],
-              ["Galeria", ""],
-              ["Ryby", "sync"],
-              ["Cennik", "sync"],
-              ["Regulamin", "sync"],
-              ["Kontakt", ""],
-            ].map(([label, status]) => (
-              <div key={label} className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-bold ${status === "active" ? "bg-blue-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"}`}>
-                <span>{label}</span>
-                {status === "sync" && <span className="text-[9px] text-blue-500">Rybio</span>}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="p-4 sm:p-6">
-          <div className="overflow-hidden rounded-[1.35rem] border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-              <p className="text-[10px] font-black tracking-[0.14em]">WATERLINE</p>
-              <div className="flex gap-3 text-[8px] font-bold text-slate-400"><span>O nas</span><span>Galeria</span><span>Kontakt</span></div>
-            </div>
-            <div className="bg-[linear-gradient(135deg,#dbeafe,#bfdbfe_55%,#99f6e4)] p-6 sm:p-8">
-              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-blue-700">Łowisko Jezioro</p>
-              <p className="mt-3 max-w-[320px] text-3xl font-black leading-tight tracking-tight text-slate-950 sm:text-4xl">Miejsce stworzone dla pasji do wody.</p>
-              <p className="mt-3 max-w-[370px] text-xs leading-5 text-slate-600">Spokojna woda, piękne stanowiska i warunki stworzone do dobrego wędkowania.</p>
-              <span className="mt-5 inline-flex rounded-full bg-blue-600 px-4 py-2 text-[10px] font-black text-white">Poznaj łowisko</span>
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-4 gap-2">
-            {["#155EEF", "#6ED5D0", "#FFFFFF", "#0B1628"].map((color) => (
-              <div key={color} className="rounded-xl border border-slate-200 p-2">
-                <div className="h-8 rounded-lg" style={{ backgroundColor: color }} />
-                <p className="mt-1 text-center text-[8px] font-bold text-slate-400">{color}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="overflow-hidden rounded-[1.55rem] border border-white/10 bg-white">
+        <img
+          src="/photos/strony-internetowe.webp"
+          alt="Kreator strony internetowej łowiska w Rybio"
+          loading="lazy"
+          decoding="async"
+          className="block h-auto w-full"
+        />
       </div>
     </div>
   );
@@ -548,21 +562,3 @@ function StatusTile({ number, status, type }: { number: string; status: string; 
   );
 }
 
-function ReservationDetail({ number, status, type, detail }: { number: string; status: string; type: "free" | "busy" | "blocked"; detail: string }) {
-  return (
-    <div className={`rounded-2xl border p-4 ${type === "free" ? "border-emerald-100 bg-emerald-50" : type === "busy" ? "border-red-100 bg-red-50" : "border-amber-100 bg-amber-50"}`}>
-      <p className="text-[9px] font-black uppercase tracking-[0.13em] text-slate-400">Stanowisko {number}</p>
-      <p className="mt-2 text-lg font-black text-slate-950">{status}</p>
-      <p className="mt-2 text-[11px] leading-5 text-slate-500">{detail}</p>
-    </div>
-  );
-}
-
-function PanelStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl bg-slate-50 p-3 text-center">
-      <p className="text-xl font-black text-slate-950">{value}</p>
-      <p className="mt-1 text-[10px] font-bold text-slate-400">{label}</p>
-    </div>
-  );
-}

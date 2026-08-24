@@ -17,27 +17,44 @@ import { PencilIcon } from "@/components/icons/PencilIcon";
 import { UsersIcon } from "@/components/icons/UsersIcon";
 
 export const metadata: Metadata = {
-  title: "Rybio – łowiska w Polsce, mapa łowisk i aplikacja dla wędkarzy",
+  title: "Rybio – mapa łowisk w Polsce i aplikacja dla wędkarzy",
   description:
-    "Znajdź łowiska w Polsce, sprawdzaj informacje i opinie, planuj wyprawy oraz zapisuj swoje połowy. Rybio to mapa łowisk i narzędzia dla wędkarzy oraz właścicieli łowisk.",
+    "Znajdź łowisko w Polsce, sprawdź mapę i informacje o wodzie, zaplanuj wyprawę oraz prowadź dziennik połowów i ekwipunku w Rybio.",
   keywords: [
     "łowiska w Polsce",
     "mapa łowisk",
     "aplikacja dla wędkarzy",
+    "gdzie na ryby",
     "dziennik połowów",
     "planowanie wypraw wędkarskich",
     "łowiska karpiowe",
     "łowiska komercyjne",
     "łowiska PZW",
-    "gdzie na ryby",
-    "system rezerwacji łowiska",
-    "strona internetowa dla łowiska",
   ],
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
-    title: "Rybio – łowiska w Polsce i aplikacja dla wędkarzy",
+    title: "Rybio – mapa łowisk w Polsce i aplikacja dla wędkarzy",
     description:
-      "Znajduj łowiska, planuj wyprawy, prowadź dziennik połowów i korzystaj z narzędzi stworzonych dla polskich wędkarzy.",
+      "Znajduj łowiska, planuj wyprawy, prowadź dziennik połowów i organizuj sprzęt w jednym miejscu.",
     type: "website",
+    url: "https://rybio.pl",
+    images: [
+      {
+        url: "/photos/dashboard.webp",
+        width: 1600,
+        height: 1000,
+        alt: "Mapa łowisk w aplikacji Rybio",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Rybio – mapa łowisk i aplikacja dla wędkarzy",
+    description:
+      "Znajduj łowiska, planuj wyprawy i zapisuj połowy w jednym miejscu.",
+    images: ["/photos/dashboard.webp"],
   },
 };
 
@@ -99,10 +116,32 @@ const faq = [
   },
 ];
 
+
+const faqStructuredData = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: item.answer,
+    },
+  })),
+};
+
+
 export default function HomePage() {
   return (
     <main className="min-h-screen overflow-hidden bg-white text-slate-950">
       <PublicHeader />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(faqStructuredData),
+        }}
+      />
 
       <section className="relative border-b border-slate-200 bg-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_8%_8%,rgba(219,234,254,.9),transparent_30%),radial-gradient(circle_at_82%_15%,rgba(204,251,241,.55),transparent_25%)]" />
@@ -120,10 +159,10 @@ export default function HomePage() {
             </h1>
 
             <p className="mt-6 max-w-2xl text-base leading-8 text-slate-600 sm:text-lg">
-              Rybio łączy mapę i bazę łowisk w Polsce z narzędziami do planowania
-              wypraw, prowadzenia dziennika połowów i organizowania wędkarskiego
-              ekwipunku. Właściciele łowisk mogą dodatkowo zarządzać rezerwacjami
-              i stworzyć własną stronę internetową.
+              Rybio łączy publiczną mapę łowisk w Polsce z narzędziami do
+              planowania wypraw, prowadzenia dziennika połowów i organizowania
+              wędkarskiego ekwipunku. Wszystko w jednym miejscu, przed wyjazdem,
+              nad wodą i po powrocie.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -193,9 +232,11 @@ export default function HomePage() {
             <div className="absolute -inset-5 rounded-[2.5rem] bg-blue-50" />
             <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-slate-100 shadow-[0_28px_70px_-35px_rgba(15,23,42,.35)]">
               <img
-                src="/photos/Rybio-2.webp"
-                alt="Mapa łowisk w Polsce w Rybio"
-                className="min-h-[430px] w-full object-cover"
+                src="/photos/dashboard.webp"
+                alt="Mapa łowisk w Polsce w aplikacji Rybio"
+                loading="lazy"
+                decoding="async"
+                className="min-h-[430px] w-full object-cover object-top"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/35 via-transparent to-transparent" />
               <div className="absolute bottom-5 left-5 right-5 rounded-2xl border border-white/30 bg-white/90 p-4 shadow-xl backdrop-blur sm:left-auto sm:w-[310px]">
