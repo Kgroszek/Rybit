@@ -43,28 +43,44 @@ export function BlogPostCard({
     return (
       <Link
         href={`/blog/${post.slug}`}
-        className="group grid min-h-[150px] grid-cols-[132px_minmax(0,1fr)] overflow-hidden rounded-card border border-border bg-surface transition hover:border-primary-200 hover:shadow-card sm:grid-cols-[180px_minmax(0,1fr)]"
+        className="group relative flex min-h-[238px] overflow-hidden rounded-card border border-border bg-navy-950 shadow-sm transition hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-card xl:min-h-0"
       >
         <CardImage
           post={post}
-          className="h-full min-h-[150px]"
+          className="absolute inset-0 h-full w-full"
         />
 
-        <div className="flex min-w-0 flex-col p-4 sm:p-5">
-          <Meta
-            post={post}
-            readTime={
-              readTime
-            }
-          />
+        <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/38 to-navy-950/5 transition duration-300 group-hover:via-navy-950/48" />
 
-          <h3 className="mt-2 line-clamp-3 font-display text-lg font-extrabold leading-snug tracking-[-0.025em] text-text transition group-hover:text-primary-800">
+        <div className="relative mt-auto min-w-0 p-5 text-white sm:p-6">
+          <span className="inline-flex rounded-full border border-white/20 bg-white/92 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] text-primary-800 backdrop-blur-sm">
+            {getBlogCategoryLabel(
+              post.category
+            )}
+          </span>
+
+          <h3 className="mt-3 line-clamp-3 font-display text-xl font-extrabold leading-[1.12] tracking-[-0.03em] text-white sm:text-[22px]">
             {post.title}
           </h3>
 
-          <span className="mt-auto pt-3 text-xs font-extrabold text-primary-700">
-            Czytaj →
-          </span>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-[10px] font-bold text-white/68">
+            {post.publishedAt && (
+              <span>
+                {formatBlogDate(
+                  post.publishedAt
+                )}
+              </span>
+            )}
+
+            <span
+              aria-hidden="true"
+              className="h-1 w-1 rounded-full bg-white/35"
+            />
+
+            <span>
+              {readTime} min czytania
+            </span>
+          </div>
         </div>
       </Link>
     );
@@ -83,7 +99,7 @@ export function BlogPostCard({
           className="absolute inset-0 h-full w-full"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/45 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-navy-950 via-navy-950/42 to-transparent" />
 
         <div className="relative mt-auto max-w-3xl p-6 text-white sm:p-8 lg:p-10">
           <span className="inline-flex rounded-full bg-white/95 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] text-primary-800">

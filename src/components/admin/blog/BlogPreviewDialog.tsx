@@ -105,11 +105,11 @@ export function BlogPreviewDialog({
 
                 <h1
                   className={cn(
-                    "mt-4 font-display font-extrabold leading-[1.05] tracking-[-0.045em] text-text",
+                    "mt-4 max-w-[980px] font-display font-extrabold tracking-[-0.048em] text-text",
                     device ===
                       "mobile"
-                      ? "text-4xl"
-                      : "max-w-4xl text-5xl lg:text-6xl"
+                      ? "text-4xl leading-[1.04]"
+                      : "text-[clamp(2.6rem,4.35vw,4rem)] leading-[1.02]"
                   )}
                 >
                   {snapshot.title ||
@@ -158,38 +158,57 @@ export function BlogPreviewDialog({
                       snapshot.coverImageUrl
                     }
                     alt=""
-                    className="max-h-[620px] w-full rounded-panel border border-border object-cover"
+                    className="aspect-[16/8.6] max-h-[620px] w-full rounded-panel border border-border object-cover"
                   />
                 </div>
               )}
 
               <div
                 className={cn(
-                  "mx-auto grid w-full gap-8 px-5 py-8 sm:px-8",
+                  "mx-auto w-full px-5 py-8 sm:px-8",
                   device ===
-                    "desktop" &&
-                    toc.length >=
-                      2
-                    ? "max-w-[1060px] xl:grid-cols-[200px_minmax(0,1fr)]"
-                    : "max-w-[920px]"
+                    "mobile"
+                    ? "max-w-[920px]"
+                    : "max-w-[1500px]"
                 )}
               >
-                {device ===
-                  "desktop" &&
-                  toc.length >=
-                    2 && (
-                    <aside className="hidden xl:block">
-                      <BlogTableOfContents
-                        items={toc}
-                      />
-                    </aside>
+                <div
+                  className={cn(
+                    "grid min-w-0",
+                    device ===
+                      "desktop" &&
+                      toc.length >= 2
+                      ? "xl:grid-cols-[200px_minmax(0,960px)_200px] xl:justify-center xl:gap-7 xl:items-start"
+                      : ""
                   )}
+                >
+                  {device ===
+                    "desktop" &&
+                    toc.length >=
+                      2 && (
+                      <aside className="hidden xl:block">
+                        <BlogTableOfContents
+                          items={toc}
+                        />
+                      </aside>
+                    )}
 
-                <BlogArticleContent
-                  blocks={
-                    snapshot.blocks
-                  }
-                />
+                  <BlogArticleContent
+                    blocks={
+                      snapshot.blocks
+                    }
+                  />
+
+                  {device ===
+                    "desktop" &&
+                    toc.length >=
+                      2 && (
+                      <div
+                        className="hidden xl:block"
+                        aria-hidden="true"
+                      />
+                    )}
+                </div>
               </div>
             </article>
           </div>

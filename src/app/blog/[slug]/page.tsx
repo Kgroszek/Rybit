@@ -327,7 +327,7 @@ export default async function BlogArticlePage({
                 )}
               </span>
 
-              <h1 className="mt-4 font-display text-4xl font-extrabold leading-[1.04] tracking-[-0.045em] text-text sm:text-5xl lg:text-6xl">
+              <h1 className="mt-4 max-w-[980px] font-display text-[clamp(2.6rem,4.35vw,4rem)] font-extrabold leading-[1.02] tracking-[-0.048em] text-text">
                 {post.title}
               </h1>
 
@@ -377,63 +377,70 @@ export default async function BlogArticlePage({
         </header>
 
         {post.coverImageUrl && (
-          <div className="mx-auto w-full max-w-[1320px] px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+          <div className="mx-auto w-full max-w-[1180px] px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
             <div className="overflow-hidden rounded-panel border border-border bg-surface-muted shadow-card">
               <img
                 src={
                   post.coverImageUrl
                 }
                 alt={post.title}
-                className="max-h-[760px] w-full object-cover"
+                className="aspect-[16/8.6] max-h-[680px] w-full object-cover"
               />
             </div>
           </div>
         )}
 
-        <div className="mx-auto grid w-full max-w-[1180px] gap-10 px-4 py-10 sm:px-6 sm:py-12 lg:px-8 xl:grid-cols-[220px_minmax(0,1fr)] xl:items-start">
-          <aside className="hidden xl:sticky xl:top-24 xl:block">
-            <BlogTableOfContents
-              items={toc}
-            />
-          </aside>
+        <div className="mx-auto w-full max-w-[1600px] px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
+          <div className="grid min-w-0 xl:grid-cols-[220px_minmax(0,1024px)_220px] xl:justify-center xl:gap-8 xl:items-start">
+            <aside className="hidden xl:sticky xl:top-24 xl:block">
+              <BlogTableOfContents
+                items={toc}
+              />
+            </aside>
 
-          <div className="min-w-0">
-            {toc.length >= 2 && (
-              <details className="mb-8 rounded-card border border-border bg-surface p-4 xl:hidden">
-                <summary className="cursor-pointer text-sm font-extrabold text-text">
-                  Spis treści
-                </summary>
+            <div className="min-w-0">
+              {toc.length >= 2 && (
+                <details className="mb-8 rounded-card border border-border bg-surface p-4 xl:hidden">
+                  <summary className="cursor-pointer text-sm font-extrabold text-text">
+                    Spis treści
+                  </summary>
 
-                <div className="mt-3">
-                  <BlogTableOfContents
-                    items={toc}
-                  />
+                  <div className="mt-3">
+                    <BlogTableOfContents
+                      items={toc}
+                    />
+                  </div>
+                </details>
+              )}
+
+              <BlogArticleContent
+                blocks={blocks}
+              />
+
+              {post.tags.length >
+                0 && (
+                <div className="mx-auto mt-12 flex w-full max-w-[760px] flex-wrap gap-2 border-t border-border pt-6">
+                  {post.tags.map(
+                    (tag) => (
+                      <Link
+                        key={tag}
+                        href={`/blog?tag=${encodeURIComponent(
+                          tag
+                        )}`}
+                        className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text-secondary transition hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700"
+                      >
+                        #{tag}
+                      </Link>
+                    )
+                  )}
                 </div>
-              </details>
-            )}
+              )}
+            </div>
 
-            <BlogArticleContent
-              blocks={blocks}
+            <div
+              className="hidden xl:block"
+              aria-hidden="true"
             />
-
-            {post.tags.length >
-              0 && (
-              <div className="mx-auto mt-12 flex w-full max-w-[760px] flex-wrap gap-2 border-t border-border pt-6">
-                {post.tags.map(
-                  (tag) => (
-                    <Link
-                      key={tag}
-                      href={`/blog?tag=${encodeURIComponent(
-                        tag
-                      )}`}
-                      className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text-secondary transition hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700"
-                    >
-                      #{tag}
-                    </Link>
-                  )
-                )}
-              </div>
-            )}
           </div>
         </div>
       </article>

@@ -41,7 +41,7 @@ export function BlogFeaturedGrid({
           variant="hero"
         />
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+        <div className="grid gap-4 sm:grid-cols-2 xl:h-[520px] xl:grid-cols-1 xl:grid-rows-2">
           {secondary.map(
             (post) => (
               <BlogPostCard
