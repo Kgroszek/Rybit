@@ -106,7 +106,7 @@ export function LakeSubmissionSuccessDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="lake-submission-success-title"
-        className="w-full rounded-t-modal border border-border bg-surface p-6 shadow-float sm:max-w-[520px] sm:rounded-modal"
+        className="w-[420px] max-w-[calc(100vw-32px)] rounded-modal border border-border bg-surface p-6 shadow-float"
         onMouseDown={(
           event
         ) =>

@@ -83,7 +83,12 @@ export default async function AdminUsersPage({
   const requestedPage =
     clampAdminPage(params.page);
 
-  let users = [];
+  let users: Awaited<
+    ReturnType<
+      typeof getAllAdminUsers
+    >
+  > = [];
+
   let loadError = "";
 
   try {
