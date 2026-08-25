@@ -392,34 +392,27 @@ export default function ForLakeOwnersPage() {
 function OwnerHeroPreview() {
   return (
     <div className="relative min-h-[520px]">
-      <div className="absolute left-0 top-10 z-10 w-[72%] overflow-hidden rounded-[2rem] border border-white/10 bg-white text-slate-950 shadow-2xl">
-        <div className="border-b border-slate-100 p-5">
-          <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-600">Panel właściciela</p>
-          <p className="mt-2 text-xl font-black">Rezerwacje stanowisk</p>
-        </div>
-        <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3">
-          <StatusTile number="01" status="Wolne" type="free" />
-          <StatusTile number="02" status="Zajęte" type="busy" />
-          <StatusTile number="03" status="Wolne" type="free" />
-          <StatusTile number="04" status="Blokada" type="blocked" />
-          <StatusTile number="05" status="Wolne" type="free" />
-          <StatusTile number="06" status="Zajęte" type="busy" />
+      <div className="absolute left-0 top-10 z-10 w-[74%] overflow-hidden rounded-[2rem] border border-white/15 bg-white p-2 shadow-2xl sm:p-2.5">
+        <div className="overflow-hidden rounded-[1.55rem] bg-white">
+          <img
+            src="/photos/pulpit-lowiska.webp"
+            alt="Panel właściciela łowiska w Rybio"
+            loading="lazy"
+            decoding="async"
+            className="block h-auto w-full"
+          />
         </div>
       </div>
 
-      <div className="absolute bottom-0 right-0 z-20 w-[70%] rotate-[2deg] overflow-hidden rounded-[2rem] border border-white/15 bg-white text-slate-950 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-          <p className="text-[10px] font-black tracking-[0.15em]">WATERLINE</p>
-          <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[9px] font-black text-emerald-700">Opublikowana</span>
-        </div>
-        <div className="bg-[linear-gradient(135deg,#dbeafe,#bfdbfe_52%,#99f6e4)] p-6">
-          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-blue-700">Łowisko Jezioro</p>
-          <p className="mt-3 max-w-[260px] text-3xl font-black leading-tight tracking-tight">Miejsce stworzone dla pasji do wody.</p>
-          <span className="mt-5 inline-flex rounded-full bg-blue-600 px-4 py-2 text-[10px] font-black text-white">Poznaj łowisko</span>
-        </div>
-        <div className="p-5">
-          <p className="text-[9px] font-bold uppercase tracking-[0.13em] text-slate-400">Adres strony</p>
-          <p className="mt-1 text-sm font-black text-blue-700">twojelowisko.rybio.pl</p>
+      <div className="absolute bottom-0 right-0 z-20 w-[68%] rotate-[1.5deg] overflow-hidden rounded-[2rem] border border-white/15 bg-white p-2 shadow-2xl sm:p-2.5">
+        <div className="overflow-hidden rounded-[1.55rem] bg-white">
+          <img
+            src="/photos/strony-internetowe.webp"
+            alt="Kreator strony internetowej łowiska w Rybio"
+            loading="lazy"
+            decoding="async"
+            className="block h-auto w-full"
+          />
         </div>
       </div>
     </div>
@@ -428,8 +421,8 @@ function OwnerHeroPreview() {
 
 function ReservationsPanelPreview() {
   return (
-    <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-3 shadow-[0_32px_80px_-35px_rgba(15,23,42,.45)] sm:p-5">
-      <div className="overflow-hidden rounded-[1.55rem] border border-white/10 bg-white">
+    <div className="rounded-[2rem] border border-slate-200 bg-white p-2.5 shadow-[0_28px_70px_-34px_rgba(15,23,42,.32)] sm:p-3">
+      <div className="overflow-hidden rounded-[1.55rem] bg-white">
         <img
           src="/photos/kalendarz-rezerwacji.webp"
           alt="Kalendarz rezerwacji stanowisk w panelu właściciela Rybio"
@@ -444,8 +437,8 @@ function ReservationsPanelPreview() {
 
 function WebsiteBuilderPreview() {
   return (
-    <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-3 shadow-[0_32px_80px_-35px_rgba(15,23,42,.45)] sm:p-5">
-      <div className="overflow-hidden rounded-[1.55rem] border border-white/10 bg-white">
+    <div className="rounded-[2rem] border border-slate-200 bg-white p-2.5 shadow-[0_28px_70px_-34px_rgba(15,23,42,.32)] sm:p-3">
+      <div className="overflow-hidden rounded-[1.55rem] bg-white">
         <img
           src="/photos/strony-internetowe.webp"
           alt="Kreator strony internetowej łowiska w Rybio"
@@ -552,13 +545,4 @@ function ProcessStep({ number, title, text }: { number: string; title: string; t
   );
 }
 
-function StatusTile({ number, status, type }: { number: string; status: string; type: "free" | "busy" | "blocked" }) {
-  return (
-    <div className={`rounded-xl border p-3 ${type === "free" ? "border-emerald-100 bg-emerald-50" : type === "busy" ? "border-red-100 bg-red-50" : "border-amber-100 bg-amber-50"}`}>
-      <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-slate-400">Stanowisko</p>
-      <p className="mt-1 text-lg font-black">{number}</p>
-      <p className="mt-1 text-[9px] font-bold text-slate-500">{status}</p>
-    </div>
-  );
-}
 

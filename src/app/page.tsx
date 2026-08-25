@@ -6,7 +6,6 @@ import { HomeHeroShowcase } from "@/components/public/HomeHeroShowcase";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { ArrowRightIcon } from "@/components/icons/ArrowRightIcon";
-import { BackpackIcon } from "@/components/icons/BackpackIcon";
 import { CalendarIcon } from "@/components/icons/CalendarIcon";
 import { CardsIcon } from "@/components/icons/CardsIcon";
 import { CheckListIcon } from "@/components/icons/CheckListIcon";
@@ -303,35 +302,15 @@ export default function HomePage() {
             </div>
 
             <div className="flex items-center">
-              <div className="w-full rounded-[2rem] border border-white/10 bg-white/[0.06] p-3 shadow-2xl backdrop-blur sm:p-5">
-                <div className="rounded-[1.55rem] bg-white p-5 text-slate-950 sm:p-7">
-                  <div className="flex flex-col gap-5 border-b border-slate-100 pb-6 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-600">Twoja wyprawa</p>
-                      <h3 className="mt-2 text-2xl font-black tracking-tight">Weekend nad Jeziorem</h3>
-                      <p className="mt-1 text-sm text-slate-500">21–23 sierpnia · Łowisko Zielona Zatoka</p>
-                    </div>
-                    <span className="w-fit rounded-full bg-emerald-50 px-4 py-2 text-xs font-black text-emerald-700">Plan gotowy w 78%</span>
-                  </div>
-
-                  <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                    <DashboardCard icon={<UsersIcon size={20} />} label="Uczestnicy" value="4 osoby" detail="Wszyscy potwierdzili" />
-                    <DashboardCard icon={<CheckListIcon size={20} />} label="Checklisty" value="18 / 24" detail="6 rzeczy zostało" />
-                    <DashboardCard icon={<BackpackIcon size={20} />} label="Sprzęt" value="12 pozycji" detail="3 zestawy" />
-                    <DashboardCard icon={<CardsIcon size={20} />} label="Koszty" value="1 240 zł" detail="310 zł / osoba" />
-                    <DashboardCard icon={<PencilIcon size={20} />} label="Notatki" value="8 wpisów" detail="Plan miejsc i zanęt" />
-                    <DashboardCard icon={<FishIcon size={20} />} label="Połowy" value="0" detail="Dodasz je nad wodą" />
-                  </div>
-
-                  <div className="mt-5 rounded-2xl bg-slate-950 p-5 text-white">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">Najbliższy krok</p>
-                        <p className="mt-2 text-sm font-black">Spakuj sprzęt i przygotuj przynęty</p>
-                      </div>
-                      <span className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-black">Otwórz checklistę</span>
-                    </div>
-                  </div>
+              <div className="w-full rounded-[2rem] border border-white/10 bg-white/5 p-2.5 shadow-2xl backdrop-blur sm:p-3">
+                <div className="overflow-hidden rounded-[1.55rem] border border-white/10 bg-white">
+                  <img
+                    src="/photos/centrum-wypraw-nocka.webp"
+                    alt="Centrum Wypraw w aplikacji Rybio"
+                    loading="lazy"
+                    decoding="async"
+                    className="block h-auto w-full"
+                  />
                 </div>
               </div>
             </div>
@@ -341,6 +320,21 @@ export default function HomePage() {
 
       <section id="dziennik" className="mx-auto max-w-[1500px] px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="grid items-center gap-12 lg:grid-cols-[.92fr_1.08fr] lg:gap-20">
+          <div className="relative">
+  <div className="absolute -inset-5 rounded-[2.5rem] bg-blue-50" />
+
+  <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-2.5 shadow-[0_28px_70px_-35px_rgba(15,23,42,.35)]">
+    <div className="overflow-hidden rounded-[1.55rem] bg-slate-50">
+      <img
+        src="/photos/polowy.webp"
+        alt="Dziennik połowów w aplikacji Rybio"
+        loading="lazy"
+        decoding="async"
+        className="block h-auto w-full"
+      />
+    </div>
+  </div>
+</div>
           <div>
             <SectionEyebrow>Twoje połowy</SectionEyebrow>
             <h2 className="mt-4 max-w-xl text-3xl font-black tracking-[-0.035em] sm:text-4xl lg:text-5xl">
@@ -364,41 +358,6 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="relative">
-            <div className="absolute -left-8 top-12 h-64 w-64 rounded-full bg-blue-100 blur-3xl" />
-            <div className="relative grid gap-4 sm:grid-cols-[.78fr_1.22fr]">
-              <div className="overflow-hidden rounded-[2rem] bg-gradient-to-b from-blue-500 to-blue-800 p-6 text-white shadow-2xl">
-                <p className="text-xs font-black uppercase tracking-[0.16em] text-blue-100">Rybio Score</p>
-                <p className="mt-4 text-7xl font-black tracking-[-0.06em]">92</p>
-                <div className="mt-10 border-t border-white/15 pt-5">
-                  <p className="text-xl font-black">Karp</p>
-                  <p className="mt-1 text-sm text-blue-100">18,4 kg · 96 cm</p>
-                  <p className="mt-5 text-xs font-bold uppercase tracking-[0.14em] text-blue-200">Twój nowy rekord</p>
-                </div>
-              </div>
-
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-xl sm:p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-black uppercase tracking-[0.14em] text-blue-600">Ostatnie połowy</p>
-                    <p className="mt-2 text-xl font-black">Sezon 2026</p>
-                  </div>
-                  <span className="rounded-full bg-slate-100 px-3 py-2 text-xs font-bold text-slate-500">24 połowy</span>
-                </div>
-                <div className="mt-5 space-y-3">
-                  <CatchListRow fish="Karp" meta="18,4 kg · 96 cm" score="92" />
-                  <CatchListRow fish="Szczupak" meta="8,1 kg · 108 cm" score="88" />
-                  <CatchListRow fish="Amur" meta="13,2 kg · 101 cm" score="81" />
-                  <CatchListRow fish="Sandacz" meta="5,7 kg · 84 cm" score="76" />
-                </div>
-                <div className="mt-5 grid grid-cols-3 gap-2 border-t border-slate-100 pt-5 text-center">
-                  <MiniStat value="6" label="rekordów" />
-                  <MiniStat value="12" label="gatunków" />
-                  <MiniStat value="4" label="odznaki" />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -433,34 +392,27 @@ export default function HomePage() {
             </div>
 
             <div className="relative min-h-[540px]">
-              <div className="absolute left-0 top-12 z-10 w-[72%] overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
-                <div className="border-b border-slate-100 p-5">
-                  <p className="text-xs font-black uppercase tracking-[0.15em] text-blue-600">Panel właściciela</p>
-                  <p className="mt-2 text-xl font-black">Rezerwacje · 21 sierpnia</p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 p-5 sm:grid-cols-3">
-                  <ReservationTile number="01" status="Wolne" type="free" />
-                  <ReservationTile number="02" status="Zajęte" type="busy" />
-                  <ReservationTile number="03" status="Wolne" type="free" />
-                  <ReservationTile number="04" status="Blokada" type="blocked" />
-                  <ReservationTile number="05" status="Wolne" type="free" />
-                  <ReservationTile number="06" status="Zajęte" type="busy" />
+              <div className="absolute left-0 top-12 z-10 w-[74%] overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-2 shadow-[0_28px_70px_-34px_rgba(15,23,42,.38)] sm:p-2.5">
+                <div className="overflow-hidden rounded-[1.55rem] bg-white">
+                  <img
+                    src="/photos/pulpit-lowiska.webp"
+                    alt="Pulpit właściciela łowiska w Rybio"
+                    loading="lazy"
+                    decoding="async"
+                    className="block h-auto w-full"
+                  />
                 </div>
               </div>
 
-              <div className="absolute bottom-0 right-0 z-20 w-[70%] rotate-[2deg] overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl">
-                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                  <p className="text-xs font-black tracking-[0.12em]">WATERLINE</p>
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-700">Online</span>
-                </div>
-                <div className="bg-[linear-gradient(135deg,#dbeafe,#bfdbfe_55%,#99f6e4)] p-6">
-                  <p className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-700">Łowisko Jezioro</p>
-                  <p className="mt-3 max-w-[270px] text-3xl font-black leading-tight tracking-tight">Miejsce stworzone dla pasji do wody.</p>
-                  <span className="mt-5 inline-flex rounded-full bg-blue-600 px-4 py-2 text-xs font-black text-white">Poznaj łowisko</span>
-                </div>
-                <div className="p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.13em] text-slate-400">Twój adres</p>
-                  <p className="mt-1 text-sm font-black text-blue-700">twojelowisko.rybio.pl</p>
+              <div className="absolute bottom-0 right-0 z-20 w-[68%] rotate-[1.5deg] overflow-hidden rounded-[2rem] border border-slate-200 bg-white p-2 shadow-[0_28px_70px_-34px_rgba(15,23,42,.38)] sm:p-2.5">
+                <div className="overflow-hidden rounded-[1.55rem] bg-white">
+                  <img
+                    src="/photos/strony-internetowe.webp"
+                    alt="Kreator strony internetowej łowiska w Rybio"
+                    loading="lazy"
+                    decoding="async"
+                    className="block h-auto w-full"
+                  />
                 </div>
               </div>
             </div>
@@ -644,38 +596,8 @@ function JourneyStep({ number, title, text }: { number: string; title: string; t
   );
 }
 
-function DashboardCard({ icon, label, value, detail }: { icon: ReactNode; label: string; value: string; detail: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-blue-700 shadow-sm ring-1 ring-slate-200">{icon}</div>
-      <p className="mt-4 text-[10px] font-black uppercase tracking-[0.13em] text-slate-400">{label}</p>
-      <p className="mt-1 text-base font-black text-slate-950">{value}</p>
-      <p className="mt-1 text-[11px] text-slate-500">{detail}</p>
-    </div>
-  );
-}
 
-function CatchListRow({ fish, meta, score }: { fish: string; meta: string; score: string }) {
-  return (
-    <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700"><FishIcon size={20} /></div>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-black text-slate-950">{fish}</p>
-        <p className="mt-0.5 text-xs text-slate-500">{meta}</p>
-      </div>
-      <span className="rounded-xl bg-slate-950 px-2.5 py-1.5 text-xs font-black text-white">{score}</span>
-    </div>
-  );
-}
 
-function MiniStat({ value, label }: { value: string; label: string }) {
-  return (
-    <div>
-      <p className="text-lg font-black text-slate-950">{value}</p>
-      <p className="mt-1 text-[10px] font-bold text-slate-400">{label}</p>
-    </div>
-  );
-}
 
 function OwnerBenefit({ title, text }: { title: string; text: string }) {
   return (
@@ -687,15 +609,6 @@ function OwnerBenefit({ title, text }: { title: string; text: string }) {
   );
 }
 
-function ReservationTile({ number, status, type }: { number: string; status: string; type: "free" | "busy" | "blocked" }) {
-  return (
-    <div className={`rounded-2xl border p-3 ${type === "free" ? "border-emerald-100 bg-emerald-50" : type === "busy" ? "border-red-100 bg-red-50" : "border-amber-100 bg-amber-50"}`}>
-      <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400">Stanowisko</p>
-      <p className="mt-1 text-xl font-black text-slate-950">{number}</p>
-      <p className="mt-1 text-[10px] font-bold text-slate-500">{status}</p>
-    </div>
-  );
-}
 
 function CommunityCard({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
   return (
