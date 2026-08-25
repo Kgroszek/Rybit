@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { revalidateLakePublicContent } from "@/lib/public-revalidation";
 
 type RouteProps = {
   params: Promise<{
@@ -255,6 +256,10 @@ export async function POST(_request: Request, { params }: RouteProps) {
 
     return lake;
   });
+
+  revalidateLakePublicContent([
+    createdLake.slug,
+  ]);
 
   return NextResponse.json({
     message: "Zgłoszenie zostało zaakceptowane.",

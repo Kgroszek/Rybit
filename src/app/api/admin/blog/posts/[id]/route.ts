@@ -11,6 +11,7 @@ import {
   parseBlogPostInput,
 } from "@/lib/blog-post-input";
 import { prisma } from "@/lib/prisma";
+import { revalidateBlogPublicContent } from "@/lib/public-revalidation";
 
 type BlogPostRouteProps = {
   params: Promise<{
@@ -42,6 +43,7 @@ export async function PUT(
         },
         select: {
           id: true,
+          slug: true,
           publishedAt: true,
           authorName: true,
         },
@@ -169,6 +171,11 @@ export async function PUT(
         }
       );
 
+    revalidateBlogPublicContent([
+      existing.slug,
+      post.slug,
+    ]);
+
     return NextResponse.json({
       id: post.id,
       slug: post.slug,
@@ -231,13 +238,18 @@ export async function DELETE(
   }
 
   try {
-    await prisma.blogPost.delete(
-      {
-        where: {
-          id,
-        },
-      }
-    );
+    const deleted =
+      await prisma.blogPost.delete(
+        {
+          where: {
+            id,
+          },
+        }
+      );
+
+    revalidateBlogPublicContent([
+      deleted.slug,
+    ]);
 
     return NextResponse.json({
       success: true,

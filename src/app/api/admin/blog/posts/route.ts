@@ -11,6 +11,7 @@ import {
   parseBlogPostInput,
 } from "@/lib/blog-post-input";
 import { prisma } from "@/lib/prisma";
+import { revalidateBlogPublicContent } from "@/lib/public-revalidation";
 
 export async function POST(
   request: Request
@@ -127,6 +128,10 @@ export async function POST(
           return created;
         }
       );
+
+    revalidateBlogPublicContent([
+      post.slug,
+    ]);
 
     return NextResponse.json(
       {

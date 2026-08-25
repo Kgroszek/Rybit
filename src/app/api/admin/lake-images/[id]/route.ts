@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { revalidateLakePublicContent } from "@/lib/public-revalidation";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type RouteProps = {
@@ -152,6 +153,10 @@ export async function POST(request: Request, { params }: RouteProps) {
       },
     });
 
+    revalidateLakePublicContent([
+      lake.slug,
+    ]);
+
     return NextResponse.json({
       message: "Zdjęcia zostały dodane.",
       images: createdImages,
@@ -200,6 +205,15 @@ export async function DELETE(_request: Request, { params }: RouteProps) {
     );
   }
 
+  const lake = await prisma.lake.findUnique({
+    where: {
+      id: image.lakeId,
+    },
+    select: {
+      slug: true,
+    },
+  });
+
   const supabase = createAdminClient();
 
   if (image.imagePath) {
@@ -222,6 +236,10 @@ export async function DELETE(_request: Request, { params }: RouteProps) {
       id,
     },
   });
+
+  revalidateLakePublicContent([
+    lake?.slug,
+  ]);
 
   return NextResponse.json({
     message: "Zdjęcie łowiska zostało usunięte.",

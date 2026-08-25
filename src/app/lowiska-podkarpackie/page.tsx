@@ -6,7 +6,7 @@ import {
 
 const config = seoLakesLandings.podkarpackie;
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export const metadata = createSeoLakesMetadata(config);
 

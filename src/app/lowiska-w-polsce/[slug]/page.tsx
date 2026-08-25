@@ -10,6 +10,9 @@ import { getNearbyLakesForDetails } from "@/lib/lake-details";
 
 const siteUrl = "https://rybio.pl";
 
+// ISR fallback; zmiany łowiska invalidują ten adres on-demand.
+export const revalidate = 3600;
+
 const getCachedLakeBySlug = cache(getLakeBySlug);
 
 type PageProps = {

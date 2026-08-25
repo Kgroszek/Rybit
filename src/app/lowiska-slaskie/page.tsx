@@ -6,8 +6,7 @@ import {
 
 const config = seoLakesLandings.slaskie;
 
-export const dynamic = "force-dynamic";
-
+export const revalidate = 3600;
 export const metadata = createSeoLakesMetadata(config);
 
 export default function Page() {

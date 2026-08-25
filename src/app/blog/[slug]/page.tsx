@@ -25,8 +25,9 @@ import {
 } from "@/lib/blog";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic =
-  "force-dynamic";
+// ISR jako fallback. Publikacja, edycja i usunięcie wpisu
+// invalidują cache on-demand w endpointach administracyjnych.
+export const revalidate = 3600;
 
 type BlogArticlePageProps = {
   params: Promise<{
@@ -71,6 +72,10 @@ export async function generateMetadata({
     return {
       title:
         "Artykuł | Rybio",
+      robots: {
+        index: false,
+        follow: false,
+      },
     };
   }
 
@@ -84,6 +89,10 @@ export async function generateMetadata({
       undefined,
     alternates: {
       canonical: `/blog/${slug}`,
+    },
+    robots: {
+      index: true,
+      follow: true,
     },
     openGraph: {
       title:
@@ -311,7 +320,7 @@ export default async function BlogArticlePage({
               <span>/</span>
 
               <Link
-                href={`/blog?category=${post.category}`}
+                href={`/blog/szukaj?category=${post.category}`}
                 className="transition hover:text-primary-700"
               >
                 {getBlogCategoryLabel(
@@ -333,9 +342,7 @@ export default async function BlogArticlePage({
 
               {post.excerpt && (
                 <p className="mt-5 max-w-3xl text-lg leading-8 text-text-secondary sm:text-xl">
-                  {
-                    post.excerpt
-                  }
+                  {post.excerpt}
                 </p>
               )}
 
@@ -380,9 +387,7 @@ export default async function BlogArticlePage({
           <div className="mx-auto w-full max-w-[1180px] px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
             <div className="overflow-hidden rounded-panel border border-border bg-surface-muted shadow-card">
               <img
-                src={
-                  post.coverImageUrl
-                }
+                src={post.coverImageUrl}
                 alt={post.title}
                 className="aspect-[16/8.6] max-h-[680px] w-full object-cover"
               />
@@ -417,22 +422,19 @@ export default async function BlogArticlePage({
                 blocks={blocks}
               />
 
-              {post.tags.length >
-                0 && (
+              {post.tags.length > 0 && (
                 <div className="mx-auto mt-12 flex w-full max-w-[760px] flex-wrap gap-2 border-t border-border pt-6">
-                  {post.tags.map(
-                    (tag) => (
-                      <Link
-                        key={tag}
-                        href={`/blog?tag=${encodeURIComponent(
-                          tag
-                        )}`}
-                        className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text-secondary transition hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700"
-                      >
-                        #{tag}
-                      </Link>
-                    )
-                  )}
+                  {post.tags.map((tag) => (
+                    <Link
+                      key={tag}
+                      href={`/blog/szukaj?tag=${encodeURIComponent(
+                        tag
+                      )}`}
+                      className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-bold text-text-secondary transition hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700"
+                    >
+                      #{tag}
+                    </Link>
+                  ))}
                 </div>
               )}
             </div>

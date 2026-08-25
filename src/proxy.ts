@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { shouldNoIndexPath } from "@/lib/seo-policy";
 import { updateSession } from "@/lib/supabase/middleware";
 
 const RESERVED_HOSTS = new Set(["www"]);
@@ -41,31 +42,42 @@ function shouldRefreshSession(pathname: string) {
   );
 }
 
+function applySeoHeaders(response: NextResponse, pathname: string) {
+  if (shouldNoIndexPath(pathname)) {
+    response.headers.set(
+      "X-Robots-Tag",
+      "noindex, nofollow, noarchive"
+    );
+  }
+
+  return response;
+}
+
 export async function proxy(request: NextRequest) {
   const hostname = getHostname(request);
   const subdomain = getSubdomain(hostname);
   const url = request.nextUrl.clone();
 
-  // Wewnętrzna trasa renderująca stronę łowiska nie może zostać
-  // ponownie przepisana przez proxy.
+ 
   if (url.pathname.startsWith("/site-runtime/")) {
-    return NextResponse.next();
+    return applySeoHeaders(NextResponse.next(), url.pathname);
   }
 
-  // Subdomena łowiska jest niezależną stroną publiczną.
+  
   if (subdomain && !RESERVED_HOSTS.has(subdomain)) {
     url.pathname = `/site-runtime/${subdomain}${url.pathname}`;
 
     return NextResponse.rewrite(url);
   }
 
-  // Na głównej domenie Rybio odświeżamy sesję Supabase
-  // tylko dla tras korzystających z konta użytkownika.
+
   if (shouldRefreshSession(url.pathname)) {
-    return updateSession(request);
+    const response = await updateSession(request);
+
+    return applySeoHeaders(response, url.pathname);
   }
 
-  return NextResponse.next();
+  return applySeoHeaders(NextResponse.next(), url.pathname);
 }
 
 function getHostname(request: NextRequest) {

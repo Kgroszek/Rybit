@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
-import { LakesExplorer } from "@/components/lakes/LakesExplorer";
 import {
   LAKE_EXPLORER_PAGE_SIZE,
 } from "@/components/lakes/constants";
+import { PublicLakesExplorer } from "@/components/lakes/PublicLakesExplorer";
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { ButtonLink } from "@/components/ui/Button";
@@ -12,8 +12,8 @@ import {
   getLakeExplorerResults,
 } from "@/lib/lake-explorer";
 import {
-  parseLakeExplorerSearchParams,
-  type LakeExplorerSearchParams,
+  DEFAULT_LAKE_EXPLORER_FILTERS,
+  DEFAULT_POLAND_BOUNDS,
 } from "@/lib/lake-explorer-params";
 import {
   getLakeFilterOptions,
@@ -21,7 +21,9 @@ import {
 
 const siteUrl = "https://rybio.pl";
 
-export const dynamic = "force-dynamic";
+// Domyślny, indeksowalny widok jest generowany jako ISR.
+// Na razie stosujemy bezpieczne odświeżenie czasowe co godzinę.
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -77,38 +79,31 @@ export const metadata: Metadata = {
   },
 };
 
-type PublicLakesPageProps = {
-  searchParams?: Promise<LakeExplorerSearchParams>;
-};
-
-export default async function PublicLakesPage({
-  searchParams,
-}: PublicLakesPageProps) {
-  const params =
-    (await searchParams) ?? {};
-
-  const parsed =
-    parseLakeExplorerSearchParams(
-      params
-    );
-
+export default async function PublicLakesPage() {
+  // ISR renderuje stabilny widok domyślny. Filtry z query string są
+  // odtwarzane klientowo przez PublicLakesExplorer, więc użycie searchParams
+  // nie zmusza całej strony do renderowania dynamicznego przy każdym wejściu.
   const query = {
-    ...parsed.filters,
-    bounds: parsed.bounds,
+    ...DEFAULT_LAKE_EXPLORER_FILTERS,
+    bounds: DEFAULT_POLAND_BOUNDS,
     page: 1,
-    pageSize:
-      LAKE_EXPLORER_PAGE_SIZE,
+    pageSize: LAKE_EXPLORER_PAGE_SIZE,
   };
 
-  const [
-    result,
-    mapResult,
-    filterOptions,
-  ] = await Promise.all([
+  const [result, mapResult, filterOptions] = await Promise.all([
     getLakeExplorerResults(query),
     getLakeExplorerMapResults(query),
     getLakeFilterOptions(),
   ]);
+
+  const initialData = {
+    result,
+    mapResult,
+    filterOptions,
+    filters: DEFAULT_LAKE_EXPLORER_FILTERS,
+    bounds: DEFAULT_POLAND_BOUNDS,
+    mobileView: "list" as const,
+  };
 
   return (
     <main className="min-h-screen bg-background text-text">
@@ -155,29 +150,14 @@ export default async function PublicLakesPage({
 
             <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-border bg-surface/85 px-3 py-2 text-xs font-semibold text-text-secondary shadow-card backdrop-blur">
               <span className="h-2 w-2 rounded-full bg-aqua-500" />
-              {
-                filterOptions.allLakesCount
-              }{" "}
+              {filterOptions.allLakesCount}{" "}
               łowisk w bazie Rybio
             </div>
           </div>
         </div>
       </section>
 
-      <LakesExplorer
-        mode="public"
-        detailBasePath="/lowiska-w-polsce"
-        initialData={{
-          result,
-          mapResult,
-          filterOptions,
-          filters:
-            parsed.filters,
-          bounds: parsed.bounds,
-          mobileView:
-            parsed.mobileView,
-        }}
-      />
+      <PublicLakesExplorer initialData={initialData} />
 
       <PublicFooter />
     </main>
