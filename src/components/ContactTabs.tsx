@@ -8,6 +8,11 @@ import {
   RecaptchaV3Script,
 } from "@/components/contact/RecaptchaV3";
 import { useToast } from "@/components/ui/ToastProvider";
+import {
+  CONTACT_FIELD_LIMITS,
+  WEBSITE_BUDGET_OPTIONS,
+  WEBSITE_DEADLINE_OPTIONS,
+} from "@/lib/contact-validation";
 
 type TabKey = "contact" | "website" | "cooperation";
 type SubmitStatus = "idle" | "loading" | "success" | "error";
@@ -398,7 +403,7 @@ function ContactForm({
             name="company"
             placeholder="np. Nazwa firmy, łowiska lub marki"
             required={false}
-            maxLength={160}
+            maxLength={CONTACT_FIELD_LIMITS.company}
           />
         )}
 
@@ -407,7 +412,7 @@ function ContactForm({
             label="Imię i nazwisko"
             name="name"
             placeholder="Jak możemy się do Ciebie zwracać?"
-            maxLength={120}
+            maxLength={CONTACT_FIELD_LIMITS.name}
           />
 
           <FormInput
@@ -415,7 +420,7 @@ function ContactForm({
             name="email"
             type="email"
             placeholder="kontakt@example.pl"
-            maxLength={254}
+            maxLength={CONTACT_FIELD_LIMITS.email}
           />
         </div>
 
@@ -423,7 +428,7 @@ function ContactForm({
           label="Temat wiadomości"
           name="subject"
           placeholder="Krótko opisz temat wiadomości"
-          maxLength={180}
+          maxLength={CONTACT_FIELD_LIMITS.subject}
         />
 
         <FormTextarea
@@ -431,7 +436,7 @@ function ContactForm({
           name="message"
           placeholder="Napisz, w czym możemy pomóc..."
           rows={6}
-          maxLength={5000}
+          maxLength={CONTACT_FIELD_LIMITS.message}
         />
 
         <ConsentCheckbox />
@@ -550,7 +555,7 @@ function FisheryWebsiteForm() {
           label="Nazwa łowiska"
           name="fisheryName"
           placeholder="np. Łowisko Karp Max"
-          maxLength={160}
+          maxLength={CONTACT_FIELD_LIMITS.fisheryName}
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -558,7 +563,7 @@ function FisheryWebsiteForm() {
             label="Imię i nazwisko"
             name="name"
             placeholder="Osoba kontaktowa"
-            maxLength={120}
+            maxLength={CONTACT_FIELD_LIMITS.name}
           />
 
           <FormInput
@@ -566,7 +571,7 @@ function FisheryWebsiteForm() {
             name="email"
             type="email"
             placeholder="kontakt@example.pl"
-            maxLength={254}
+            maxLength={CONTACT_FIELD_LIMITS.email}
           />
         </div>
 
@@ -577,14 +582,17 @@ function FisheryWebsiteForm() {
             type="tel"
             placeholder="+48 000 000 000"
             required={false}
-            maxLength={40}
+            maxLength={CONTACT_FIELD_LIMITS.phone}
+            inputMode="tel"
+            pattern="[0-9+() .-]{7,40}"
+            title="Użyj cyfr oraz opcjonalnie +, spacji, nawiasów, kropek lub myślników."
           />
 
           <FormInput
             label="Lokalizacja łowiska"
             name="location"
             placeholder="np. woj. mazowieckie, okolice Siedlec"
-            maxLength={160}
+            maxLength={CONTACT_FIELD_LIMITS.location}
           />
         </div>
 
@@ -594,31 +602,20 @@ function FisheryWebsiteForm() {
           type="url"
           placeholder="https://..."
           required={false}
-          maxLength={500}
+          maxLength={CONTACT_FIELD_LIMITS.currentWebsite}
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <FormSelect
             label="Planowany budżet"
             name="budget"
-            options={[
-              "Nie wiem, potrzebuję wyceny",
-              "do 2000 zł",
-              "2000–4000 zł",
-              "4000–7000 zł",
-              "powyżej 7000 zł",
-            ]}
+            options={[...WEBSITE_BUDGET_OPTIONS]}
           />
 
           <FormSelect
             label="Termin realizacji"
             name="deadline"
-            options={[
-              "Jak najszybciej",
-              "W ciągu miesiąca",
-              "W ciągu 2–3 miesięcy",
-              "Nie mam konkretnego terminu",
-            ]}
+            options={[...WEBSITE_DEADLINE_OPTIONS]}
           />
         </div>
 
@@ -627,7 +624,7 @@ function FisheryWebsiteForm() {
           name="message"
           placeholder="Napisz, co powinna zawierać strona: opis łowiska, cennik, regulamin, galerię, mapę, formularz, rezerwacje, SEO, zdjęcia itd."
           rows={7}
-          maxLength={5000}
+          maxLength={CONTACT_FIELD_LIMITS.message}
         />
 
         <ConsentCheckbox />
@@ -717,6 +714,9 @@ function FormInput({
   placeholder,
   required = true,
   maxLength,
+  inputMode,
+  pattern,
+  title,
 }: {
   label: string;
   name: string;
@@ -724,6 +724,9 @@ function FormInput({
   placeholder?: string;
   required?: boolean;
   maxLength?: number;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  pattern?: string;
+  title?: string;
 }) {
   return (
     <label className="block">
@@ -737,6 +740,9 @@ function FormInput({
         name={name}
         required={required}
         maxLength={maxLength}
+        inputMode={inputMode}
+        pattern={pattern}
+        title={title}
         placeholder={placeholder}
         className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
       />
@@ -750,7 +756,7 @@ function FormTextarea({
   placeholder,
   rows = 5,
   required = true,
-  maxLength = 5000,
+  maxLength = CONTACT_FIELD_LIMITS.message,
 }: {
   label: string;
   name: string;

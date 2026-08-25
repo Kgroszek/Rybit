@@ -3,65 +3,22 @@ import { createHash } from "node:crypto";
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
 
+import {
+  CONTACT_BODY_LIMIT_BYTES,
+  ContactValidationError,
+  type ContactPayloadInput,
+  type ValidatedContactPayload,
+  validateContactPayload,
+} from "@/lib/contact-validation";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
 const RATE_LIMIT_MAX_REQUESTS = 5;
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
-const MAX_REQUEST_BODY_BYTES = 20_000;
 
 const RECAPTCHA_VERIFY_URL =
   "https://www.google.com/recaptcha/api/siteverify";
-
-const ALLOWED_FORM_TYPES = new Set([
-  "contact",
-  "website",
-  "cooperation",
-]);
-
-type ContactPayload = {
-  formType?: string;
-  name?: string;
-  email?: string;
-  company?: string;
-  subject?: string;
-  message?: string;
-  fisheryName?: string;
-  phone?: string;
-  location?: string;
-  currentWebsite?: string;
-  budget?: string;
-  deadline?: string;
-
-  /**
-   * Honeypot. Normalny użytkownik nie powinien nigdy
-   * wypełnić tego pola.
-   */
-  website?: string;
-
-  /**
-   * Jednorazowy token Google reCAPTCHA v3.
-   */
-  recaptchaToken?: string;
-};
-
-type ParsedContactPayload = {
-  formType: string;
-  name: string;
-  email: string;
-  company: string;
-  subject: string;
-  message: string;
-  fisheryName: string;
-  phone: string;
-  location: string;
-  currentWebsite: string;
-  budget: string;
-  deadline: string;
-  website: string;
-  recaptchaToken: string;
-};
 
 type RecaptchaResponse = {
   success?: boolean;
@@ -77,78 +34,8 @@ type ContactRateLimitRow = {
   windowStart: Date;
 };
 
-class ContactValidationError extends Error {}
-
-function getString(value: unknown) {
-  if (typeof value !== "string") {
-    return "";
-  }
-
-  return value.trim();
-}
-
-function getLimitedString(
-  value: unknown,
-  fieldLabel: string,
-  maxLength: number
-) {
-  const stringValue = getString(value);
-
-  if (stringValue.length > maxLength) {
-    throw new ContactValidationError(
-      `${fieldLabel} może mieć maksymalnie ${maxLength} znaków.`
-    );
-  }
-
-  return stringValue;
-}
-
 function sanitizeHeaderValue(value: string) {
   return value.replace(/[\r\n]+/g, " ").trim();
-}
-
-function parsePayload(body: ContactPayload): ParsedContactPayload {
-  return {
-    formType: getLimitedString(body.formType, "Typ formularza", 30),
-    name: getLimitedString(body.name, "Imię i nazwisko", 120),
-    email: getLimitedString(body.email, "Adres e-mail", 254),
-    company: getLimitedString(body.company, "Firma / marka", 160),
-    subject: getLimitedString(body.subject, "Temat", 180),
-    message: getLimitedString(body.message, "Wiadomość", 5000),
-    fisheryName: getLimitedString(body.fisheryName, "Nazwa łowiska", 160),
-    phone: getLimitedString(body.phone, "Telefon", 40),
-    location: getLimitedString(body.location, "Lokalizacja", 160),
-    currentWebsite: getLimitedString(
-      body.currentWebsite,
-      "Adres strony",
-      500
-    ),
-    budget: getLimitedString(body.budget, "Budżet", 80),
-    deadline: getLimitedString(body.deadline, "Termin", 80),
-    website: getLimitedString(body.website, "Pole bezpieczeństwa", 300),
-    recaptchaToken: getLimitedString(
-      body.recaptchaToken,
-      "Token bezpieczeństwa",
-      4096
-    ),
-  };
-}
-
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function isValidHttpUrl(value: string) {
-  if (!value) {
-    return true;
-  }
-
-  try {
-    const url = new URL(value);
-    return url.protocol === "http:" || url.protocol === "https:";
-  } catch {
-    return false;
-  }
 }
 
 function escapeHtml(value: string) {
@@ -177,7 +64,7 @@ function formatRow(label: string, value: string) {
   `;
 }
 
-function getFormLabel(formType: string) {
+function getFormLabel(formType: ValidatedContactPayload["formType"]) {
   if (formType === "website") {
     return "Zapytanie o stronę dla łowiska";
   }
@@ -189,7 +76,7 @@ function getFormLabel(formType: string) {
   return "Kontakt ogólny";
 }
 
-function buildEmailHtml(payload: ParsedContactPayload) {
+function buildEmailHtml(payload: ValidatedContactPayload) {
   const formLabel = getFormLabel(payload.formType);
 
   return `
@@ -199,6 +86,7 @@ function buildEmailHtml(payload: ParsedContactPayload) {
           <p style="margin: 0; color: #bfdbfe; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em;">
             Rybio
           </p>
+
           <h1 style="margin: 8px 0 0; color: #ffffff; font-size: 24px;">
             ${escapeHtml(formLabel)}
           </h1>
@@ -228,7 +116,7 @@ function buildEmailHtml(payload: ParsedContactPayload) {
   `;
 }
 
-function buildEmailText(payload: ParsedContactPayload) {
+function buildEmailText(payload: ValidatedContactPayload) {
   return `
 Rybio - ${getFormLabel(payload.formType)}
 
@@ -296,10 +184,6 @@ async function checkRateLimit(request: Request) {
   const now = new Date();
   const resetThreshold = new Date(now.getTime() - RATE_LIMIT_WINDOW_MS);
 
-  /**
-   * Atomowy UPSERT zapobiega wyścigowi dwóch równoległych requestów.
-   * Nie zapisujemy w bazie surowego IP — tylko jego SHA-256.
-   */
   const rows = await prisma.$queryRaw<ContactRateLimitRow[]>`
     INSERT INTO "ContactRateLimit"
       ("key", "count", "windowStart", "createdAt", "updatedAt")
@@ -472,8 +356,25 @@ function validationError(message: string) {
   );
 }
 
+function invalidContentTypeError() {
+  return NextResponse.json(
+    {
+      message: "Formularz musi zostać wysłany jako JSON.",
+    },
+    {
+      status: 415,
+    }
+  );
+}
+
 export async function POST(request: Request) {
   try {
+    const contentType = request.headers.get("content-type") ?? "";
+
+    if (!contentType.toLowerCase().startsWith("application/json")) {
+      return invalidContentTypeError();
+    }
+
     const contentLengthHeader = request.headers.get("content-length");
     const contentLength = contentLengthHeader
       ? Number(contentLengthHeader)
@@ -482,7 +383,7 @@ export async function POST(request: Request) {
     if (
       contentLength !== null &&
       Number.isFinite(contentLength) &&
-      contentLength > MAX_REQUEST_BODY_BYTES
+      contentLength > CONTACT_BODY_LIMIT_BYTES
     ) {
       return NextResponse.json(
         {
@@ -496,7 +397,10 @@ export async function POST(request: Request) {
 
     const rawBody = await request.text();
 
-    if (Buffer.byteLength(rawBody, "utf8") > MAX_REQUEST_BODY_BYTES) {
+    if (
+      Buffer.byteLength(rawBody, "utf8") >
+      CONTACT_BODY_LIMIT_BYTES
+    ) {
       return NextResponse.json(
         {
           message: "Formularz zawiera zbyt dużo danych.",
@@ -507,21 +411,33 @@ export async function POST(request: Request) {
       );
     }
 
-    let body: ContactPayload;
+    let body: ContactPayloadInput;
 
     try {
-      body = JSON.parse(rawBody) as ContactPayload;
+      const parsed = JSON.parse(rawBody) as unknown;
+
+      if (
+        typeof parsed !== "object" ||
+        parsed === null ||
+        Array.isArray(parsed)
+      ) {
+        return validationError(
+          "Nieprawidłowe dane formularza."
+        );
+      }
+
+      body = parsed as ContactPayloadInput;
     } catch {
       return validationError("Nieprawidłowe dane formularza.");
     }
 
-    const payload = parsePayload(body);
+    const payload = validateContactPayload(body);
 
     /**
      * Honeypot.
      *
      * Bot dostaje odpowiedź wyglądającą jak sukces, ale SMTP nie jest
-     * uruchamiane. Dzięki temu nie informujemy bota, co go zdradziło.
+     * uruchamiane.
      */
     if (payload.website) {
       return NextResponse.json({
@@ -529,35 +445,8 @@ export async function POST(request: Request) {
       });
     }
 
-    if (!ALLOWED_FORM_TYPES.has(payload.formType)) {
-      return validationError("Nieprawidłowy typ formularza.");
-    }
-
-    if (!payload.name) {
-      return validationError("Podaj imię i nazwisko.");
-    }
-
-    if (!payload.email || !isValidEmail(payload.email)) {
-      return validationError("Podaj poprawny adres e-mail.");
-    }
-
-    if (!payload.message) {
-      return validationError("Wiadomość jest wymagana.");
-    }
-
-    if (payload.formType === "website" && !payload.fisheryName) {
-      return validationError("Podaj nazwę łowiska.");
-    }
-
-    if (!isValidHttpUrl(payload.currentWebsite)) {
-      return validationError(
-        "Podaj poprawny adres strony zaczynający się od http:// lub https://."
-      );
-    }
-
     /**
      * Rate limit przed reCAPTCHA i SMTP.
-     * Maksymalnie 5 zaakceptowanych prób na 10 minut z jednego IP.
      */
     const rateLimit = await checkRateLimit(request);
 
@@ -583,14 +472,6 @@ export async function POST(request: Request) {
       );
     }
 
-    /**
-     * Google reCAPTCHA v3.
-     *
-     * Backend sprawdza:
-     * - poprawność tokena,
-     * - action === "contact_form",
-     * - score >= RECAPTCHA_MIN_SCORE (domyślnie 0.5).
-     */
     const recaptcha = await verifyRecaptcha({
       token: payload.recaptchaToken,
       request,
