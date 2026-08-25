@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 
 const slides = [
@@ -52,6 +53,24 @@ export function HomeHeroShowcase() {
     return () => window.clearInterval(interval);
   }, []);
 
+  /**
+   * Pierwszy screenshot jest ładowany przez Next/Image z wysokim priorytetem.
+   * Pozostałych czterech nie pobieramy od razu. Po zmianie aktywnego slajdu
+   * przeglądarka dostaje w tle tylko kolejny obraz, żeby ograniczyć konkurencję
+   * o pasmo podczas LCP, a jednocześnie uniknąć pustej klatki przy zmianie.
+   */
+  useEffect(() => {
+    const nextSlide = slides[(activeIndex + 1) % slides.length];
+
+    const preloadTimer = window.setTimeout(() => {
+      const image = new window.Image();
+      image.decoding = "async";
+      image.src = nextSlide.image;
+    }, activeIndex === 0 ? 1200 : 300);
+
+    return () => window.clearTimeout(preloadTimer);
+  }, [activeIndex]);
+
   return (
     <div className="min-w-0">
       <div className="relative">
@@ -75,12 +94,17 @@ export function HomeHeroShowcase() {
           </div>
 
           <div className="bg-slate-50 p-2 sm:p-3">
-            <div className="aspect-[16/10] overflow-hidden rounded-[16px] border border-slate-200 bg-white sm:rounded-[18px]">
-              <img
+            <div className="relative aspect-[16/10] overflow-hidden rounded-[16px] border border-slate-200 bg-white sm:rounded-[18px]">
+              <Image
                 key={activeSlide.image}
                 src={activeSlide.image}
                 alt={`${activeSlide.label} w Rybio`}
-                className="block h-full w-full object-cover object-top"
+                fill
+                sizes="(max-width: 1024px) 100vw, 52vw"
+                priority={activeIndex === 0}
+                fetchPriority={activeIndex === 0 ? "high" : "auto"}
+                loading={activeIndex === 0 ? "eager" : "lazy"}
+                className="object-cover object-top"
               />
             </div>
           </div>

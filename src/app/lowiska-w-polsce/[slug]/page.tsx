@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 
 import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicHeader } from "@/components/public/PublicHeader";
@@ -8,6 +9,8 @@ import { getLakeBySlug } from "@/lib/lakes";
 import { getNearbyLakesForDetails } from "@/lib/lake-details";
 
 const siteUrl = "https://rybio.pl";
+
+const getCachedLakeBySlug = cache(getLakeBySlug);
 
 type PageProps = {
   params: Promise<{
@@ -45,7 +48,7 @@ function getLakeImage(lake: Awaited<ReturnType<typeof getLakeBySlug>>) {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const lake = await getLakeBySlug(slug);
+  const lake = await getCachedLakeBySlug(slug);
 
   if (!lake) {
     return {
@@ -121,7 +124,7 @@ export default async function PublicLakePage({ params }: PageProps) {
   const { slug } = await params;
 
   const [lake, recommendedLakes] = await Promise.all([
-    getLakeBySlug(slug),
+    getCachedLakeBySlug(slug),
     getNearbyLakesForDetails(slug, 3),
   ]);
 

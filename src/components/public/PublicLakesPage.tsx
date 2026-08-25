@@ -4,6 +4,7 @@ import {
 } from "@/lib/lake-explorer-params";
 import type {
   LakeExplorerFilters,
+  LakeExplorerMapResult,
   LakeExplorerSort,
   LakeMapPointDto,
 } from "@/lib/lake-explorer-types";
@@ -19,6 +20,7 @@ type PublicLakesPageProps = {
     PaginatedLakesResult,
     "lakes"
   >;
+  initialMapResult?: LakeExplorerMapResult;
   filterOptions?: LakeFilterOptions;
   initialOwnerType?: string;
   initialFishingType?: string;
@@ -77,13 +79,17 @@ function toMapPoint(
 /**
  * Compatibility wrapper dla SEO landingów.
  *
- * /lowiska-w-polsce korzysta już bezpośrednio
- * ze wspólnego LakesExplorer. Landingi wojewódzkie
- * mogą nadal używać tego komponentu bez zmian.
+ * Jeżeli caller przekazuje cały zestaw `lakes`, przygotowujemy z niego
+ * kompletny SSR: pierwszą stronę listy + wszystkie punkty mapy.
+ *
+ * Jeżeli caller ma już paginowany SSR, może przekazać `initialMapResult`.
+ * Wtedy klient dostaje komplet danych i nie musi ponownie pobierać tej samej
+ * pierwszej strony zaraz po hydration.
  */
 export function PublicLakesPage({
   lakes,
   initialPagination,
+  initialMapResult,
   filterOptions,
   initialOwnerType = "all",
   initialFishingType = "all",
@@ -105,6 +111,26 @@ export function PublicLakesPage({
         )
       ),
     };
+
+  const listLakes =
+    initialPagination
+      ? lakes
+      : lakes.slice(
+          0,
+          pagination.pageSize
+        );
+
+  const derivedMapResult: LakeExplorerMapResult = {
+    lakes: lakes.map(toMapPoint),
+    totalCount:
+      initialPagination
+        ? pagination.totalCount
+        : lakes.length,
+  };
+
+  const initialDataComplete =
+    !initialPagination ||
+    Boolean(initialMapResult);
 
   const options =
     filterOptions ?? {
@@ -156,19 +182,18 @@ export function PublicLakesPage({
     <LakesExplorer
       mode="public"
       detailBasePath="/lowiska-w-polsce"
-      initialDataComplete={false}
+      initialDataComplete={
+        initialDataComplete
+      }
       syncUrl={false}
       initialData={{
         result: {
-          lakes,
+          lakes: listLakes,
           ...pagination,
         },
-        mapResult: {
-          lakes:
-            lakes.map(toMapPoint),
-          totalCount:
-            pagination.totalCount,
-        },
+        mapResult:
+          initialMapResult ??
+          derivedMapResult,
         filterOptions: options,
         filters,
         bounds:

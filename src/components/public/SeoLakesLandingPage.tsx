@@ -19,6 +19,7 @@ export async function SeoLakesLandingPage({
   const {
     resolvedVoivodeship,
     result,
+    mapResult,
     filterOptions,
   } = await getSeoVoivodeshipLandingData({
     canonicalVoivodeship: config.canonicalVoivodeship,
@@ -152,6 +153,7 @@ export async function SeoLakesLandingPage({
           totalCount: result.totalCount,
           totalPages: result.totalPages,
         }}
+        initialMapResult={mapResult}
         filterOptions={filterOptions}
         initialVoivodeship={resolvedVoivodeship}
       />

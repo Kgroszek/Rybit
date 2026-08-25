@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { normalizeFishFilterOptions } from "@/lib/fish-names";
 import {
+  getLakeExplorerMapResults,
+} from "@/lib/lake-explorer";
+import type {
+  LakeExplorerMapResult,
+} from "@/lib/lake-explorer-types";
+import {
   getPaginatedLakes,
   type LakeFilterOptions,
   type PaginatedLakesResult,
@@ -15,6 +21,7 @@ export type SeoVoivodeshipQuery = {
 export type SeoVoivodeshipLandingData = {
   resolvedVoivodeship: string;
   result: PaginatedLakesResult;
+  mapResult: LakeExplorerMapResult;
   filterOptions: LakeFilterOptions;
 };
 
@@ -118,12 +125,27 @@ export async function getSeoVoivodeshipLandingData({
     aliases
   );
 
-  const result = await getPaginatedLakes({
+  const explorerQuery = {
+    search: "",
+    ownerType: "all",
+    fishingType: "all",
+    voivodeship: resolvedVoivodeship,
+    fish: "all",
+    amenities: [],
+    sort: "rating-desc" as const,
     page: 1,
     pageSize,
-    voivodeship: resolvedVoivodeship,
-    sort: "rating-desc",
-  });
+  };
+
+  const [result, mapResult] = await Promise.all([
+    getPaginatedLakes({
+      page: 1,
+      pageSize,
+      voivodeship: resolvedVoivodeship,
+      sort: "rating-desc",
+    }),
+    getLakeExplorerMapResults(explorerQuery),
+  ]);
 
   const filterOptions = await getRegionFilterOptions(
     resolvedVoivodeship,
@@ -133,6 +155,7 @@ export async function getSeoVoivodeshipLandingData({
   return {
     resolvedVoivodeship,
     result,
+    mapResult,
     filterOptions,
   };
 }
