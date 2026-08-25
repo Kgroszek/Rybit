@@ -63,12 +63,12 @@ export function DashboardMapSection({ lakes }: { lakes: LakeListDto[] }) {
         />
       </div>
 
-      <div className="mt-4 grid items-stretch gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0">
           <DashboardMap lakes={filteredLakes} fitToResults={hasFilters} />
         </div>
 
-        <aside className="min-h-0">
+        <aside className="min-h-0 xl:h-[520px]">
           <NearestLakes lakes={lakes} limit={5} fullHeight />
         </aside>
       </div>
