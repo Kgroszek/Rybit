@@ -1153,3 +1153,14 @@ model LakeWebsite {
   @@index([publishedAt])
   @@index([status, publishedAt])
 }
+
+model ContactRateLimit {
+  key         String   @id
+  count       Int      @default(1)
+  windowStart DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([windowStart])
+  @@index([updatedAt])
+}

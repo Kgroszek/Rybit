@@ -1,7 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
+
+import {
+  executeRecaptcha,
+  RecaptchaV3Script,
+} from "@/components/contact/RecaptchaV3";
 import { useToast } from "@/components/ui/ToastProvider";
 
 type TabKey = "contact" | "website" | "cooperation";
@@ -55,6 +60,8 @@ export function ContactTabs() {
 
   return (
     <section className="bg-slate-50">
+      <RecaptchaV3Script />
+
       <div className="mx-auto w-full max-w-[1500px] px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
         <div className="mb-8 grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
           <div>
@@ -310,18 +317,21 @@ function ContactForm({
       description: "Proszę czekać, trwa wysyłanie formularza.",
     });
 
-    const formData = new FormData(formElement);
-
-    const payload = {
-      formType,
-      name: String(formData.get("name") || ""),
-      email: String(formData.get("email") || ""),
-      company: String(formData.get("company") || ""),
-      subject: String(formData.get("subject") || ""),
-      message: String(formData.get("message") || ""),
-    };
-
     try {
+      const recaptchaToken = await executeRecaptcha("contact_form");
+      const formData = new FormData(formElement);
+
+      const payload = {
+        formType,
+        name: String(formData.get("name") || ""),
+        email: String(formData.get("email") || ""),
+        company: String(formData.get("company") || ""),
+        subject: String(formData.get("subject") || ""),
+        message: String(formData.get("message") || ""),
+        website: String(formData.get("website") || ""),
+        recaptchaToken,
+      };
+
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: {
@@ -359,9 +369,11 @@ function ContactForm({
         description: "Dziękujemy za kontakt. Odpowiemy mailowo.",
         duration: 4500,
       });
-    } catch {
+    } catch (error) {
       const errorMessage =
-        "Wystąpił problem z wysyłką. Spróbuj ponownie za chwilę.";
+        error instanceof Error
+          ? error.message
+          : "Wystąpił problem z wysyłką. Spróbuj ponownie za chwilę.";
 
       setStatus("error");
       setMessage(errorMessage);
@@ -378,12 +390,15 @@ function ContactForm({
   return (
     <FormShell title={title} description={description}>
       <form onSubmit={handleSubmit} className="space-y-4">
+        <HoneypotField />
+
         {showCompany && (
           <FormInput
             label="Firma / marka"
             name="company"
             placeholder="np. Nazwa firmy, łowiska lub marki"
             required={false}
+            maxLength={160}
           />
         )}
 
@@ -392,6 +407,7 @@ function ContactForm({
             label="Imię i nazwisko"
             name="name"
             placeholder="Jak możemy się do Ciebie zwracać?"
+            maxLength={120}
           />
 
           <FormInput
@@ -399,6 +415,7 @@ function ContactForm({
             name="email"
             type="email"
             placeholder="kontakt@example.pl"
+            maxLength={254}
           />
         </div>
 
@@ -406,6 +423,7 @@ function ContactForm({
           label="Temat wiadomości"
           name="subject"
           placeholder="Krótko opisz temat wiadomości"
+          maxLength={180}
         />
 
         <FormTextarea
@@ -413,6 +431,7 @@ function ContactForm({
           name="message"
           placeholder="Napisz, w czym możemy pomóc..."
           rows={6}
+          maxLength={5000}
         />
 
         <ConsentCheckbox />
@@ -445,22 +464,25 @@ function FisheryWebsiteForm() {
       description: "Proszę czekać, trwa wysyłanie formularza.",
     });
 
-    const formData = new FormData(formElement);
-
-    const payload = {
-      formType: "website",
-      fisheryName: String(formData.get("fisheryName") || ""),
-      name: String(formData.get("name") || ""),
-      email: String(formData.get("email") || ""),
-      phone: String(formData.get("phone") || ""),
-      location: String(formData.get("location") || ""),
-      currentWebsite: String(formData.get("currentWebsite") || ""),
-      budget: String(formData.get("budget") || ""),
-      deadline: String(formData.get("deadline") || ""),
-      message: String(formData.get("message") || ""),
-    };
-
     try {
+      const recaptchaToken = await executeRecaptcha("contact_form");
+      const formData = new FormData(formElement);
+
+      const payload = {
+        formType: "website",
+        fisheryName: String(formData.get("fisheryName") || ""),
+        name: String(formData.get("name") || ""),
+        email: String(formData.get("email") || ""),
+        phone: String(formData.get("phone") || ""),
+        location: String(formData.get("location") || ""),
+        currentWebsite: String(formData.get("currentWebsite") || ""),
+        budget: String(formData.get("budget") || ""),
+        deadline: String(formData.get("deadline") || ""),
+        message: String(formData.get("message") || ""),
+        website: String(formData.get("website") || ""),
+        recaptchaToken,
+      };
+
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: {
@@ -472,7 +494,8 @@ function FisheryWebsiteForm() {
       const data = await readApiResponse(response);
 
       if (!response.ok) {
-        const errorMessage = data.message || "Nie udało się wysłać zapytania.";
+        const errorMessage =
+          data.message || "Nie udało się wysłać zapytania.";
 
         setStatus("error");
         setMessage(errorMessage);
@@ -497,9 +520,11 @@ function FisheryWebsiteForm() {
         description: "Dziękujemy. Odpowiemy mailowo.",
         duration: 4500,
       });
-    } catch {
+    } catch (error) {
       const errorMessage =
-        "Wystąpił problem z wysyłką. Spróbuj ponownie za chwilę.";
+        error instanceof Error
+          ? error.message
+          : "Wystąpił problem z wysyłką. Spróbuj ponownie za chwilę.";
 
       setStatus("error");
       setMessage(errorMessage);
@@ -519,10 +544,13 @@ function FisheryWebsiteForm() {
       description="Uzupełnij podstawowe informacje. Im więcej napiszesz, tym łatwiej będzie ocenić zakres projektu."
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        <HoneypotField />
+
         <FormInput
           label="Nazwa łowiska"
           name="fisheryName"
           placeholder="np. Łowisko Karp Max"
+          maxLength={160}
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -530,6 +558,7 @@ function FisheryWebsiteForm() {
             label="Imię i nazwisko"
             name="name"
             placeholder="Osoba kontaktowa"
+            maxLength={120}
           />
 
           <FormInput
@@ -537,6 +566,7 @@ function FisheryWebsiteForm() {
             name="email"
             type="email"
             placeholder="kontakt@example.pl"
+            maxLength={254}
           />
         </div>
 
@@ -547,12 +577,14 @@ function FisheryWebsiteForm() {
             type="tel"
             placeholder="+48 000 000 000"
             required={false}
+            maxLength={40}
           />
 
           <FormInput
             label="Lokalizacja łowiska"
             name="location"
             placeholder="np. woj. mazowieckie, okolice Siedlec"
+            maxLength={160}
           />
         </div>
 
@@ -562,6 +594,7 @@ function FisheryWebsiteForm() {
           type="url"
           placeholder="https://..."
           required={false}
+          maxLength={500}
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -594,6 +627,7 @@ function FisheryWebsiteForm() {
           name="message"
           placeholder="Napisz, co powinna zawierać strona: opis łowiska, cennik, regulamin, galerię, mapę, formularz, rezerwacje, SEO, zdjęcia itd."
           rows={7}
+          maxLength={5000}
         />
 
         <ConsentCheckbox />
@@ -601,7 +635,9 @@ function FisheryWebsiteForm() {
         <SubmitFeedback status={status} message={message} />
 
         <SubmitButton disabled={status === "loading"}>
-          {status === "loading" ? "Wysyłanie..." : "Wyślij zapytanie o stronę"}
+          {status === "loading"
+            ? "Wysyłanie..."
+            : "Wyślij zapytanie o stronę"}
         </SubmitButton>
       </form>
     </FormShell>
@@ -655,18 +691,39 @@ function MiniInfoCard({
   );
 }
 
+function HoneypotField() {
+  return (
+    <div
+      aria-hidden="true"
+      className="fixed left-[-10000px] top-0 h-px w-px overflow-hidden opacity-0"
+    >
+      <label>
+        Twoja strona internetowa
+        <input
+          type="text"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+        />
+      </label>
+    </div>
+  );
+}
+
 function FormInput({
   label,
   name,
   type = "text",
   placeholder,
   required = true,
+  maxLength,
 }: {
   label: string;
   name: string;
   type?: string;
   placeholder?: string;
   required?: boolean;
+  maxLength?: number;
 }) {
   return (
     <label className="block">
@@ -679,6 +736,7 @@ function FormInput({
         type={type}
         name={name}
         required={required}
+        maxLength={maxLength}
         placeholder={placeholder}
         className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
       />
@@ -692,12 +750,14 @@ function FormTextarea({
   placeholder,
   rows = 5,
   required = true,
+  maxLength = 5000,
 }: {
   label: string;
   name: string;
   placeholder?: string;
   rows?: number;
   required?: boolean;
+  maxLength?: number;
 }) {
   return (
     <label className="block">
@@ -710,6 +770,7 @@ function FormTextarea({
         name={name}
         rows={rows}
         required={required}
+        maxLength={maxLength}
         placeholder={placeholder}
         className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
       />
