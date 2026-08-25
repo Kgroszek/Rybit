@@ -1,12 +1,14 @@
 {
-  "name": "rybit",
+  "name": "rybio",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build --webpack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/contact-validation.test.ts"
   },
   "dependencies": {
     "@next/third-parties": "^16.2.6",
