@@ -4,20 +4,20 @@ export const LAKE_WEBSITE_TEMPLATES = [
     label: "Waterline",
     category: "Premium / nowoczesny",
     description:
-      "Pełnoekranowe fotografie, bardzo duża typografia i dużo przestrzeni. Projekt dla nowoczesnych łowisk i obiektów premium.",
+      "Nowoczesny, jasny projekt z mocnym układem informacji, fotografią i czytelną strukturą strony.",
     bestFor: "Łowiska komercyjne, premium, nowoczesne",
-    features: ["Duży hero", "Asymetryczna galeria", "Jasny premium"],
+    features: ["Jasny layout", "Galeria premium", "Nowoczesny"],
     swatches: ["#155EEF", "#6ED5D0", "#071526", "#FFFFFF"],
   },
   {
     key: "carp-lodge",
     label: "Carp Lodge",
-    category: "Dark / premium",
+    category: "Lodge / outdoor premium",
     description:
-      "Ciemny, luksusowy projekt inspirowany markami outdoor i butikowymi resortami. Mocny charakter bez zbędnych ozdobników.",
-    bestFor: "Łowiska karpiowe, klubowe, specjalistyczne",
-    features: ["Dark mode", "Hero split", "Editorial"],
-    swatches: ["#C69A63", "#71815D", "#0D1110", "#F4F0E7"],
+      "Ciepły, butikowy projekt inspirowany outdoor hospitality i małymi resortami nad wodą. Kremowe tła, editorial serif, kolaż fotografii i mocne sekcje.",
+    bestFor: "Łowiska karpiowe, klubowe, noclegi, obiekty premium",
+    features: ["Editorial serif", "Photo collage", "Warm lodge"],
+    swatches: ["#B85B3E", "#71765A", "#211B18", "#F5EFE7"],
   },
   {
     key: "wild-water",
