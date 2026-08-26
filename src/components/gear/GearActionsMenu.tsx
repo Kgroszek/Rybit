@@ -39,7 +39,7 @@ export function GearActionsMenu({
       return;
     }
 
-    function handlePointerDown(
+    function handleClick(
       event: MouseEvent
     ) {
       if (
@@ -60,9 +60,14 @@ export function GearActionsMenu({
       }
     }
 
+    // Używamy `click`, a nie `mousedown`.
+    // Widok desktopowy i mobilny są jednocześnie obecne w DOM
+    // (jeden z nich jest tylko ukryty przez CSS) i współdzielą openMenuId.
+    // Przy `mousedown` ukryta instancja mogła zamknąć menu zanim
+    // `onClick` widocznej pozycji „Edytuj” / „Usuń” został wywołany.
     document.addEventListener(
-      "mousedown",
-      handlePointerDown
+      "click",
+      handleClick
     );
 
     document.addEventListener(
@@ -72,8 +77,8 @@ export function GearActionsMenu({
 
     return () => {
       document.removeEventListener(
-        "mousedown",
-        handlePointerDown
+        "click",
+        handleClick
       );
 
       document.removeEventListener(
