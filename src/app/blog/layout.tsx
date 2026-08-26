@@ -1,18 +1,16 @@
 import type { ReactNode } from "react";
 
-import { PublicBlogHeader } from "@/components/blog/PublicBlogHeader";
+import { BlogSessionShell } from "@/components/blog/BlogSessionShell";
+import { PublicHeader } from "@/components/public/PublicHeader";
 
-// Publiczny blog celowo nie odczytuje sesji.
-// Dzięki temu cache publicznych stron nie zależy od zalogowanego użytkownika.
 export default function BlogLayout({
   children,
 }: {
   children: ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background">
-      <PublicBlogHeader />
+    <BlogSessionShell publicHeader={<PublicHeader />}>
       {children}
-    </div>
+    </BlogSessionShell>
   );
 }
