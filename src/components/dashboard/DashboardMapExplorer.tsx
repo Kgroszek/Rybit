@@ -7,11 +7,11 @@ import {
   MapContainer,
   Marker,
   Popup,
-  TileLayer,
   useMap,
   useMapEvents,
 } from "react-leaflet";
 
+import { PolishVectorBaseLayer } from "@/components/maps/PolishVectorBaseLayer";
 import { Badge } from "@/components/ui/Badge";
 import { Button, buttonClassName } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -408,10 +408,7 @@ export function DashboardMapExplorer({
           scrollWheelZoom
           className="h-full w-full"
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attribution/">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-          />
+          <PolishVectorBaseLayer />
 
           <FitMapToLakes lakes={lakes} enabled={fitToResults} />
 

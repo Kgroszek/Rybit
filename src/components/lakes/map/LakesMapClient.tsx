@@ -5,11 +5,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   MapContainer,
   Marker,
-  TileLayer,
   useMap,
   useMapEvents,
 } from "react-leaflet";
 
+import { PolishVectorBaseLayer } from "@/components/maps/PolishVectorBaseLayer";
 import {
   areBoundsEqual,
   normalizeLakeExplorerBounds,
@@ -148,7 +148,6 @@ type LakeCluster = {
   lng: number;
 };
 
-
 function MapResizeController() {
   const map = useMap();
 
@@ -178,10 +177,6 @@ function MapResizeController() {
           pan: false,
         });
 
-        /**
-         * Druga klatka jest celowa. Na mobile przełączenie `Lista -> Mapa`
-         * może zmienić rozmiar kontenera dopiero po zakończeniu bieżącego layoutu.
-         */
         secondFrameId = window.requestAnimationFrame(() => {
           const nextRect = container.getBoundingClientRect();
 
@@ -256,10 +251,6 @@ function MapController({
       clearTimeout(viewportTimerRef.current);
     }
 
-    /**
-     * Leaflet potrafi wyemitować zarówno zoomend, jak i moveend
-     * dla jednej interakcji. Krótki debounce scala je do jednego bboxu.
-     */
     viewportTimerRef.current = setTimeout(() => {
       const bounds = normalizeLakeExplorerBounds(getCurrentBounds(map));
 
@@ -287,14 +278,13 @@ function MapController({
 
     const currentBounds = normalizeLakeExplorerBounds(getCurrentBounds(map));
 
-    /**
-     * Gdy activeBounds pochodzi bezpośrednio z ręcznego przesunięcia mapy,
-     * nie wykonujemy ponownie fitBounds. Zapobiega to "odbiciu" mapy i pętli
-     * moveend -> state -> fitBounds -> moveend.
-     */
     if (
       currentBounds &&
-      areBoundsEqual(roundBounds(currentBounds), roundBounds(normalizedTarget), 0.002)
+      areBoundsEqual(
+        roundBounds(currentBounds),
+        roundBounds(normalizedTarget),
+        0.002
+      )
     ) {
       suppressViewportEventsRef.current = false;
       return;
@@ -351,11 +341,6 @@ function MapController({
       const container = map.getContainer();
       const rect = container.getBoundingClientRect();
 
-      /**
-       * Leaflet nie może wykonywać animowanego flyTo, gdy mapa była wcześniej
-       * zamontowana w kontenerze `display:none`. W takim przypadku rozmiar mapy
-       * wynosi 0x0, a obliczenia animacji kończą się LatLng(NaN, NaN).
-       */
       if (rect.width <= 0 || rect.height <= 0) {
         if (attempt < 12) {
           retryTimer = setTimeout(() => focusMap(attempt + 1), 50);
@@ -388,11 +373,6 @@ function MapController({
       map.off("moveend", handleMoveEnd);
       map.once("moveend", handleMoveEnd);
 
-      /**
-       * Tworzymy LatLng jawnie po ponownej walidacji. Gdyby Leaflet mimo to
-       * nie mógł uruchomić animacji (np. podczas bardzo szybkiej zmiany
-       * orientacji), bezpiecznie przechodzimy do setView.
-       */
       const target = L.latLng(lat, lng);
 
       try {
@@ -430,7 +410,13 @@ function MapController({
         window.cancelAnimationFrame(frameId);
       }
     };
-  }, [focusLocation?.lat, focusLocation?.lng, focusLocation?.token, map, onViewportChange]);
+  }, [
+    focusLocation?.lat,
+    focusLocation?.lng,
+    focusLocation?.token,
+    map,
+    onViewportChange,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -650,10 +636,7 @@ export function LakesMapClient({
       scrollWheelZoom
       className="h-full w-full"
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attribution/">CARTO</a>'
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-      />
+      <PolishVectorBaseLayer />
 
       <MapResizeController />
 
