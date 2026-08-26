@@ -1,5 +1,6 @@
 import type { PublicLakeWebsiteData } from "@/components/lake-websites/types";
 import type { LakeWebsiteSection } from "@/lib/lake-website-sections";
+import { WaterlineGalleryViewer } from "@/components/lake-websites/templates/waterline/WaterlineGalleryViewer";
 import {
   EmptyText,
   Eyebrow,
@@ -24,65 +25,33 @@ export function GallerySection({
       className="bg-white py-24 max-[720px]:py-[70px]"
     >
       <div className="mx-auto w-[min(1260px,calc(100%-40px))] max-[720px]:w-[calc(100%-28px)]">
-        <div className="mb-[38px] flex items-end justify-between gap-10 max-md:flex-col max-md:items-start">
-          <div className="max-w-[700px]">
+        <div className="mb-9 grid gap-5 md:grid-cols-[1fr_360px] md:items-end">
+          <div>
             <Eyebrow>
-              {section.eyebrow || "Galeria"}
+              {section.eyebrow ||
+                "Nad wodą"}
             </Eyebrow>
 
             <h2 className="mt-[14px] text-[clamp(34px,3.6vw,50px)] font-extrabold leading-[1.02] tracking-[-0.04em] text-[#16211D]">
               {section.title ||
-                "Zobacz łowisko przed przyjazdem."}
+                "Galeria"}
             </h2>
           </div>
 
-          <p className="max-w-[430px] text-[15px] leading-7 text-[#66706B]">
+          <p className="text-[15px] leading-7 text-[#66706B] md:text-right">
             {section.subtitle ||
-              "Zdjęcia najlepiej pokazują charakter miejsca i warunki nad wodą."}
+              "Zobacz nasze łowisko. Kliknij zdjęcie, aby otworzyć pełny kadr."}
           </p>
         </div>
 
         {images.length > 0 ? (
-          <div className="grid grid-cols-[1.35fr_.65fr] gap-3 max-[1050px]:grid-cols-1">
-            <div className="min-h-[530px] overflow-hidden rounded-[18px] bg-[#DCE1DC] max-[720px]:min-h-[340px]">
-              <img
-                src={images[0]}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              {[1, 2, 3, 4].map(
-                (imageIndex) =>
-                  images[imageIndex] ? (
-                    <div
-                      key={imageIndex}
-                      className="min-h-[250px] overflow-hidden rounded-2xl bg-[#DCE1DC] max-[720px]:min-h-[170px]"
-                    >
-                      <img
-                        src={
-                          images[
-                            imageIndex
-                          ]
-                        }
-                        alt=""
-                        className="h-full w-full object-cover transition duration-500 hover:scale-[1.02]"
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      key={imageIndex}
-                      className="min-h-[250px] rounded-2xl bg-[#EEF1EB] max-[720px]:min-h-[170px]"
-                    />
-                  )
-              )}
-            </div>
-          </div>
+          <WaterlineGalleryViewer
+            images={images}
+          />
         ) : (
           <EmptyText>
-            Dodaj zdjęcia łowiska, aby
-            wyświetlić galerię.
+            Zdjęcia łowiska pojawią się
+            tutaj po ich dodaniu.
           </EmptyText>
         )}
       </div>

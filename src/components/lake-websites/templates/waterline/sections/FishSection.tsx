@@ -41,12 +41,12 @@ export function FishSection({
         </div>
 
         {items.length > 0 ? (
-          <div className="grid grid-cols-2 border-t border-white/15 max-[720px]:grid-cols-1">
+          <div className="grid grid-cols-1 border-t border-white/15 sm:grid-cols-2">
             {items.slice(0, 16).map(
               (item, index) => (
                 <div
                   key={`${item}-${index}`}
-                  className="flex min-h-[82px] items-center justify-between gap-4 border-b border-white/10 py-[18px] odd:border-r odd:pr-7 even:pl-7 max-[720px]:border-r-0 max-[720px]:px-0"
+                  className="flex min-h-[82px] items-center justify-between gap-4 border-b border-white/10 px-0 py-[18px] sm:odd:border-r sm:odd:pr-7 sm:even:pl-7"
                 >
                   <strong className="text-[18px] font-extrabold tracking-[-0.02em]">
                     {item}

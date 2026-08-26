@@ -1,5 +1,8 @@
 import type { PublicLakeWebsiteData } from "@/components/lake-websites/types";
-import { getFishItems } from "@/components/lake-websites/templates/waterline/waterline-utils";
+import {
+  getContactPhone,
+  getFishSummary,
+} from "@/components/lake-websites/templates/waterline/waterline-utils";
 
 export function WaterlineQuickInfo({
   data,
@@ -11,53 +14,42 @@ export function WaterlineQuickInfo({
       (section) => section.type === "fish"
     );
 
-  const fishCount =
-    getFishItems(fishSection, data).length;
-
-  const hasContact = Boolean(
-    data.website.contactPhone ||
-      data.website.contactEmail ||
-      data.lake.contactPhone ||
-      data.lake.contactEmail
-  );
+  const phone = getContactPhone(data);
 
   const items = [
     {
-      title: "Gatunki ryb",
+      title: "Lokalizacja",
       description:
-        fishCount > 0
-          ? `${fishCount} ${
-              fishCount === 1
-                ? "gatunek"
-                : "gatunków"
-            } w danych łowiska.`
-          : "Szczegóły dostępne u właściciela.",
+        data.lake.city ||
+        "Sprawdź dokładny adres w sekcji kontakt.",
     },
     {
-      title: "Cennik",
+      title: "Region",
       description:
-        data.lake.priceList.length > 0
-          ? `${data.lake.priceList.length} pozycji w aktualnym cenniku.`
-          : "Aktualne opłaty u właściciela.",
+        data.lake.voivodeship ||
+        "Informacja dostępna u właściciela.",
     },
     {
-      title: "Regulamin",
-      description:
-        data.lake.rules.length > 0
-          ? `${data.lake.rules.length} najważniejszych zasad na stronie.`
-          : "Szczegółowe zasady u właściciela.",
+      title: "Ryby",
+      description: getFishSummary(
+        fishSection,
+        data,
+        3
+      ),
     },
     {
       title: "Kontakt",
-      description: hasContact
-        ? "Dane kontaktowe dostępne na stronie."
-        : "Skontaktuj się przez profil łowiska.",
+      description:
+        phone ||
+        data.website.contactEmail ||
+        data.lake.contactEmail ||
+        "Dane kontaktowe znajdziesz niżej.",
     },
   ];
 
   return (
     <div className="bg-[#F5F6F2] pb-[22px]">
-      <div className="mx-auto grid w-[min(1260px,calc(100%-40px))] grid-cols-4 gap-3 max-[1050px]:grid-cols-2 max-[720px]:w-[calc(100%-28px)] max-[720px]:grid-cols-1">
+      <div className="mx-auto grid w-[min(1260px,calc(100%-40px))] grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 max-[720px]:w-[calc(100%-28px)]">
         {items.map((item, index) => (
           <article
             key={item.title}
@@ -70,11 +62,11 @@ export function WaterlineQuickInfo({
               )}
             </span>
 
-            <div>
+            <div className="min-w-0">
               <strong className="block text-[13px] font-extrabold text-[#16211D]">
                 {item.title}
               </strong>
-              <span className="mt-1 block text-[12px] leading-5 text-[#66706B]">
+              <span className="mt-1 block break-words text-[12px] leading-5 text-[#66706B]">
                 {item.description}
               </span>
             </div>

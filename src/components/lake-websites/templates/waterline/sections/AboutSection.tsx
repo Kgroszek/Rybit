@@ -2,7 +2,7 @@ import type { PublicLakeWebsiteData } from "@/components/lake-websites/types";
 import type { LakeWebsiteSection } from "@/lib/lake-website-sections";
 import { Eyebrow } from "@/components/lake-websites/templates/waterline/WaterlineUI";
 import {
-  getFishItems,
+  getContactPhone,
   getSectionImage,
 } from "@/components/lake-websites/templates/waterline/waterline-utils";
 
@@ -19,13 +19,7 @@ export function AboutSection({
     1
   );
 
-  const fishSection =
-    data.website.sections.find(
-      (item) => item.type === "fish"
-    );
-
-  const fishCount =
-    getFishItems(fishSection, data).length;
+  const phone = getContactPhone(data);
 
   return (
     <section
@@ -49,44 +43,28 @@ export function AboutSection({
               "Opis łowiska można uzupełnić w edytorze strony."}
           </p>
 
-          <div className="mt-[30px] grid grid-cols-3 gap-5 border-t border-[#DFE4DE] pt-6 max-[720px]:grid-cols-2">
-            <AboutStat
-              value={
-                fishCount > 0
-                  ? String(fishCount)
-                  : "—"
-              }
-              label="gatunków"
+          <div className="mt-[30px] grid gap-x-8 gap-y-5 border-t border-[#DFE4DE] pt-6 sm:grid-cols-3">
+            <AboutMeta
+              label="Miejscowość"
+              value={data.lake.city || "—"}
             />
-            <AboutStat
-              value={
-                data.lake.images.length > 0
-                  ? String(
-                      data.lake.images.length
-                    )
-                  : "—"
-              }
-              label="zdjęć"
+            <AboutMeta
+              label="Województwo"
+              value={data.lake.voivodeship || "—"}
             />
-            <AboutStat
-              value={
-                data.lake.rules.length > 0
-                  ? String(
-                      data.lake.rules.length
-                    )
-                  : "—"
-              }
-              label="zasad"
+            <AboutMeta
+              label="Telefon"
+              value={phone || "—"}
             />
           </div>
         </div>
 
-        <div className="aspect-[4/3] overflow-hidden rounded-[20px] bg-[#D7DDD7]">
+        <div className="relative min-h-[420px] overflow-hidden rounded-[20px] bg-[#D7DDD7] max-[720px]:min-h-[320px]">
           {image ? (
             <img
               src={image}
               alt=""
-              className="h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover"
             />
           ) : null}
         </div>
@@ -95,21 +73,21 @@ export function AboutSection({
   );
 }
 
-function AboutStat({
-  value,
+function AboutMeta({
   label,
+  value,
 }: {
-  value: string;
   label: string;
+  value: string;
 }) {
   return (
-    <div>
-      <strong className="block text-[26px] font-extrabold tracking-[-0.04em] text-[#16211D]">
-        {value}
-      </strong>
-      <span className="text-[12px] text-[#66706B]">
+    <div className="min-w-0">
+      <p className="text-[10px] font-extrabold uppercase tracking-[.1em] text-[#8A928E]">
         {label}
-      </span>
+      </p>
+      <p className="mt-1.5 break-words text-[14px] font-extrabold text-[#16211D]">
+        {value}
+      </p>
     </div>
   );
 }

@@ -178,3 +178,33 @@ export function resolveSectionHref(
 
   return href;
 }
+
+
+export function getContactPhone(
+  data: PublicLakeWebsiteData
+) {
+  return (
+    data.website.contactPhone ||
+    data.lake.contactPhone ||
+    ""
+  ).trim();
+}
+
+export function getFishSummary(
+  section: LakeWebsiteSection | undefined,
+  data: PublicLakeWebsiteData,
+  visibleCount = 3
+) {
+  const items = getFishItems(section, data);
+
+  if (items.length === 0) {
+    return "Zapytaj właściciela o aktualne zarybienie.";
+  }
+
+  const visible = items.slice(0, visibleCount);
+  const rest = items.length - visible.length;
+
+  return rest > 0
+    ? `${visible.join(" · ")} +${rest}`
+    : visible.join(" · ");
+}

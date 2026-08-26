@@ -5,6 +5,7 @@ import {
   PrimaryButton,
 } from "@/components/lake-websites/templates/waterline/WaterlineUI";
 import {
+  getContactPhone,
   getFishItems,
   getSectionImage,
   resolveSectionHref,
@@ -35,6 +36,8 @@ export function HeroSection({
 
   const fishCount =
     getFishItems(fishSection, data).length;
+
+  const phone = getContactPhone(data);
 
   const primaryHref =
     resolveSectionHref(
@@ -102,13 +105,8 @@ export function HeroSection({
                 }
               />
               <HeroFact
-                label="Cennik"
-                value={
-                  data.lake.priceList.length >
-                  0
-                    ? "Dostępny"
-                    : "Zapytaj"
-                }
+                label="Kontakt"
+                value={phone || "—"}
               />
             </div>
           </div>

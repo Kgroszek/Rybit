@@ -2,7 +2,6 @@ import type { CSSProperties } from "react";
 
 import type { PublicLakeWebsiteData } from "@/components/lake-websites/types";
 import { WaterlineHeader } from "@/components/lake-websites/templates/waterline/WaterlineHeader";
-import { WaterlineHighlights } from "@/components/lake-websites/templates/waterline/WaterlineHighlights";
 import { WaterlineQuickInfo } from "@/components/lake-websites/templates/waterline/WaterlineQuickInfo";
 import { WaterlineSectionRenderer } from "@/components/lake-websites/templates/waterline/WaterlineSectionRenderer";
 import { WaterlineSectionShell } from "@/components/lake-websites/templates/waterline/WaterlineSectionShell";
@@ -68,11 +67,6 @@ export function WaterlineLakeWebsite({
                 />
               ) : null}
 
-              {section.type === "about" ? (
-                <WaterlineHighlights
-                  data={data}
-                />
-              ) : null}
             </div>
           )
         )}
