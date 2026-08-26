@@ -17,10 +17,10 @@ export async function lockLakeReservationWrites(
   tx: Prisma.TransactionClient,
   lakeId: string
 ) {
-  // Lock transakcyjny jest wspólny z triggerem PostgreSQL. Dzięki temu dwa
-  // równoległe requesty dla tego samego łowiska nie sprawdzają dostępności
-  // jednocześnie. Po zwolnieniu blokady kolejny SELECT widzi już zapis.
-  await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${lakeId})::bigint)`;
+
+  await tx.$executeRaw`
+    SELECT pg_advisory_xact_lock(hashtext(${lakeId})::bigint)
+  `;
 }
 
 export async function findReservationConflict(

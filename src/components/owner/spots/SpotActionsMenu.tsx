@@ -47,7 +47,7 @@ export function SpotActionsMenu({
       return;
     }
 
-    function handlePointerDown(
+    function handleOutsideClick(
       event: MouseEvent
     ) {
       if (
@@ -69,8 +69,8 @@ export function SpotActionsMenu({
     }
 
     document.addEventListener(
-      "mousedown",
-      handlePointerDown
+      "click",
+      handleOutsideClick
     );
     document.addEventListener(
       "keydown",
@@ -79,8 +79,8 @@ export function SpotActionsMenu({
 
     return () => {
       document.removeEventListener(
-        "mousedown",
-        handlePointerDown
+        "click",
+        handleOutsideClick
       );
       document.removeEventListener(
         "keydown",
