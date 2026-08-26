@@ -343,6 +343,19 @@ export function CatchesManager({
     });
 
     try {
+      // `datetime-local` nie zawiera strefy czasowej.
+      // Przeglądarka interpretuje tę wartość jako lokalny czas użytkownika,
+      // a do API wysyłamy jednoznaczny czas UTC.
+      const caughtAtDate = new Date(form.caughtAt);
+
+      if (Number.isNaN(caughtAtDate.getTime())) {
+        throw new Error(
+          "Podaj prawidłową datę i godzinę połowu."
+        );
+      }
+
+      const caughtAtIso = caughtAtDate.toISOString();
+
       if (!editingCatch) {
         const formData = new FormData();
 
@@ -351,7 +364,7 @@ export function CatchesManager({
         formData.append("length", form.length);
         formData.append("method", form.method);
         formData.append("bait", form.bait);
-        formData.append("caughtAt", form.caughtAt);
+        formData.append("caughtAt", caughtAtIso);
         formData.append("lakeId", form.lakeId);
         formData.append("tripId", form.tripId);
         formData.append("note", form.note);
@@ -436,6 +449,7 @@ export function CatchesManager({
           body: JSON.stringify({
             ...form,
             fishName: finalFishName,
+            caughtAt: caughtAtIso,
           }),
         }
       );
