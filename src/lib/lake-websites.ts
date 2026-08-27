@@ -22,12 +22,12 @@ export const LAKE_WEBSITE_TEMPLATES = [
   {
     key: "wild-water",
     label: "Wild Water",
-    category: "Nature / spokojny",
+    category: "Nature-tech / skandynawski",
     description:
-      "Kremowe powierzchnie, naturalne kolory i eleganckie nagłówki serif. Bardziej jak resort nad wodą niż typowa strona wędkarska.",
-    bestFor: "Jeziora, agroturystyka, łowiska w naturze",
-    features: ["Serif", "Organic shapes", "Natural palette"],
-    swatches: ["#3F654F", "#A77A4B", "#F4F0E5", "#263129"],
+      "Chłodny, współczesny projekt z boczną nawigacją, planszowym układem informacji, poziomą galerią i paletą forest, mint, sky oraz lime.",
+    bestFor: "Naturalne łowiska, jeziora, nowoczesne obiekty outdoor",
+    features: ["Side navigation", "Filmstrip gallery", "Nature-tech"],
+    swatches: ["#173A34", "#DBE86F", "#C6DFEB", "#FBFDFB"],
   },
   {
     key: "fishery-club",

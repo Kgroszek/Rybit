@@ -1,6 +1,7 @@
 import { LakeWebsiteSectionsPage } from "@/components/lake-websites/LakeWebsiteSectionsPage";
 import { CarpLodgeLakeWebsite } from "@/components/lake-websites/templates/carp-lodge/CarpLodgeLakeWebsite";
 import { WaterlineLakeWebsite } from "@/components/lake-websites/templates/waterline/WaterlineLakeWebsite";
+import { WildWaterLakeWebsite } from "@/components/lake-websites/templates/wild-water/WildWaterLakeWebsite";
 import type { PublicLakeWebsiteData } from "@/components/lake-websites/types";
 import { resolveLakeWebsiteTemplateKey } from "@/lib/lake-websites";
 
@@ -32,6 +33,16 @@ export function LakeWebsiteRenderer({
   if (template === "carp-lodge") {
     return (
       <CarpLodgeLakeWebsite
+        data={data}
+        editorMode={editorMode}
+        selectedSectionId={selectedSectionId}
+      />
+    );
+  }
+
+  if (template === "wild-water") {
+    return (
+      <WildWaterLakeWebsite
         data={data}
         editorMode={editorMode}
         selectedSectionId={selectedSectionId}
