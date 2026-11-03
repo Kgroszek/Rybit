@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -34,7 +35,7 @@ export function LakeCatchRankings({ lake, mode }: LakeCatchRankingsProps) {
         description="Publiczne i zatwierdzone połowy przypisane do tego łowiska."
         action={
           mode === "authenticated" ? (
-            <ButtonLink href={`/polowy?new=1`} variant="secondary" size="sm">
+            <ButtonLink href="/polowy?new=1" variant="secondary" size="sm">
               Dodaj połów
             </ButtonLink>
           ) : (
@@ -93,10 +94,15 @@ export function LakeCatchRankings({ lake, mode }: LakeCatchRankingsProps) {
             >
               <CloseIcon className="h-5 w-5" />
             </button>
-            <img
+
+            <Image
               src={preview.imageUrl}
               alt={`Połów: ${preview.fishName}`}
-              className="max-h-[88vh] max-w-full rounded-card object-contain shadow-card-hover"
+              width={1600}
+              height={1200}
+              sizes="100vw"
+              quality={88}
+              className="h-auto max-h-[88vh] w-auto max-w-full rounded-card object-contain shadow-card-hover"
             />
           </div>
         </div>
@@ -168,7 +174,14 @@ function RankingRow({ item, place, type, mode, onPreview }: RankingRowProps) {
         className="relative h-20 overflow-hidden rounded-xl bg-surface-muted sm:h-24"
         aria-label={`Powiększ zdjęcie połowu ${item.fishName}`}
       >
-        <img src={item.imageUrl} alt={`Połów: ${item.fishName}`} className="h-full w-full object-cover" />
+        <Image
+          src={item.imageUrl}
+          alt={`Połów: ${item.fishName}`}
+          fill
+          sizes="84px"
+          quality={70}
+          className="object-cover"
+        />
         <span className="absolute left-2 top-2 flex h-7 min-w-7 items-center justify-center rounded-full bg-navy-950/85 px-1.5 text-[11px] font-bold text-white">
           {place}
         </span>

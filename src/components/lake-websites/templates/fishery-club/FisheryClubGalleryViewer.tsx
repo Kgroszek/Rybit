@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import {
   useEffect,
   useState,
@@ -127,7 +129,7 @@ export function FisheryClubGalleryViewer({
               index + 1
             }`}
           >
-            <img src={image} alt="" />
+            <Image src={image} alt="" width={1200} height={900} sizes="(max-width: 900px) 100vw, 50vw" quality={78} />
 
             <span>
               {String(index + 1).padStart(
@@ -168,9 +170,13 @@ export function FisheryClubGalleryViewer({
               event.stopPropagation()
             }
           >
-            <img
+            <Image
               src={activeImage}
               alt=""
+              width={1600}
+              height={1200}
+              sizes="100vw"
+              quality={88}
               className={styles.lightboxImage}
             />
 

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { FishIcon } from "@/components/icons/FishIcon";
@@ -48,7 +49,14 @@ export function LakeNearbyLakes({ lakeCity, lakes, mode }: LakeNearbyLakesProps)
               <Link href={`${basePath}/${lake.slug}`} className="block h-full">
                 <div className="relative h-44 bg-surface-muted">
                   {image ? (
-                    <img src={image} alt={`${lake.name} – łowisko w ${lake.address.city}`} className="h-full w-full object-cover" />
+                    <Image
+                      src={image}
+                      alt={`${lake.name} – łowisko w ${lake.address.city}`}
+                      fill
+                      sizes="(max-width: 767px) 100vw, 33vw"
+                      quality={74}
+                      className="object-cover"
+                    />
                   ) : (
                     <div className="flex h-full items-center justify-center text-primary">
                       <FishIcon className="h-8 w-8" />

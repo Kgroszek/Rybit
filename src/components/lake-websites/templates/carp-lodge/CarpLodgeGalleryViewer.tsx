@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import {
   useEffect,
   useState,
@@ -112,9 +114,14 @@ export function CarpLodgeGalleryViewer({
           onClick={() => setActiveIndex(0)}
           aria-label="Otwórz pierwsze zdjęcie"
         >
-          <img
+          <Image
             src={cleanImages[0]}
             alt=""
+            width={1400}
+            height={1000}
+            sizes="(max-width: 900px) 100vw, 66vw"
+            quality={80}
+            priority
           />
           <span className={styles.galleryZoom}>
             Powiększ
@@ -144,7 +151,7 @@ export function CarpLodgeGalleryViewer({
                     index + 1
                   }`}
                 >
-                  <img src={image} alt="" />
+                  <Image src={image} alt="" width={1200} height={900} sizes="(max-width: 900px) 100vw, 50vw" quality={78} />
 
                   {index === 2 &&
                   cleanImages.length > 3 ? (
@@ -180,9 +187,13 @@ export function CarpLodgeGalleryViewer({
               event.stopPropagation()
             }
           >
-            <img
+            <Image
               src={activeImage}
               alt=""
+              width={1600}
+              height={1200}
+              sizes="100vw"
+              quality={88}
               className={styles.lightboxImage}
             />
 

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
 import { ArrowSmallRightIcon } from "@/components/icons/ArrowSmallRightIcon";
@@ -58,11 +59,12 @@ export function LakeGallery({ lakeName, images }: LakeGalleryProps) {
       if (event.key === "ArrowRight") showNext();
     }
 
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.body.style.overflow = "";
+      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [previewIndex, visibleImages.length]);
@@ -102,6 +104,8 @@ export function LakeGallery({ lakeName, images }: LakeGalleryProps) {
             onClick={() => setPreviewIndex(0)}
             onError={() => markImageAsBroken(visibleImages[0])}
             className="h-[300px] sm:h-[420px] lg:h-full"
+            sizes="(max-width: 1023px) 100vw, 66vw"
+            priority
           />
 
           {secondaryImages.length > 0 && (
@@ -114,6 +118,7 @@ export function LakeGallery({ lakeName, images }: LakeGalleryProps) {
                   onClick={() => setPreviewIndex(index + 1)}
                   onError={() => markImageAsBroken(image)}
                   className="min-h-0"
+                  sizes="33vw"
                 />
               ))}
             </div>
@@ -177,11 +182,15 @@ export function LakeGallery({ lakeName, images }: LakeGalleryProps) {
               </>
             )}
 
-            <img
+            <Image
               src={previewImage}
               alt={`Zdjęcie ${previewIndex + 1} łowiska ${lakeName}`}
+              width={1600}
+              height={1200}
+              sizes="100vw"
+              quality={88}
               onError={() => markImageAsBroken(previewImage)}
-              className="max-h-[90vh] max-w-full rounded-card object-contain shadow-card-hover"
+              className="h-auto max-h-[90vh] w-auto max-w-full rounded-card object-contain shadow-card-hover"
             />
 
             <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-navy-950/75 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
@@ -200,6 +209,8 @@ type GalleryButtonProps = {
   onClick: () => void;
   onError: () => void;
   className?: string;
+  sizes: string;
+  priority?: boolean;
 };
 
 function GalleryButton({
@@ -208,6 +219,8 @@ function GalleryButton({
   onClick,
   onError,
   className,
+  sizes,
+  priority = false,
 }: GalleryButtonProps) {
   return (
     <button
@@ -215,11 +228,16 @@ function GalleryButton({
       onClick={onClick}
       className={cn("group relative overflow-hidden bg-surface-muted text-left", className)}
     >
-      <img
+      <Image
         src={image}
         alt={alt}
+        fill
+        sizes={sizes}
+        quality={80}
+        priority={priority}
+        fetchPriority={priority ? "high" : "auto"}
         onError={onError}
-        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.025]"
+        className="object-cover transition-transform duration-500 group-hover:scale-[1.025]"
       />
       <span className="absolute inset-0 bg-navy-950/0 transition-colors duration-300 group-hover:bg-navy-950/10" />
     </button>

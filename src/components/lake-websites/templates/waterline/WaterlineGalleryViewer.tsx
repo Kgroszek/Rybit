@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 import {
   useEffect,
   useMemo,
@@ -191,10 +193,14 @@ export function WaterlineGalleryViewer({
               event.stopPropagation()
             }
           >
-            <img
+            <Image
               src={activeImage}
               alt=""
-              className="max-h-full max-w-full object-contain"
+              width={1600}
+              height={1200}
+              sizes="100vw"
+              quality={88}
+              className="h-auto max-h-full w-auto max-w-full object-contain"
             />
 
             <button
@@ -257,9 +263,13 @@ function GalleryButton({
       aria-label={label}
       className={styles.imageButton}
     >
-      <img
+      <Image
         src={src}
         alt=""
+        width={1200}
+        height={900}
+        sizes="(max-width: 900px) 100vw, 66vw"
+        quality={78}
         className={styles.image}
       />
 
