@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import Link from "next/link";
 
 import type { CatchDetailsData, CatchDetailsMode } from "@/components/catches/types";
@@ -34,10 +35,14 @@ export function CatchDetailsView({
         <div className="grid lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,.92fr)]">
           <div className="relative min-h-[360px] bg-surface-muted sm:min-h-[480px] lg:min-h-[680px]">
             {fishingCatch.imageUrl ? (
-              <img
+              <Image
                 src={fishingCatch.imageUrl}
                 alt={`Połów: ${fishingCatch.fishName}`}
-                className="absolute inset-0 h-full w-full object-cover"
+                fill
+                sizes="(max-width: 1023px) 100vw, 55vw"
+                quality={80}
+                priority
+                className="object-cover"
               />
             ) : (
               <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(145deg,var(--rybio-primary-50),var(--rybio-surface-muted))] text-primary">

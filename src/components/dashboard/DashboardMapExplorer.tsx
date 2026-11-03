@@ -2,6 +2,8 @@
 
 import L from "leaflet";
 import Link from "next/link";
+
+import { SupabaseImage } from "@/components/media/SupabaseImage";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
@@ -318,9 +320,14 @@ function LakeMarker({ lake }: { lake: LakeListDto }) {
       <Popup minWidth={235} maxWidth={290}>
         <div>
           {lake.images[0] && (
-            <img
+            <SupabaseImage
               src={lake.images[0]}
+              variant="thumb"
               alt={lake.name}
+              width={320}
+              height={160}
+              sizes="260px"
+              quality={70}
               className="mb-3 h-28 w-full rounded-xl object-cover"
             />
           )}

@@ -1,3 +1,5 @@
+import { SupabaseImage } from "@/components/media/SupabaseImage";
+
 import type { PublicLakeWebsiteData } from "@/components/lake-websites/types";
 import type { LakeWebsiteSection } from "@/lib/lake-website-sections";
 import { Eyebrow } from "@/components/lake-websites/templates/waterline/WaterlineUI";
@@ -61,10 +63,14 @@ export function AboutSection({
 
         <div className="relative min-h-[420px] overflow-hidden rounded-[20px] bg-[#D7DDD7] max-[720px]:min-h-[320px]">
           {image ? (
-            <img
+            <SupabaseImage
               src={image}
+              variant="medium"
               alt=""
-              className="absolute inset-0 h-full w-full object-cover"
+              fill
+              sizes="(max-width: 1050px) 100vw, 45vw"
+              quality={75}
+              className="object-cover"
             />
           ) : null}
         </div>

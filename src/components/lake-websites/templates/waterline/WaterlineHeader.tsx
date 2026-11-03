@@ -44,6 +44,10 @@ export function WaterlineHeader({
             <img
               src={logoUrl}
               alt={siteName}
+              width={180}
+              height={36}
+              loading="eager"
+              decoding="async"
               className="h-9 max-w-[180px] object-contain"
             />
           ) : (

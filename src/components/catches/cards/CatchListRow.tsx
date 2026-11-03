@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SupabaseImage } from "@/components/media/SupabaseImage";
 import type { FishingCatch } from "@/components/catches/types";
 import { CatchScoreBadge } from "@/components/catches/CatchScoreBadge";
 import { CatchStatusBadge } from "@/components/catches/CatchStatusBadge";
@@ -27,8 +28,16 @@ export function CatchListRow({
     <article className="grid gap-4 px-4 py-4 transition hover:bg-surface-muted/60 sm:px-5 xl:grid-cols-[88px_minmax(0,1fr)_auto] xl:items-center">
       <div className="relative h-20 w-20 overflow-hidden rounded-control bg-surface-muted">
         {item.imageUrl ? (
-          <button type="button" onClick={onPreviewImage} className="h-full w-full">
-            <img src={item.imageUrl} alt={`Połów: ${item.fishName}`} className="h-full w-full object-cover" />
+          <button type="button" onClick={onPreviewImage} className="relative h-full w-full">
+            <SupabaseImage
+              src={item.imageUrl}
+              variant="thumb"
+              alt={`Połów: ${item.fishName}`}
+              fill
+              sizes="80px"
+              quality={70}
+              className="object-cover"
+            />
           </button>
         ) : (
           <div className="flex h-full w-full items-center justify-center text-primary">

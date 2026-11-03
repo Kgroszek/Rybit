@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { SupabaseImage } from "@/components/media/SupabaseImage";
 import type { FishingCatch } from "@/components/catches/types";
 import { CatchScoreBadge } from "@/components/catches/CatchScoreBadge";
 import { CatchStatusBadge } from "@/components/catches/CatchStatusBadge";
@@ -34,10 +35,14 @@ export function CatchCard({
             className="block h-full w-full text-left focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-primary-100"
             aria-label={`Powiększ zdjęcie połowu: ${item.fishName}`}
           >
-            <img
+            <SupabaseImage
               src={item.imageUrl}
+              variant="thumb"
               alt={`Zdjęcie połowu: ${item.fishName}`}
-              className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.025]"
+              fill
+              sizes="(max-width: 639px) 100vw, (max-width: 1279px) 50vw, (max-width: 1535px) 33vw, 25vw"
+              quality={75}
+              className="object-cover transition duration-300 group-hover:scale-[1.025]"
             />
           </button>
         ) : (

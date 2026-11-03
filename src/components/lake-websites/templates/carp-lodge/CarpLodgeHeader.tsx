@@ -68,6 +68,10 @@ export function CarpLodgeHeader({
               <img
                 src={logoUrl}
                 alt={siteName}
+                width={180}
+                height={42}
+                loading="eager"
+                decoding="async"
                 className={styles.brandLogo}
               />
             ) : (

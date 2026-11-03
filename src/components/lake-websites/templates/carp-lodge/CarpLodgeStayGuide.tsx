@@ -1,3 +1,5 @@
+import { SupabaseImage } from "@/components/media/SupabaseImage";
+
 import type { PublicLakeWebsiteData } from "@/components/lake-websites/types";
 import styles from "@/components/lake-websites/templates/carp-lodge/CarpLodge.module.css";
 
@@ -110,9 +112,14 @@ export function CarpLodgeStayGuide({
             >
               <div className={styles.stayMedia}>
                 {item.image ? (
-                  <img
+                  <SupabaseImage
                     src={item.image}
+                    variant="medium"
                     alt=""
+                    width={900}
+                    height={650}
+                    sizes="(max-width: 1050px) 100vw, 50vw"
+                    quality={75}
                   />
                 ) : (
                   <div

@@ -1,3 +1,5 @@
+import { SupabaseImage } from "@/components/media/SupabaseImage";
+
 import type { PublicLakeWebsiteData } from "@/components/lake-websites/types";
 import type { LakeWebsiteSection } from "@/lib/lake-website-sections";
 import styles from "@/components/lake-websites/templates/carp-lodge/CarpLodge.module.css";
@@ -36,7 +38,15 @@ export function FishSection({
         <div className={styles.speciesVisual}>
           <div className={styles.speciesPhoto}>
             {image ? (
-              <img src={image} alt="" />
+              <SupabaseImage
+                src={image}
+                variant="medium"
+                alt=""
+                width={1000}
+                height={900}
+                sizes="(max-width: 1050px) 100vw, 55vw"
+                quality={75}
+              />
             ) : (
               <div
                 className={

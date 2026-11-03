@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import type { PublicLakeWebsiteData } from "@/components/lake-websites/types";
 import type { LakeWebsiteSection } from "@/lib/lake-website-sections";
 import styles from "@/components/lake-websites/templates/wild-water/WildWater.module.css";
@@ -105,12 +107,14 @@ export function HeroSection({
 
           <div className={styles.heroPhoto}>
             {image ? (
-              <img
+              <Image
                 src={image}
-                alt={
-                  section.title ||
-                  data.lake.name
-                }
+                alt={section.title || data.lake.name}
+                width={1400}
+                height={1100}
+                sizes="(max-width: 1100px) 100vw, 55vw"
+                quality={80}
+                priority
               />
             ) : (
               <div

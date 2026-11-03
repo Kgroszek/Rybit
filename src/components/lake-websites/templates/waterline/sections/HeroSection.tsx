@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import type { PublicLakeWebsiteData } from "@/components/lake-websites/types";
 import type { LakeWebsiteSection } from "@/lib/lake-website-sections";
 import {
@@ -113,13 +115,14 @@ export function HeroSection({
 
           <div className="relative min-h-[460px] bg-[#D8E0DB] max-[1050px]:min-h-[420px] max-[720px]:min-h-[300px]">
             {image ? (
-              <img
+              <Image
                 src={image}
-                alt={
-                  section.title ||
-                  data.lake.name
-                }
-                className="absolute inset-0 h-full w-full object-cover"
+                alt={section.title || data.lake.name}
+                fill
+                sizes="(max-width: 1050px) 100vw, 48vw"
+                quality={80}
+                priority
+                className="object-cover"
               />
             ) : (
               <div className="absolute inset-0 bg-[linear-gradient(145deg,#D8E0DB,#BCC9C1)]" />

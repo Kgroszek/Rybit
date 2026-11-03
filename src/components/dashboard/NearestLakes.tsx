@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { SupabaseImage } from "@/components/media/SupabaseImage";
 import { ArrowRightIcon } from "@/components/icons/ArrowRightIcon";
 import { Card } from "@/components/ui/Card";
 import { InteractiveRow } from "@/components/ui/InteractiveRow";
@@ -92,12 +93,16 @@ export function NearestLakes({
             href={`/lowiska/${lake.slug}`}
             className="min-h-[74px] px-1"
           >
-            <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-control bg-primary-100">
+            <div className="relative h-[52px] w-[52px] shrink-0 overflow-hidden rounded-control bg-primary-100">
               {lake.images[0] ? (
-                <img
+                <SupabaseImage
                   src={lake.images[0]}
+                  variant="thumb"
                   alt={lake.name}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  fill
+                  sizes="52px"
+                  quality={70}
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
                 />
               ) : (
                 <div className="flex h-full w-full items-center justify-center font-display text-[10px] font-bold text-primary">

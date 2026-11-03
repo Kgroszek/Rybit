@@ -155,6 +155,10 @@ function Brand({
           <img
             src={logoUrl}
             alt={siteName}
+            width={40}
+            height={32}
+            loading="eager"
+            decoding="async"
             className={styles.logo}
           />
         </span>

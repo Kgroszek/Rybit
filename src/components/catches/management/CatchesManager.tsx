@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import Image from "next/image";
 
 import { CatchShareDialog } from "@/components/catches/CatchShareDialog";
 import { CatchCard } from "@/components/catches/cards/CatchCard";
@@ -286,10 +287,32 @@ export function CatchesManager({
     return true;
   }
 
+  async function removeCatchImageVariants(catchId: string) {
+    try {
+      await fetch(`/api/catches/${catchId}/variants`, {
+        method: "DELETE",
+      });
+    } catch {
+      // Czyszczenie wariantów nie może zablokować zapisu połowu.
+    }
+  }
+
+  async function generateCatchImageVariants(catchId: string) {
+    try {
+      await fetch(`/api/catches/${catchId}/variants`, {
+        method: "POST",
+      });
+    } catch {
+      // Oryginał pozostaje poprawny; UI ma fallback do pełnego zdjęcia.
+    }
+  }
+
   async function uploadCatchImage(
     catchId: string,
     image: File
   ) {
+    await removeCatchImageVariants(catchId);
+
     const compressed = await compressCatchImage(image);
     const formData = new FormData();
 
@@ -312,6 +335,10 @@ export function CatchesManager({
         data.message ||
           "Nie udało się dodać zdjęcia."
       );
+    }
+
+    if (data.imagePath) {
+      await generateCatchImageVariants(catchId);
     }
 
     return data;
@@ -395,6 +422,10 @@ export function CatchesManager({
             data.message ||
               "Nie udało się zapisać połowu."
           );
+        }
+
+        if (data.imagePath) {
+          await generateCatchImageVariants(data.id);
         }
 
         setCatches((current) => [
@@ -536,6 +567,10 @@ export function CatchesManager({
     });
 
     try {
+      if (deleteCatch.imagePath) {
+        await removeCatchImageVariants(deleteCatch.id);
+      }
+
       const response = await fetch(
         `/api/catches/${deleteCatch.id}`,
         {
@@ -744,10 +779,14 @@ export function CatchesManager({
               <CloseIcon className="h-5 w-5" />
             </button>
 
-            <img
+            <Image
               src={previewImage.url}
               alt={previewImage.alt}
-              className="max-h-[88dvh] w-full rounded-[20px] object-contain"
+              width={1600}
+              height={1200}
+              sizes="100vw"
+              quality={80}
+              className="h-auto max-h-[88dvh] w-auto max-w-full rounded-[20px] object-contain"
             />
           </div>
         </div>

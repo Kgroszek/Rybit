@@ -106,6 +106,10 @@ export function CarpLodgeLakeWebsite({
               <img
                 src={data.website.logoUrl}
                 alt={siteName}
+                width={180}
+                height={42}
+                loading="lazy"
+                decoding="async"
                 className={
                   styles.footerLogo
                 }

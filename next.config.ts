@@ -23,14 +23,12 @@ if (supabaseUrl) {
       });
     }
   } catch {
-    // pomijamy nieprawidłowy URL
   }
 }
 
 const nextConfig: NextConfig = {
   images: {
     remotePatterns,
-    qualities: [70, 72, 74, 75, 80],
   },
 };
 

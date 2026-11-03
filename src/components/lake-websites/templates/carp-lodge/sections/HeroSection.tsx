@@ -1,3 +1,6 @@
+import Image from "next/image";
+
+import { SupabaseImage } from "@/components/media/SupabaseImage";
 import type { PublicLakeWebsiteData } from "@/components/lake-websites/types";
 import type { LakeWebsiteSection } from "@/lib/lake-website-sections";
 import styles from "@/components/lake-websites/templates/carp-lodge/CarpLodge.module.css";
@@ -110,12 +113,14 @@ export function HeroSection({
         <div className={styles.heroMedia}>
           <div className={styles.heroMainPhoto}>
             {images[0] ? (
-              <img
+              <Image
                 src={images[0]}
-                alt={
-                  section.title ||
-                  data.lake.name
-                }
+                alt={section.title || data.lake.name}
+                width={1200}
+                height={1000}
+                sizes="(max-width: 1050px) 100vw, 52vw"
+                quality={80}
+                priority
               />
             ) : (
               <div
@@ -128,9 +133,25 @@ export function HeroSection({
 
           <div className={styles.heroSmallPhoto}>
             {images[1] ? (
-              <img src={images[1]} alt="" />
+              <SupabaseImage
+                src={images[1]}
+                variant="medium"
+                alt=""
+                width={700}
+                height={600}
+                sizes="(max-width: 720px) 54vw, 28vw"
+                quality={75}
+              />
             ) : images[0] ? (
-              <img src={images[0]} alt="" />
+              <SupabaseImage
+                src={images[0]}
+                variant="medium"
+                alt=""
+                width={700}
+                height={600}
+                sizes="(max-width: 720px) 54vw, 28vw"
+                quality={75}
+              />
             ) : (
               <div
                 className={

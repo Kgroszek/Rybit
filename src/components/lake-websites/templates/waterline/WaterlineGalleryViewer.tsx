@@ -199,7 +199,7 @@ export function WaterlineGalleryViewer({
               width={1600}
               height={1200}
               sizes="100vw"
-              quality={88}
+              quality={80}
               className="h-auto max-h-full w-auto max-w-full object-contain"
             />
 
@@ -269,7 +269,7 @@ function GalleryButton({
         width={1200}
         height={900}
         sizes="(max-width: 900px) 100vw, 66vw"
-        quality={78}
+        quality={75}
         className={styles.image}
       />
 
