@@ -127,6 +127,9 @@ export function useLakesExplorer({
     initialData.mapResult
   );
 
+  const [mapEnabled, setMapEnabled] = useState(false);
+  const [isMapRefreshing, setIsMapRefreshing] = useState(false);
+
   const [isRefreshing, setIsRefreshing] = useState(
     !initialDataComplete
   );
@@ -135,7 +138,10 @@ export function useLakesExplorer({
   const [error, setError] = useState("");
 
   const refreshRequestId = useRef(0);
+  const mapRequestId = useRef(0);
   const loadMoreRequestId = useRef(0);
+  const mapControllerRef = useRef<AbortController | null>(null);
+  const mapLoadedKeyRef = useRef<string | null>(null);
   const loadMoreControllerRef = useRef<AbortController | null>(null);
   const isFirstRefreshEffect = useRef(true);
 
@@ -161,6 +167,34 @@ export function useLakesExplorer({
   const sortLocationKey = queryUserLocation
     ? `${queryUserLocation.lat}:${queryUserLocation.lng}`
     : "no-distance-location";
+
+  /**
+   * Sortowanie nie zmienia zestawu punktów mapy, dlatego nie jest częścią
+   * klucza. Mapa odświeża się wyłącznie po zmianie filtrów, obszaru lub scope.
+   */
+  const mapQueryKey = useMemo(
+    () =>
+      JSON.stringify({
+        search: filters.search,
+        ownerType: filters.ownerType,
+        fishingType: filters.fishingType,
+        voivodeship: filters.voivodeship,
+        fish: filters.fish,
+        amenities: [...filters.amenities].sort(),
+        bounds: boundsKey,
+        scope,
+      }),
+    [
+      filters.search,
+      filters.ownerType,
+      filters.fishingType,
+      filters.voivodeship,
+      filters.fish,
+      filters.amenities,
+      boundsKey,
+      scope,
+    ]
+  );
 
   const setFilters = useCallback(
     (
@@ -217,7 +251,7 @@ export function useLakesExplorer({
     []
   );
 
-  const fetchFirstPageAndMap = useCallback(
+  const fetchFirstPage = useCallback(
     async ({ signal }: { signal: AbortSignal }) => {
       const query = makeQuery({
         filters,
@@ -228,34 +262,16 @@ export function useLakesExplorer({
         scope,
       });
 
-      const [listResponse, mapResponse] = await Promise.all([
-        fetch("/api/lakes/explorer", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(query),
-          signal,
-        }),
-        fetch("/api/lakes/explorer/map", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(query),
-          signal,
-        }),
-      ]);
+      const response = await fetch("/api/lakes/explorer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(query),
+        signal,
+      });
 
-      const [nextResult, nextMap] = await Promise.all([
-        readJsonResponse<LakeExplorerResult>(listResponse),
-        readJsonResponse<LakeExplorerMapResult>(mapResponse),
-      ]);
-
-      return {
-        nextResult,
-        nextMap,
-      };
+      return readJsonResponse<LakeExplorerResult>(response);
     },
     [
       activeBounds,
@@ -264,6 +280,36 @@ export function useLakesExplorer({
       queryUserLocation,
       scope,
     ]
+  );
+
+  const fetchMap = useCallback(
+    async ({ signal }: { signal: AbortSignal }) => {
+      const query = makeQuery({
+        filters,
+        bounds: activeBounds,
+        page: 1,
+        pageSize: 1,
+        userLocation: null,
+        scope,
+      });
+
+      const response = await fetch("/api/lakes/explorer/map", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...query,
+          sort: "rating-desc",
+          userLat: null,
+          userLng: null,
+        }),
+        signal,
+      });
+
+      return readJsonResponse<LakeExplorerMapResult>(response);
+    },
+    [activeBounds, filters, scope]
   );
 
   useEffect(() => {
@@ -289,7 +335,7 @@ export function useLakesExplorer({
       setError("");
 
       try {
-        const { nextResult, nextMap } = await fetchFirstPageAndMap({
+        const nextResult = await fetchFirstPage({
           signal: controller.signal,
         });
 
@@ -301,7 +347,6 @@ export function useLakesExplorer({
         }
 
         setResult(nextResult);
-        setMapResult(nextMap);
       } catch (requestError) {
         if (controller.signal.aborted) {
           return;
@@ -330,9 +375,74 @@ export function useLakesExplorer({
     filterKey,
     boundsKey,
     sortLocationKey,
-    fetchFirstPageAndMap,
+    fetchFirstPage,
     initialDataComplete,
   ]);
+
+  /**
+   * Punkty mapy są pobierane wyłącznie wtedy, gdy mapa jest faktycznie
+   * widoczna. Gdy użytkownik korzysta z widoku "Tylko lista", zmiana
+   * filtrów nie generuje requestów do /api/lakes/explorer/map.
+   */
+  useEffect(() => {
+    if (!mapEnabled) {
+      mapControllerRef.current?.abort();
+      mapControllerRef.current = null;
+      setIsMapRefreshing(false);
+      return;
+    }
+
+    if (mapLoadedKeyRef.current === mapQueryKey) {
+      return;
+    }
+
+    const currentRequestId = mapRequestId.current + 1;
+    mapRequestId.current = currentRequestId;
+
+    mapControllerRef.current?.abort();
+
+    const controller = new AbortController();
+    mapControllerRef.current = controller;
+    setIsMapRefreshing(true);
+
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const nextMap = await fetchMap({
+          signal: controller.signal,
+        });
+
+        if (
+          controller.signal.aborted ||
+          mapRequestId.current !== currentRequestId
+        ) {
+          return;
+        }
+
+        setMapResult(nextMap);
+        mapLoadedKeyRef.current = mapQueryKey;
+      } catch (requestError) {
+        if (!controller.signal.aborted) {
+          console.error(
+            "[useLakesExplorer/map] Nie udało się pobrać punktów mapy:",
+            requestError
+          );
+        }
+      } finally {
+        if (
+          !controller.signal.aborted &&
+          mapRequestId.current === currentRequestId
+        ) {
+          setIsMapRefreshing(false);
+          mapControllerRef.current = null;
+        }
+      }
+    }, 220);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [fetchMap, mapEnabled, mapQueryKey]);
 
   useEffect(() => {
     if (!syncUrl) {
@@ -466,6 +576,7 @@ export function useLakesExplorer({
   useEffect(() => {
     return () => {
       loadMoreControllerRef.current?.abort();
+      mapControllerRef.current?.abort();
     };
   }, []);
 
@@ -479,6 +590,8 @@ export function useLakesExplorer({
     setMobileView,
     result,
     mapResult,
+    setMapEnabled,
+    isMapRefreshing,
     isRefreshing,
     isLoadingMore,
     error,

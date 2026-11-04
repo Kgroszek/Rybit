@@ -934,8 +934,9 @@ function toFilters(
  * - strony kategorii,
  * - landingi województw.
  *
- * Wszystkie te strony dostają listę, mapę i opcje filtrów
- * z dokładnie tego samego systemu zapytań.
+ * Wszystkie te strony dostają listę i opcje filtrów z dokładnie
+ * tego samego systemu zapytań. Punkty mapy są ładowane lazy po stronie
+ * klienta dopiero wtedy, gdy mapa jest faktycznie widoczna.
  */
 export async function getLakeExplorerInitialData({
   query: input = {
@@ -960,11 +961,9 @@ export async function getLakeExplorerInitialData({
 
   const [
     result,
-    mapResult,
     filterOptionsWithoutCount,
   ] = await Promise.all([
     getLakeExplorerResults(query),
-    getLakeExplorerMapResults(query),
 
     /*
      * getLakeExplorerResults() i tak wykonuje COUNT(*) do paginacji.
@@ -978,6 +977,16 @@ export async function getLakeExplorerInitialData({
       }
     ),
   ]);
+
+  /*
+   * Nie pobieramy punktów mapy podczas SSR/ISR.
+   * useLakesExplorer dociąga je z /api/lakes/explorer/map dopiero po
+   * faktycznym pokazaniu mapy.
+   */
+  const mapResult: LakeExplorerMapResult = {
+    lakes: [],
+    totalCount: 0,
+  };
 
   const filterOptions = {
     ...filterOptionsWithoutCount,

@@ -71,6 +71,7 @@ export function LakesExplorer({
   const [desktopView, setDesktopViewState] =
     useState<DesktopExplorerView>("split");
   const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+  const [isDesktopViewHydrated, setIsDesktopViewHydrated] = useState(false);
 
   const [focusLocation, setFocusLocation] = useState<
     | {
@@ -117,6 +118,8 @@ export function LakesExplorer({
       }
     } catch {
       // Preferencja widoku nie jest krytyczna dla działania explorera.
+    } finally {
+      setIsDesktopViewHydrated(true);
     }
   }, []);
 
@@ -260,7 +263,13 @@ export function LakesExplorer({
    */
   const shouldRenderMap =
     explorer.mobileView === "map" ||
-    (isDesktopViewport && desktopView === "split");
+    (isDesktopViewport &&
+      isDesktopViewHydrated &&
+      desktopView === "split");
+
+  useEffect(() => {
+    explorer.setMapEnabled(shouldRenderMap);
+  }, [explorer.setMapEnabled, shouldRenderMap]);
 
   const publicInfo = useMemo(
     () =>
@@ -430,7 +439,7 @@ export function LakesExplorer({
               selectedLakeId={selectedLakeId}
               hoveredLakeId={hoveredLakeId}
               detailBasePath={detailBasePath}
-              isRefreshing={explorer.isRefreshing}
+              isRefreshing={explorer.isMapRefreshing}
               isLocationLoading={isLocationLoading}
               isDefaultArea={isDefaultPolandBounds(explorer.activeBounds)}
               onViewportChange={handleViewportChange}
