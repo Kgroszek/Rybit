@@ -20,6 +20,31 @@ export type LakeAmenityKey =
 
 export type LakeAmenitiesDto = Record<LakeAmenityKey, boolean>;
 
+export type LakeListSort =
+  | "rating-desc"
+  | "name-asc"
+  | "name-desc"
+  | "distance-asc";
+
+/**
+ * Typ kompatybilności dla starszych komponentów.
+ * Nie uruchamia starego systemu pobierania danych.
+ */
+export type LakeListQuery = {
+  page?: number;
+  pageSize?: number;
+  search?: string;
+  ownerType?: string;
+  fishingType?: string;
+  voivodeship?: string;
+  fish?: string;
+  amenities?: string[];
+  accommodation?: boolean;
+  sort?: string;
+  userLat?: number | null;
+  userLng?: number | null;
+};
+
 export type LakeListDto = {
   id: string;
   name: string;

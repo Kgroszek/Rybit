@@ -19,6 +19,8 @@ export type {
   LakeFilterOptions,
   LakeFishRecordDto,
   LakeListDto,
+  LakeListQuery,
+  LakeListSort,
   LakeOpeningHoursDto,
   PaginatedLakesResult,
 } from "@/lib/lake-types";
