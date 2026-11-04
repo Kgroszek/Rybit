@@ -1,3 +1,12 @@
+export type LakeOwnerType =
+  | "pzw"
+  | "commercial";
+
+export type LakeFishingType =
+  | "general"
+  | "spinning"
+  | "carp";
+
 export type LakeAmenityKey =
   | "cottages"
   | "campfire"
@@ -18,32 +27,8 @@ export type LakeAmenityKey =
   | "playground"
   | "cardPayment";
 
-export type LakeAmenitiesDto = Record<LakeAmenityKey, boolean>;
-
-export type LakeListSort =
-  | "rating-desc"
-  | "name-asc"
-  | "name-desc"
-  | "distance-asc";
-
-/**
- * Typ kompatybilności dla starszych komponentów.
- * Nie uruchamia starego systemu pobierania danych.
- */
-export type LakeListQuery = {
-  page?: number;
-  pageSize?: number;
-  search?: string;
-  ownerType?: string;
-  fishingType?: string;
-  voivodeship?: string;
-  fish?: string;
-  amenities?: string[];
-  accommodation?: boolean;
-  sort?: string;
-  userLat?: number | null;
-  userLng?: number | null;
-};
+export type LakeAmenitiesDto =
+  Record<LakeAmenityKey, boolean>;
 
 export type LakeListDto = {
   id: string;
@@ -52,8 +37,8 @@ export type LakeListDto = {
   rating: string;
   fish: string;
   fishSpecies: string[];
-  type: "pzw" | "commercial";
-  fishingType: "general" | "spinning" | "carp";
+  type: LakeOwnerType;
+  fishingType: LakeFishingType;
   lat: number;
   lng: number;
   address: {
@@ -66,8 +51,8 @@ export type LakeListDto = {
   images: string[];
 
   /**
-   * Pola kompatybilności ze starszymi widokami.
-   * Nowy explorer nie potrzebuje ich na liście.
+   * Pola używane tylko przez starsze / pomocnicze widoki.
+   * Główny explorer nie potrzebuje ich na liście.
    */
   distance?: string;
   description?: string;
@@ -77,14 +62,6 @@ export type LakeFilterOptions = {
   voivodeships: string[];
   fishOptions: string[];
   allLakesCount: number;
-};
-
-export type PaginatedLakesResult = {
-  lakes: LakeListDto[];
-  page: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
 };
 
 export type CatchRankingItem = {
@@ -112,31 +89,44 @@ export type LakeOpeningHoursDto = {
   text: string | null;
 };
 
-export type LakeDto = LakeListDto & {
-  distance: string;
-  description: string;
-  fishingMethods: string[];
-  details: {
-    area: string;
-    averageDepth: string;
-    bottomType: string;
-    waterType: string;
+export type LakeDto =
+  LakeListDto & {
+    distance: string;
+    description: string;
+    fishingMethods: string[];
+
+    details: {
+      area: string;
+      averageDepth: string;
+      bottomType: string;
+      waterType: string;
+    };
+
+    priceList: string[];
+    priceListUrl: string | null;
+
+    rules: string[];
+    rulesUrl: string | null;
+
+    contact: {
+      name: string;
+      phone: string;
+      email: string;
+      website: string;
+    };
+
+    fishRecords:
+      LakeFishRecordDto[];
+
+    gearRequirements: string[];
+
+    openingHours:
+      LakeOpeningHoursDto;
+
+    catchRankings: {
+      byWeight:
+        CatchRankingItem[];
+      byLength:
+        CatchRankingItem[];
+    };
   };
-  priceList: string[];
-  priceListUrl: string | null;
-  rules: string[];
-  rulesUrl: string | null;
-  contact: {
-    name: string;
-    phone: string;
-    email: string;
-    website: string;
-  };
-  fishRecords: LakeFishRecordDto[];
-  gearRequirements: string[];
-  openingHours: LakeOpeningHoursDto;
-  catchRankings: {
-    byWeight: CatchRankingItem[];
-    byLength: CatchRankingItem[];
-  };
-};

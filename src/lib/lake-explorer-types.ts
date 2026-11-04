@@ -15,8 +15,8 @@ export type LakeExplorerSort =
 
 /**
  * Scope jest niewidocznym ograniczeniem źródła danych.
- * Obecnie potrzebujemy go dla /lowiska-z-noclegiem, bo ta kategoria
- * nie jest prostym pojedynczym checkboxem.
+ * Obecnie służy m.in. kategorii /lowiska-z-noclegiem,
+ * która nie jest prostym pojedynczym checkboxem.
  */
 export type LakeExplorerScope =
   | "all"
@@ -46,13 +46,19 @@ export type LakeExplorerQuery = {
   voivodeship?: string;
   fish?: string;
   amenities?: string[];
-  sort?: LakeExplorerSort | string;
+  sort?:
+    | LakeExplorerSort
+    | string;
   page?: number;
   pageSize?: number;
-  bounds?: LakeExplorerBounds | null;
+  bounds?:
+    | LakeExplorerBounds
+    | null;
   userLat?: number | null;
   userLng?: number | null;
-  scope?: LakeExplorerScope | string;
+  scope?:
+    | LakeExplorerScope
+    | string;
 };
 
 export type LakeExplorerResult = {
@@ -68,8 +74,13 @@ export type LakeMapPointDto = {
   name: string;
   slug: string;
   rating: string;
-  type: "pzw" | "commercial";
-  fishingType: "general" | "spinning" | "carp";
+  type:
+    | "pzw"
+    | "commercial";
+  fishingType:
+    | "general"
+    | "spinning"
+    | "carp";
   lat: number;
   lng: number;
   city: string;
@@ -84,11 +95,18 @@ export type LakeExplorerMapResult = {
 
 export type LakeExplorerInitialData = {
   result: LakeExplorerResult;
-  mapResult: LakeExplorerMapResult;
-  filterOptions: LakeFilterOptions;
-  filters: LakeExplorerFilters;
-  bounds: LakeExplorerBounds;
-  mobileView: "list" | "map";
-  scope?: LakeExplorerScope;
+  mapResult:
+    LakeExplorerMapResult;
+  filterOptions:
+    LakeFilterOptions;
+  filters:
+    LakeExplorerFilters;
+  bounds:
+    LakeExplorerBounds;
+  mobileView:
+    | "list"
+    | "map";
+  scope?:
+    LakeExplorerScope;
   favouriteLakeIds?: string[];
 };
