@@ -23,6 +23,7 @@ import type {
   LakeExplorerMapResult,
   LakeExplorerQuery,
   LakeExplorerResult,
+  LakeExplorerScope,
 } from "@/lib/lake-explorer-types";
 
 type UseLakesExplorerOptions = {
@@ -67,6 +68,7 @@ function makeQuery({
   page,
   pageSize,
   userLocation,
+  scope,
 }: {
   filters: LakeExplorerFilters;
   bounds: LakeExplorerBounds;
@@ -76,6 +78,7 @@ function makeQuery({
     lat: number;
     lng: number;
   } | null;
+  scope: LakeExplorerScope;
 }): LakeExplorerQuery {
   const sortLocation =
     filters.sort === "distance-asc" ? userLocation : null;
@@ -87,6 +90,7 @@ function makeQuery({
     pageSize,
     userLat: sortLocation?.lat ?? null,
     userLng: sortLocation?.lng ?? null,
+    scope,
   };
 }
 
@@ -102,6 +106,7 @@ export function useLakesExplorer({
   syncUrl = true,
 }: UseLakesExplorerOptions) {
   const { userLocation, setUserLocation } = useUserLocation();
+  const scope = initialData.scope ?? "all";
 
   const [filters, setFiltersState] = useState<LakeExplorerFilters>(
     initialData.filters
@@ -186,13 +191,6 @@ export function useLakesExplorer({
     []
   );
 
-  /**
-   * Aktualizuje obszar zapytania po zakończeniu ruchu mapy.
-   *
-   * - odrzuca nieprawidłowe współrzędne,
-   * - zaokrągla bbox, żeby drobne różnice Leafleta nie wywoływały requestów,
-   * - nie zmienia stanu, jeśli viewport faktycznie się nie zmienił.
-   */
   const setActiveBounds = useCallback(
     (
       next:
@@ -227,6 +225,7 @@ export function useLakesExplorer({
         page: 1,
         pageSize,
         userLocation: queryUserLocation,
+        scope,
       });
 
       const [listResponse, mapResponse] = await Promise.all([
@@ -258,7 +257,13 @@ export function useLakesExplorer({
         nextMap,
       };
     },
-    [activeBounds, filters, pageSize, queryUserLocation]
+    [
+      activeBounds,
+      filters,
+      pageSize,
+      queryUserLocation,
+      scope,
+    ]
   );
 
   useEffect(() => {
@@ -279,11 +284,6 @@ export function useLakesExplorer({
 
     const controller = new AbortController();
 
-    /**
-     * Jeden debounce obsługuje zarówno wpisywanie w search,
-     * jak i przesunięcie / zoom mapy. Dzięki temu mapa jest "live",
-     * ale API nie dostaje serii requestów podczas interakcji.
-     */
     const timeoutId = window.setTimeout(async () => {
       setIsRefreshing(true);
       setError("");
@@ -353,10 +353,6 @@ export function useLakesExplorer({
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
     if (nextUrl !== currentUrl) {
-      /**
-       * Ruch mapy może generować wiele kolejnych bboxów.
-       * replaceState zapobiega zapychaniu historii przeglądarki.
-       */
       window.history.replaceState(null, "", nextUrl);
     }
   }, [
@@ -415,6 +411,7 @@ export function useLakesExplorer({
         page: result.page + 1,
         pageSize,
         userLocation: queryUserLocation,
+        scope,
       });
 
       const response = await fetch("/api/lakes/explorer", {
@@ -434,7 +431,10 @@ export function useLakesExplorer({
 
       setResult((current) => ({
         ...next,
-        lakes: dedupeLakes([...current.lakes, ...next.lakes]),
+        lakes: dedupeLakes([
+          ...current.lakes,
+          ...next.lakes,
+        ]),
       }));
     } catch (requestError) {
       if (controller.signal.aborted) {
@@ -460,6 +460,7 @@ export function useLakesExplorer({
     result.page,
     result.totalPages,
     queryUserLocation,
+    scope,
   ]);
 
   useEffect(() => {

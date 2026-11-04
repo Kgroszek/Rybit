@@ -8,21 +8,15 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { ButtonLink } from "@/components/ui/Button";
 import {
-  getLakeExplorerMapResults,
-  getLakeExplorerResults,
+  getLakeExplorerInitialData,
 } from "@/lib/lake-explorer";
 import {
   DEFAULT_LAKE_EXPLORER_FILTERS,
   DEFAULT_POLAND_BOUNDS,
 } from "@/lib/lake-explorer-params";
-import {
-  getLakeFilterOptions,
-} from "@/lib/lakes";
 
 const siteUrl = "https://rybio.pl";
 
-// Domyślny, indeksowalny widok jest generowany jako ISR.
-// Na razie stosujemy bezpieczne odświeżenie czasowe co godzinę.
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
@@ -80,30 +74,16 @@ export const metadata: Metadata = {
 };
 
 export default async function PublicLakesPage() {
-  // ISR renderuje stabilny widok domyślny. Filtry z query string są
-  // odtwarzane klientowo przez PublicLakesExplorer, więc użycie searchParams
-  // nie zmusza całej strony do renderowania dynamicznego przy każdym wejściu.
-  const query = {
-    ...DEFAULT_LAKE_EXPLORER_FILTERS,
-    bounds: DEFAULT_POLAND_BOUNDS,
-    page: 1,
-    pageSize: LAKE_EXPLORER_PAGE_SIZE,
-  };
-
-  const [result, mapResult, filterOptions] = await Promise.all([
-    getLakeExplorerResults(query),
-    getLakeExplorerMapResults(query),
-    getLakeFilterOptions(),
-  ]);
-
-  const initialData = {
-    result,
-    mapResult,
-    filterOptions,
-    filters: DEFAULT_LAKE_EXPLORER_FILTERS,
-    bounds: DEFAULT_POLAND_BOUNDS,
-    mobileView: "list" as const,
-  };
+  const initialData =
+    await getLakeExplorerInitialData({
+      query: {
+        ...DEFAULT_LAKE_EXPLORER_FILTERS,
+        bounds: DEFAULT_POLAND_BOUNDS,
+        page: 1,
+        pageSize:
+          LAKE_EXPLORER_PAGE_SIZE,
+      },
+    });
 
   return (
     <main className="min-h-screen bg-background text-text">
@@ -150,14 +130,16 @@ export default async function PublicLakesPage() {
 
             <div className="mt-7 inline-flex items-center gap-2 rounded-full border border-border bg-surface/85 px-3 py-2 text-xs font-semibold text-text-secondary shadow-card backdrop-blur">
               <span className="h-2 w-2 rounded-full bg-aqua-500" />
-              {filterOptions.allLakesCount}{" "}
+              {initialData.filterOptions.allLakesCount}{" "}
               łowisk w bazie Rybio
             </div>
           </div>
         </div>
       </section>
 
-      <PublicLakesExplorer initialData={initialData} />
+      <PublicLakesExplorer
+        initialData={initialData}
+      />
 
       <PublicFooter />
     </main>

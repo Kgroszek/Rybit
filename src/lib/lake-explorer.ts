@@ -1,22 +1,31 @@
 import { Prisma } from "@prisma/client";
 
-import { getFishSearchTerms } from "@/lib/fish-names";
 import {
+  getFishSearchTerms,
+  normalizeFishList,
+} from "@/lib/fish-names";
+import { buildAccommodationWhere } from "@/lib/lake-category-filters";
+import {
+  DEFAULT_LAKE_EXPLORER_FILTERS,
   DEFAULT_POLAND_BOUNDS,
   normalizeLakeExplorerBounds,
 } from "@/lib/lake-explorer-params";
 import type {
   LakeExplorerBounds,
+  LakeExplorerFilters,
+  LakeExplorerInitialData,
   LakeExplorerMapResult,
   LakeExplorerQuery,
   LakeExplorerResult,
+  LakeExplorerScope,
   LakeExplorerSort,
   LakeMapPointDto,
 } from "@/lib/lake-explorer-types";
 import type {
   LakeAmenityKey,
+  LakeFilterOptions,
   LakeListDto,
-} from "@/lib/lakes";
+} from "@/lib/lake-types";
 import { prisma } from "@/lib/prisma";
 
 const MAX_PAGE_SIZE = 50;
@@ -128,15 +137,9 @@ function normalizePositiveInteger(
   fallback: number,
   max: number
 ) {
-  const parsed = Number.parseInt(
-    String(value ?? ""),
-    10
-  );
+  const parsed = Number.parseInt(String(value ?? ""), 10);
 
-  if (
-    !Number.isFinite(parsed) ||
-    parsed < 1
-  ) {
+  if (!Number.isFinite(parsed) || parsed < 1) {
     return fallback;
   }
 
@@ -154,14 +157,10 @@ function normalizeCoordinate(value: unknown) {
 
   const parsed = Number(value);
 
-  return Number.isFinite(parsed)
-    ? parsed
-    : null;
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-function normalizeSort(
-  value: unknown
-): LakeExplorerSort {
+function normalizeSort(value: unknown): LakeExplorerSort {
   if (
     value === "distance-asc" ||
     value === "distance"
@@ -190,9 +189,7 @@ function normalizeOwnerType(value: unknown) {
     : "all";
 }
 
-function normalizeFishingType(
-  value: unknown
-) {
+function normalizeFishingType(value: unknown) {
   return value === "general" ||
     value === "spinning" ||
     value === "carp"
@@ -210,19 +207,23 @@ function normalizeAmenities(
   return Array.from(
     new Set(
       values
-        .map((value) =>
-          String(value).trim()
-        )
+        .map((value) => String(value).trim())
         .filter(
-          (
-            value
-          ): value is LakeAmenityKey =>
+          (value): value is LakeAmenityKey =>
             amenityKeys.includes(
               value as LakeAmenityKey
             )
         )
     )
   );
+}
+
+function normalizeScope(
+  value: unknown
+): LakeExplorerScope {
+  return value === "accommodation"
+    ? "accommodation"
+    : "all";
 }
 
 type NormalizedLakeExplorerQuery = {
@@ -238,10 +239,11 @@ type NormalizedLakeExplorerQuery = {
   bounds: LakeExplorerBounds;
   userLat: number | null;
   userLng: number | null;
+  scope: LakeExplorerScope;
 };
 
 function normalizeQuery(
-  input: LakeExplorerQuery
+  input: LakeExplorerQuery = {}
 ): NormalizedLakeExplorerQuery {
   return {
     page: normalizePositiveInteger(
@@ -285,26 +287,43 @@ function normalizeQuery(
     userLng: normalizeCoordinate(
       input.userLng
     ),
+    scope: normalizeScope(input.scope),
   };
+}
+
+function buildScopeWhere(
+  scope: LakeExplorerScope
+): Prisma.LakeWhereInput | null {
+  if (scope === "accommodation") {
+    return buildAccommodationWhere();
+  }
+
+  return null;
 }
 
 function buildExplorerWhere(
   query: NormalizedLakeExplorerQuery
 ): Prisma.LakeWhereInput {
   const where: Prisma.LakeWhereInput = {};
-  const andConditions: Prisma.LakeWhereInput[] =
-    [
-      {
-        lat: {
-          gte: query.bounds.south,
-          lte: query.bounds.north,
-        },
-        lng: {
-          gte: query.bounds.west,
-          lte: query.bounds.east,
-        },
+
+  const andConditions: Prisma.LakeWhereInput[] = [
+    {
+      lat: {
+        gte: query.bounds.south,
+        lte: query.bounds.north,
       },
-    ];
+      lng: {
+        gte: query.bounds.west,
+        lte: query.bounds.east,
+      },
+    },
+  ];
+
+  const scopeWhere = buildScopeWhere(query.scope);
+
+  if (scopeWhere) {
+    andConditions.push(scopeWhere);
+  }
 
   if (query.search) {
     where.OR = [
@@ -356,18 +375,15 @@ function buildExplorerWhere(
   }
 
   if (query.fishingType !== "all") {
-    where.fishingType =
-      query.fishingType;
+    where.fishingType = query.fishingType;
   }
 
   if (query.voivodeship !== "all") {
-    where.voivodeship =
-      query.voivodeship;
+    where.voivodeship = query.voivodeship;
   }
 
   if (query.fish !== "all") {
-    const terms =
-      getFishSearchTerms(query.fish);
+    const terms = getFishSearchTerms(query.fish);
 
     if (terms.length > 0) {
       andConditions.push({
@@ -383,8 +399,7 @@ function buildExplorerWhere(
               some: {
                 name: {
                   contains: term,
-                  mode:
-                    "insensitive" as const,
+                  mode: "insensitive" as const,
                 },
               },
             },
@@ -480,9 +495,7 @@ function mapLakeToListDto(
     id: lake.id,
     name: lake.name,
     slug: lake.slug,
-    rating: Number(lake.rating).toFixed(
-      1
-    ),
+    rating: Number(lake.rating).toFixed(1),
     fish: lake.fish,
     fishSpecies: lake.fishSpecies.map(
       (item) => item.name
@@ -542,9 +555,7 @@ function mapLakeToMapPoint(
     id: lake.id,
     name: lake.name,
     slug: lake.slug,
-    rating: Number(lake.rating).toFixed(
-      1
-    ),
+    rating: Number(lake.rating).toFixed(1),
     type: lake.ownerType as
       | "pzw"
       | "commercial",
@@ -569,14 +580,10 @@ function calculateDistanceInKm(
   const earthRadiusKm = 6371;
 
   const latDifference =
-    ((secondLat - firstLat) *
-      Math.PI) /
-    180;
+    ((secondLat - firstLat) * Math.PI) / 180;
 
   const lngDifference =
-    ((secondLng - firstLng) *
-      Math.PI) /
-    180;
+    ((secondLng - firstLng) * Math.PI) / 180;
 
   const firstLatRadians =
     (firstLat * Math.PI) / 180;
@@ -585,12 +592,10 @@ function calculateDistanceInKm(
     (secondLat * Math.PI) / 180;
 
   const a =
-    Math.sin(latDifference / 2) **
-      2 +
+    Math.sin(latDifference / 2) ** 2 +
     Math.cos(firstLatRadians) *
       Math.cos(secondLatRadians) *
-      Math.sin(lngDifference / 2) **
-        2;
+      Math.sin(lngDifference / 2) ** 2;
 
   const centralAngle =
     2 *
@@ -607,16 +612,15 @@ async function getDistanceSortedIds(
   userLat: number,
   userLng: number
 ) {
-  const rows =
-    await prisma.lake.findMany({
-      where,
-      select: {
-        id: true,
-        name: true,
-        lat: true,
-        lng: true,
-      },
-    });
+  const rows = await prisma.lake.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      lat: true,
+      lng: true,
+    },
+  });
 
   return rows
     .map((lake) => ({
@@ -630,14 +634,8 @@ async function getDistanceSortedIds(
       ),
     }))
     .sort((first, second) => {
-      if (
-        first.distance !==
-        second.distance
-      ) {
-        return (
-          first.distance -
-          second.distance
-        );
+      if (first.distance !== second.distance) {
+        return first.distance - second.distance;
       }
 
       return first.name.localeCompare(
@@ -649,7 +647,7 @@ async function getDistanceSortedIds(
 }
 
 export async function getLakeExplorerResults(
-  input: LakeExplorerQuery
+  input: LakeExplorerQuery = {}
 ): Promise<LakeExplorerResult> {
   const query = normalizeQuery(input);
   const where = buildExplorerWhere(query);
@@ -667,6 +665,7 @@ export async function getLakeExplorerResults(
       );
 
     const totalCount = orderedIds.length;
+
     const totalPages = Math.max(
       1,
       Math.ceil(
@@ -697,15 +696,14 @@ export async function getLakeExplorerResults(
       };
     }
 
-    const rows =
-      await prisma.lake.findMany({
-        where: {
-          id: {
-            in: pageIds,
-          },
+    const rows = await prisma.lake.findMany({
+      where: {
+        id: {
+          in: pageIds,
         },
-        select: lakeExplorerSelect,
-      });
+      },
+      select: lakeExplorerSelect,
+    });
 
     const rowsById = new Map(
       rows.map((lake) => [
@@ -716,9 +714,7 @@ export async function getLakeExplorerResults(
 
     return {
       lakes: pageIds
-        .map((id) =>
-          rowsById.get(id)
-        )
+        .map((id) => rowsById.get(id))
         .filter(
           (
             lake
@@ -734,10 +730,9 @@ export async function getLakeExplorerResults(
     };
   }
 
-  const totalCount =
-    await prisma.lake.count({
-      where,
-    });
+  const totalCount = await prisma.lake.count({
+    where,
+  });
 
   const totalPages = Math.max(
     1,
@@ -751,15 +746,14 @@ export async function getLakeExplorerResults(
     totalPages
   );
 
-  const rows =
-    await prisma.lake.findMany({
-      where,
-      select: lakeExplorerSelect,
-      orderBy: getOrderBy(query.sort),
-      skip:
-        (page - 1) * query.pageSize,
-      take: query.pageSize,
-    });
+  const rows = await prisma.lake.findMany({
+    where,
+    select: lakeExplorerSelect,
+    orderBy: getOrderBy(query.sort),
+    skip:
+      (page - 1) * query.pageSize,
+    take: query.pageSize,
+  });
 
   return {
     lakes: rows.map(mapLakeToListDto),
@@ -771,7 +765,7 @@ export async function getLakeExplorerResults(
 }
 
 export async function getLakeExplorerMapResults(
-  input: LakeExplorerQuery
+  input: LakeExplorerQuery = {}
 ): Promise<LakeExplorerMapResult> {
   const query = normalizeQuery(input);
   const where = buildExplorerWhere(query);
@@ -794,5 +788,161 @@ export async function getLakeExplorerMapResults(
       mapLakeToMapPoint
     ),
     totalCount,
+  };
+}
+
+/**
+ * Opcje filtrów są pobierane tym samym WHERE co lista.
+ * Dzięki temu kategorie i województwa nie mają własnego, równoległego
+ * systemu pobierania ryb/województw.
+ */
+export async function getLakeExplorerFilterOptions(
+  input: LakeExplorerQuery = {}
+): Promise<LakeFilterOptions> {
+  const query = normalizeQuery(input);
+  const where = buildExplorerWhere(query);
+
+  const [
+    voivodeshipRows,
+    fishRows,
+    allLakesCount,
+  ] = await Promise.all([
+    prisma.lake.findMany({
+      where,
+      distinct: ["voivodeship"],
+      select: {
+        voivodeship: true,
+      },
+      orderBy: {
+        voivodeship: "asc",
+      },
+    }),
+    prisma.lake.findMany({
+      where,
+      select: {
+        fish: true,
+        fishSpecies: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    }),
+    prisma.lake.count({
+      where,
+    }),
+  ]);
+
+  const voivodeships = Array.from(
+    new Map(
+      voivodeshipRows
+        .map((item) =>
+          item.voivodeship.trim()
+        )
+        .filter(Boolean)
+        .map(
+          (item) =>
+            [
+              item.toLocaleLowerCase(
+                "pl-PL"
+              ),
+              item,
+            ] as const
+        )
+    ).values()
+  ).sort((a, b) =>
+    a.localeCompare(b, "pl", {
+      sensitivity: "base",
+    })
+  );
+
+  const rawFishValues = fishRows.flatMap(
+    (lake) => [
+      ...lake.fish
+        .split(/[,;/|]/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+      ...lake.fishSpecies.map(
+        (fish) => fish.name
+      ),
+    ]
+  );
+
+  return {
+    voivodeships,
+    fishOptions:
+      normalizeFishList(
+        rawFishValues
+      ),
+    allLakesCount,
+  };
+}
+
+function toFilters(
+  query: NormalizedLakeExplorerQuery
+): LakeExplorerFilters {
+  return {
+    search: query.search,
+    ownerType: query.ownerType,
+    fishingType:
+      query.fishingType,
+    voivodeship:
+      query.voivodeship,
+    fish: query.fish,
+    amenities:
+      query.amenities,
+    sort: query.sort,
+  };
+}
+
+/**
+ * Jedno wejście dla wszystkich server-rendered list łowisk:
+ * - /lowiska-w-polsce,
+ * - /lowiska,
+ * - strony kategorii,
+ * - landingi województw.
+ *
+ * Wszystkie te strony dostają listę, mapę i opcje filtrów
+ * z dokładnie tego samego systemu zapytań.
+ */
+export async function getLakeExplorerInitialData({
+  query: input = {
+    ...DEFAULT_LAKE_EXPLORER_FILTERS,
+  },
+  mobileView = "list",
+}: {
+  query?: LakeExplorerQuery;
+  mobileView?: "list" | "map";
+} = {}): Promise<LakeExplorerInitialData> {
+  const normalized = normalizeQuery(input);
+
+  const query: LakeExplorerQuery = {
+    ...toFilters(normalized),
+    bounds: normalized.bounds,
+    page: normalized.page,
+    pageSize: normalized.pageSize,
+    userLat: normalized.userLat,
+    userLng: normalized.userLng,
+    scope: normalized.scope,
+  };
+
+  const [
+    result,
+    mapResult,
+    filterOptions,
+  ] = await Promise.all([
+    getLakeExplorerResults(query),
+    getLakeExplorerMapResults(query),
+    getLakeExplorerFilterOptions(query),
+  ]);
+
+  return {
+    result,
+    mapResult,
+    filterOptions,
+    filters: toFilters(normalized),
+    bounds: normalized.bounds,
+    mobileView,
+    scope: normalized.scope,
   };
 }

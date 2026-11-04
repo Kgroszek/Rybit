@@ -18,27 +18,34 @@ export async function SeoLakesLandingPage({
 }: SeoLakesLandingPageProps) {
   const {
     resolvedVoivodeship,
-    result,
-    mapResult,
-    filterOptions,
-  } = await getSeoVoivodeshipLandingData({
-    canonicalVoivodeship: config.canonicalVoivodeship,
-    aliases: config.voivodeshipAliases,
-    pageSize: 15,
-  });
+    initialData,
+  } =
+    await getSeoVoivodeshipLandingData({
+      canonicalVoivodeship:
+        config.canonicalVoivodeship,
+      aliases:
+        config.voivodeshipAliases,
+      pageSize: 15,
+    });
 
   const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "CollectionPage",
-    name: config.jsonLd.name,
-    description: config.jsonLd.description,
-    url: `${SEO_LAKES_SITE_URL}/${config.slug}`,
+    "@context":
+      "https://schema.org",
+    "@type":
+      "CollectionPage",
+    name:
+      config.jsonLd.name,
+    description:
+      config.jsonLd.description,
+    url:
+      `${SEO_LAKES_SITE_URL}/${config.slug}`,
     isPartOf: {
       "@type": "WebSite",
       name: "Rybio",
       url: SEO_LAKES_SITE_URL,
     },
-    about: config.jsonLd.about,
+    about:
+      config.jsonLd.about,
   };
 
   return (
@@ -46,11 +53,18 @@ export async function SeoLakesLandingPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd),
+          __html:
+            JSON.stringify(
+              jsonLd
+            ),
         }}
       />
 
-      <PublicHeader subtitle={config.headerSubtitle} />
+      <PublicHeader
+        subtitle={
+          config.headerSubtitle
+        }
+      />
 
       <section className="relative overflow-hidden border-b border-slate-200 bg-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,#dbeafe,transparent_35%),radial-gradient(circle_at_top_right,#ccfbf1,transparent_30%)]" />
@@ -66,7 +80,9 @@ export async function SeoLakesLandingPage({
             </h1>
 
             <p className="mt-6 max-w-3xl text-lg leading-8 text-slate-600">
-              {config.heroDescription}
+              {
+                config.heroDescription
+              }
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -74,7 +90,9 @@ export async function SeoLakesLandingPage({
                 href="#lista-lowisk"
                 className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-6 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
               >
-                {config.heroCta}
+                {
+                  config.heroCta
+                }
               </a>
 
               <Link
@@ -87,16 +105,35 @@ export async function SeoLakesLandingPage({
 
             <div className="mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
               <HeroStat
-                value={String(result.totalCount)}
-                label={config.stats.countLabel}
+                value={String(
+                  initialData
+                    .result
+                    .totalCount
+                )}
+                label={
+                  config.stats
+                    .countLabel
+                }
               />
               <HeroStat
-                value={config.stats.second.value}
-                label={config.stats.second.label}
+                value={
+                  config.stats
+                    .second.value
+                }
+                label={
+                  config.stats
+                    .second.label
+                }
               />
               <HeroStat
-                value={config.stats.third.value}
-                label={config.stats.third.label}
+                value={
+                  config.stats
+                    .third.value
+                }
+                label={
+                  config.stats
+                    .third.label
+                }
               />
             </div>
           </div>
@@ -107,38 +144,72 @@ export async function SeoLakesLandingPage({
         <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-2xl font-black text-slate-950">
-              {config.introTitle}
+              {
+                config.introTitle
+              }
             </h2>
 
             <div className="mt-4 space-y-4 leading-8 text-slate-600">
-              {config.introParagraphs.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
+              {
+                config.introParagraphs.map(
+                  (
+                    paragraph
+                  ) => (
+                    <p
+                      key={
+                        paragraph
+                      }
+                    >
+                      {
+                        paragraph
+                      }
+                    </p>
+                  )
+                )
+              }
             </div>
           </div>
 
           <div className="rounded-3xl border border-blue-100 bg-blue-50 p-6">
             <h2 className="text-xl font-black text-blue-950">
-              {config.sideCard.title}
+              {
+                config.sideCard
+                  .title
+              }
             </h2>
 
             <p className="mt-3 text-sm leading-6 text-blue-800">
-              {config.sideCard.description}
+              {
+                config.sideCard
+                  .description
+              }
             </p>
 
             <div className="mt-5 grid gap-3">
               <Link
-                href={config.sideCard.primary.href}
+                href={
+                  config.sideCard
+                    .primary.href
+                }
                 className="rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
               >
-                {config.sideCard.primary.label}
+                {
+                  config.sideCard
+                    .primary.label
+                }
               </Link>
 
               <Link
-                href={config.sideCard.secondary.href}
+                href={
+                  config.sideCard
+                    .secondary.href
+                }
                 className="rounded-2xl bg-white px-5 py-3 text-center text-sm font-black text-blue-700 transition hover:bg-blue-100"
               >
-                {config.sideCard.secondary.label}
+                {
+                  config.sideCard
+                    .secondary.label
+                }
               </Link>
             </div>
           </div>
@@ -146,28 +217,42 @@ export async function SeoLakesLandingPage({
       </section>
 
       <PublicLakesPage
-        lakes={result.lakes}
-        initialPagination={{
-          page: result.page,
-          pageSize: result.pageSize,
-          totalCount: result.totalCount,
-          totalPages: result.totalPages,
+        initialData={{
+          ...initialData,
+          filters: {
+            ...initialData.filters,
+            voivodeship:
+              resolvedVoivodeship,
+          },
         }}
-        initialMapResult={mapResult}
-        filterOptions={filterOptions}
-        initialVoivodeship={resolvedVoivodeship}
       />
 
       <section className="mx-auto max-w-[1500px] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-2xl font-black text-slate-950">
-            {config.bottomTitle}
+            {
+              config.bottomTitle
+            }
           </h2>
 
           <div className="mt-4 space-y-4 leading-8 text-slate-600">
-            {config.bottomParagraphs.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
-            ))}
+            {
+              config.bottomParagraphs.map(
+                (
+                  paragraph
+                ) => (
+                  <p
+                    key={
+                      paragraph
+                    }
+                  >
+                    {
+                      paragraph
+                    }
+                  </p>
+                )
+              )
+            }
           </div>
         </div>
       </section>
@@ -186,8 +271,12 @@ function HeroStat({
 }) {
   return (
     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-xl font-black text-slate-950">{value}</p>
-      <p className="mt-1 text-sm font-semibold text-slate-500">{label}</p>
+      <p className="text-xl font-black text-slate-950">
+        {value}
+      </p>
+      <p className="mt-1 text-sm font-semibold text-slate-500">
+        {label}
+      </p>
     </div>
   );
 }

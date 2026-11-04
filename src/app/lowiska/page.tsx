@@ -6,16 +6,12 @@ import {
   LAKE_EXPLORER_PAGE_SIZE,
 } from "@/components/lakes/constants";
 import {
-  getLakeExplorerMapResults,
-  getLakeExplorerResults,
+  getLakeExplorerInitialData,
 } from "@/lib/lake-explorer";
 import {
   parseLakeExplorerSearchParams,
   type LakeExplorerSearchParams,
 } from "@/lib/lake-explorer-params";
-import {
-  getLakeFilterOptions,
-} from "@/lib/lakes";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
@@ -45,23 +41,21 @@ export default async function LowiskaPage({
       params
     );
 
-  const query = {
-    ...parsed.filters,
-    bounds: parsed.bounds,
-    page: 1,
-    pageSize:
-      LAKE_EXPLORER_PAGE_SIZE,
-  };
-
   const [
-    result,
-    mapResult,
-    filterOptions,
+    initialData,
     favouriteRows,
   ] = await Promise.all([
-    getLakeExplorerResults(query),
-    getLakeExplorerMapResults(query),
-    getLakeFilterOptions(),
+    getLakeExplorerInitialData({
+      query: {
+        ...parsed.filters,
+        bounds: parsed.bounds,
+        page: 1,
+        pageSize:
+          LAKE_EXPLORER_PAGE_SIZE,
+      },
+      mobileView:
+        parsed.mobileView,
+    }),
     prisma.favourite.findMany({
       where: {
         userId: user.id,
@@ -78,14 +72,7 @@ export default async function LowiskaPage({
         mode="authenticated"
         detailBasePath="/lowiska"
         initialData={{
-          result,
-          mapResult,
-          filterOptions,
-          filters:
-            parsed.filters,
-          bounds: parsed.bounds,
-          mobileView:
-            parsed.mobileView,
+          ...initialData,
           favouriteLakeIds:
             favouriteRows.map(
               (item) =>

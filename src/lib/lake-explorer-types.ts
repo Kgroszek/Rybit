@@ -1,7 +1,7 @@
 import type {
   LakeFilterOptions,
   LakeListDto,
-} from "@/lib/lakes";
+} from "@/lib/lake-types";
 
 export type LakeExplorerMode =
   | "public"
@@ -12,6 +12,15 @@ export type LakeExplorerSort =
   | "distance-asc"
   | "name-asc"
   | "name-desc";
+
+/**
+ * Scope jest niewidocznym ograniczeniem źródła danych.
+ * Obecnie potrzebujemy go dla /lowiska-z-noclegiem, bo ta kategoria
+ * nie jest prostym pojedynczym checkboxem.
+ */
+export type LakeExplorerScope =
+  | "all"
+  | "accommodation";
 
 export type LakeExplorerBounds = {
   north: number;
@@ -30,12 +39,20 @@ export type LakeExplorerFilters = {
   sort: LakeExplorerSort;
 };
 
-export type LakeExplorerQuery = LakeExplorerFilters & {
+export type LakeExplorerQuery = {
+  search?: string;
+  ownerType?: string;
+  fishingType?: string;
+  voivodeship?: string;
+  fish?: string;
+  amenities?: string[];
+  sort?: LakeExplorerSort | string;
   page?: number;
   pageSize?: number;
   bounds?: LakeExplorerBounds | null;
   userLat?: number | null;
   userLng?: number | null;
+  scope?: LakeExplorerScope | string;
 };
 
 export type LakeExplorerResult = {
@@ -72,5 +89,6 @@ export type LakeExplorerInitialData = {
   filters: LakeExplorerFilters;
   bounds: LakeExplorerBounds;
   mobileView: "list" | "map";
+  scope?: LakeExplorerScope;
   favouriteLakeIds?: string[];
 };
