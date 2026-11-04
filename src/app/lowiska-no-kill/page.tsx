@@ -7,7 +7,7 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 
 const siteUrl = "https://rybio.pl";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -60,9 +60,9 @@ export const metadata: Metadata = {
 };
 
 export default async function NoKillLakesPage() {
-  const lakes = await getLakes();
-
-  const noKillLakes = lakes.filter((lake) => lake.amenities.noKill);
+  const noKillLakes = await getLakes({
+    noKill: true,
+  });
 
   const jsonLd = {
     "@context": "https://schema.org",

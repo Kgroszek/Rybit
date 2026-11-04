@@ -7,7 +7,7 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 
 const siteUrl = "https://rybio.pl";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -61,9 +61,9 @@ export const metadata: Metadata = {
 };
 
 export default async function LakesWithCottagesPage() {
-  const lakes = await getLakes();
-
-  const lakesWithCottages = lakes.filter((lake) => lake.amenities.cottages);
+  const lakesWithCottages = await getLakes({
+    cottages: true,
+  });
 
   const jsonLd = {
     "@context": "https://schema.org",

@@ -7,7 +7,7 @@ import { PublicFooter } from "@/components/public/PublicFooter";
 
 const siteUrl = "https://rybio.pl";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -60,9 +60,9 @@ export const metadata: Metadata = {
 };
 
 export default async function CarpLakesPage() {
-  const lakes = await getLakes();
-
-  const carpLakes = lakes.filter((lake) => lake.fishingType === "carp");
+  const carpLakes = await getLakes({
+    fishingType: "carp",
+  });
 
   const jsonLd = {
     "@context": "https://schema.org",

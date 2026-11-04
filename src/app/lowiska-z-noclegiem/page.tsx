@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getLakes } from "@/lib/lakes";
+import { buildAccommodationWhere } from "@/lib/lake-category-filters";
 import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
 const siteUrl = "https://rybio.pl";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -61,27 +62,9 @@ export const metadata: Metadata = {
 };
 
 export default async function LakesWithAccommodationPage() {
-  const lakes = await getLakes();
-
-  const lakesWithAccommodation = lakes.filter((lake) => {
-    const searchableText = [
-      lake.description,
-      lake.fish,
-      ...lake.fishSpecies,
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    return (
-      lake.amenities.cottages ||
-      searchableText.includes("nocleg") ||
-      searchableText.includes("noclegi") ||
-      searchableText.includes("domek") ||
-      searchableText.includes("domki") ||
-      searchableText.includes("apartament") ||
-      searchableText.includes("pokoje")
-    );
-  });
+  const lakesWithAccommodation = await getLakes(
+    buildAccommodationWhere()
+  );
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -218,10 +201,7 @@ export default async function LakesWithAccommodationPage() {
         </div>
       </section>
 
-      <PublicLakesPage
-        lakes={lakesWithAccommodation}
-        initialAmenities={["cottages"]}
-      />
+      <PublicLakesPage lakes={lakesWithAccommodation} />
 
       <section className="mx-auto max-w-[1500px] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

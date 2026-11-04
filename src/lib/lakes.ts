@@ -1,10 +1,7 @@
-import { Prisma } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
+
+import { normalizeFishList } from "@/lib/fish-names";
 import { prisma } from "@/lib/prisma";
-import { normalizeFishingMethods, type FishingMethod } from "@/lib/fishing-methods";
-import {
-  getFishSearchTerms,
-  normalizeFishFilterOptions,
-} from "@/lib/fish-names";
 
 export type CatchRankingItem = {
   id: string;
@@ -28,12 +25,9 @@ export type LakeAmenitiesDto = {
   parking: boolean;
   pier: boolean;
   toilet: boolean;
-  sanitaryFacilities: boolean;
   shop: boolean;
   nightFishing: boolean;
   boatRental: boolean;
-  camperCaravan: boolean;
-  electricityHookup: boolean;
   gearRental: boolean;
   shelter: boolean;
   coveredSpots: boolean;
@@ -52,27 +46,12 @@ export type LakeOpeningHoursDto = {
   text: string | null;
 };
 
-/**
- * Lekki DTO używany wyłącznie na listach, mapach i kartach łowisk.
- *
- * Celowo NIE zawiera:
- * - pełnego opisu,
- * - cennika,
- * - regulaminu,
- * - danych kontaktowych,
- * - rekordów ryb,
- * - wymagań sprzętowych,
- * - godzin otwarcia,
- * - rankingów połowów,
- * - pełnej galerii.
- *
- * `images` zawiera maksymalnie jedno zdjęcie okładkowe.
- */
 export type LakeListDto = {
   id: string;
   name: string;
   slug: string;
   rating: string;
+  distance: string;
   fish: string;
   fishSpecies: string[];
   type: "pzw" | "commercial";
@@ -85,13 +64,18 @@ export type LakeListDto = {
     postalCode: string;
     voivodeship: string;
   };
+  description: string;
   amenities: LakeAmenitiesDto;
   images: string[];
 };
 
+export type LakeFilterOptions = {
+  voivodeships: string[];
+  fishOptions: string[];
+  allLakesCount: number;
+};
+
 export type LakeDto = LakeListDto & {
-  fishingMethods: FishingMethod[];
-  description: string;
   details: {
     area: string;
     averageDepth: string;
@@ -117,24 +101,62 @@ export type LakeDto = LakeListDto & {
   };
 };
 
+const ACCOMMODATION_SEARCH_TERMS = [
+  "nocleg",
+  "noclegi",
+  "domek",
+  "domki",
+  "apartament",
+  "pokoje",
+] as const;
+
+export function buildAccommodationLakeWhere(): Prisma.LakeWhereInput {
+  const textConditions: Prisma.LakeWhereInput[] =
+    ACCOMMODATION_SEARCH_TERMS.flatMap((term) => [
+      {
+        description: {
+          contains: term,
+          mode: "insensitive",
+        },
+      },
+      {
+        fish: {
+          contains: term,
+          mode: "insensitive",
+        },
+      },
+      {
+        fishSpecies: {
+          some: {
+            name: {
+              contains: term,
+              mode: "insensitive",
+            },
+          },
+        },
+      },
+    ]);
+
+  return {
+    OR: [
+      {
+        cottages: true,
+      },
+      ...textConditions,
+    ],
+  };
+}
+
 type LakeFromDatabase = Awaited<ReturnType<typeof getLakesFromDatabase>>[number];
 
-async function getLakesFromDatabase() {
+async function getLakesFromDatabase(where: Prisma.LakeWhereInput = {}) {
   return prisma.lake.findMany({
+    where,
     include: {
       fishSpecies: true,
       priceList: true,
       rules: true,
-      images: {
-        orderBy: [
-          {
-            sortOrder: "asc",
-          },
-          {
-            createdAt: "asc",
-          },
-        ],
-      },
+      images: true,
       fishRecords: {
         orderBy: {
           weightKg: "desc",
@@ -188,11 +210,11 @@ function mapLakeToDto(
     name: lake.name,
     slug: lake.slug,
     rating: Number(lake.rating).toFixed(1),
+    distance: "0 km",
     fish: lake.fish,
     fishSpecies: lake.fishSpecies.map((fish) => fish.name),
     type: lake.ownerType as "pzw" | "commercial",
     fishingType: lake.fishingType as "general" | "spinning" | "carp",
-    fishingMethods: normalizeFishingMethods(lake.fishingMethods),
     lat: lake.lat,
     lng: lake.lng,
     address: {
@@ -210,12 +232,9 @@ function mapLakeToDto(
       parking: lake.parking,
       pier: lake.pier,
       toilet: lake.toilet,
-      sanitaryFacilities: lake.sanitaryFacilities,
       shop: lake.shop,
       nightFishing: lake.nightFishing,
       boatRental: lake.boatRental,
-      camperCaravan: lake.camperCaravan,
-      electricityHookup: lake.electricityHookup,
       gearRental: lake.gearRental,
       shelter: lake.shelter,
       coveredSpots: lake.coveredSpots,
@@ -267,6 +286,7 @@ function mapLakeToListDto(lake: {
   city: string;
   postalCode: string;
   voivodeship: string;
+  description: string;
   cottages: boolean;
   campfire: boolean;
   noKill: boolean;
@@ -274,12 +294,9 @@ function mapLakeToListDto(lake: {
   parking: boolean;
   pier: boolean;
   toilet: boolean;
-  sanitaryFacilities: boolean;
   shop: boolean;
   nightFishing: boolean;
   boatRental: boolean;
-  camperCaravan: boolean;
-  electricityHookup: boolean;
   gearRental: boolean;
   shelter: boolean;
   coveredSpots: boolean;
@@ -297,6 +314,7 @@ function mapLakeToListDto(lake: {
     name: lake.name,
     slug: lake.slug,
     rating: Number(lake.rating).toFixed(1),
+    distance: "0 km",
     fish: lake.fish,
     fishSpecies: lake.fishSpecies.map((fish) => fish.name),
     type: lake.ownerType as "pzw" | "commercial",
@@ -309,6 +327,7 @@ function mapLakeToListDto(lake: {
       postalCode: lake.postalCode,
       voivodeship: lake.voivodeship,
     },
+    description: lake.description,
     amenities: {
       cottages: lake.cottages,
       campfire: lake.campfire,
@@ -317,12 +336,9 @@ function mapLakeToListDto(lake: {
       parking: lake.parking,
       pier: lake.pier,
       toilet: lake.toilet,
-      sanitaryFacilities: lake.sanitaryFacilities,
       shop: lake.shop,
       nightFishing: lake.nightFishing,
       boatRental: lake.boatRental,
-      camperCaravan: lake.camperCaravan,
-      electricityHookup: lake.electricityHookup,
       gearRental: lake.gearRental,
       shelter: lake.shelter,
       coveredSpots: lake.coveredSpots,
@@ -333,505 +349,12 @@ function mapLakeToListDto(lake: {
   };
 }
 
-
-export const LAKES_PAGE_SIZE = 15;
-
-export type LakeListSort =
-  | "rating-desc"
-  | "name-asc"
-  | "name-desc"
-  | "distance-asc";
-
-export type LakeAmenityKey = keyof LakeAmenitiesDto;
-
-export type LakeListQuery = {
-  page?: number;
-  pageSize?: number;
-  search?: string;
-  ownerType?: string;
-  fishingType?: string;
-  voivodeship?: string;
-  fish?: string;
-  amenities?: string[];
-  sort?: string;
-  userLat?: number | null;
-  userLng?: number | null;
-};
-
-export type PaginatedLakesResult = {
-  lakes: LakeListDto[];
-  page: number;
-  pageSize: number;
-  totalCount: number;
-  totalPages: number;
-};
-
-export type LakeFilterOptions = {
-  voivodeships: string[];
-  fishOptions: string[];
-  allLakesCount: number;
-};
-
-const lakeAmenityKeys: LakeAmenityKey[] = [
-  "cottages",
-  "campfire",
-  "noKill",
-  "tent",
-  "parking",
-  "pier",
-  "toilet",
-  "sanitaryFacilities",
-  "shop",
-  "nightFishing",
-  "boatRental",
-  "camperCaravan",
-  "electricityHookup",
-  "gearRental",
-  "shelter",
-  "coveredSpots",
-  "playground",
-  "cardPayment",
-];
-
-const lakeListSelect = {
-  id: true,
-  name: true,
-  slug: true,
-  rating: true,
-  fish: true,
-  ownerType: true,
-  fishingType: true,
-  lat: true,
-  lng: true,
-  street: true,
-  city: true,
-  postalCode: true,
-  voivodeship: true,
-  cottages: true,
-  campfire: true,
-  noKill: true,
-  tent: true,
-  parking: true,
-  pier: true,
-  toilet: true,
-  sanitaryFacilities: true,
-  shop: true,
-  nightFishing: true,
-  boatRental: true,
-  camperCaravan: true,
-  electricityHookup: true,
-  gearRental: true,
-  shelter: true,
-  coveredSpots: true,
-  playground: true,
-  cardPayment: true,
-  fishSpecies: {
-    select: {
-      name: true,
-    },
-  },
-  images: {
-    select: {
-      url: true,
-    },
-    take: 1,
-    orderBy: [
-      {
-        sortOrder: "asc" as const,
-      },
-      {
-        createdAt: "asc" as const,
-      },
-    ],
-  },
-} satisfies Prisma.LakeSelect;
-
-function normalizePositiveInteger(
-  value: unknown,
-  fallback: number,
-  max = 10_000
-) {
-  const parsed = Number.parseInt(String(value ?? ""), 10);
-
-  if (!Number.isFinite(parsed) || parsed < 1) {
-    return fallback;
-  }
-
-  return Math.min(parsed, max);
-}
-
-function normalizeLakeListSort(value: unknown): LakeListSort {
-  if (
-    value === "name-asc" ||
-    value === "name" ||
-    value === "name-desc" ||
-    value === "distance-asc" ||
-    value === "distance"
-  ) {
-    if (value === "name") return "name-asc";
-    if (value === "distance") return "distance-asc";
-
-    return value;
-  }
-
-  return "rating-desc";
-}
-
-function normalizeOwnerType(value: unknown) {
-  return value === "pzw" || value === "commercial" ? value : "all";
-}
-
-function normalizeFishingType(value: unknown) {
-  return value === "general" || value === "spinning" || value === "carp"
-    ? value
-    : "all";
-}
-
-function normalizeAmenities(values: unknown): LakeAmenityKey[] {
-  if (!Array.isArray(values)) {
-    return [];
-  }
-
-  return Array.from(
-    new Set(
-      values
-        .map((value) => String(value).trim())
-        .filter((value): value is LakeAmenityKey =>
-          lakeAmenityKeys.includes(value as LakeAmenityKey)
-        )
-    )
-  );
-}
-
-function normalizeCoordinate(value: unknown) {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-
-  const parsed = Number(value);
-
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-type NormalizedLakeListQuery = {
-  page: number;
-  pageSize: number;
-  search: string;
-  ownerType: string;
-  fishingType: string;
-  voivodeship: string;
-  fish: string;
-  amenities: LakeAmenityKey[];
-  sort: LakeListSort;
-  userLat: number | null;
-  userLng: number | null;
-};
-
-export function normalizeLakeListQuery(
-  input: LakeListQuery
-): NormalizedLakeListQuery {
-  const search = String(input.search ?? "").trim().slice(0, 120);
-  const voivodeship =
-    String(input.voivodeship ?? "").trim().slice(0, 80) || "all";
-  const fish = String(input.fish ?? "").trim().slice(0, 80) || "all";
-
-  return {
-    page: normalizePositiveInteger(input.page, 1),
-    pageSize: Math.min(
-      normalizePositiveInteger(input.pageSize, LAKES_PAGE_SIZE, 50),
-      50
-    ),
-    search,
-    ownerType: normalizeOwnerType(input.ownerType),
-    fishingType: normalizeFishingType(input.fishingType),
-    voivodeship,
-    fish,
-    amenities: normalizeAmenities(input.amenities),
-    sort: normalizeLakeListSort(input.sort),
-    userLat: normalizeCoordinate(input.userLat),
-    userLng: normalizeCoordinate(input.userLng),
-  };
-}
-
-function buildLakeListWhere(
-  query: ReturnType<typeof normalizeLakeListQuery>
-): Prisma.LakeWhereInput {
-  const where: Prisma.LakeWhereInput = {};
-  const andConditions: Prisma.LakeWhereInput[] = [];
-
-  if (query.search) {
-    where.OR = [
-      {
-        name: {
-          contains: query.search,
-          mode: "insensitive",
-        },
-      },
-      {
-        fish: {
-          contains: query.search,
-          mode: "insensitive",
-        },
-      },
-      {
-        city: {
-          contains: query.search,
-          mode: "insensitive",
-        },
-      },
-      {
-        voivodeship: {
-          contains: query.search,
-          mode: "insensitive",
-        },
-      },
-      {
-        street: {
-          contains: query.search,
-          mode: "insensitive",
-        },
-      },
-      {
-        fishSpecies: {
-          some: {
-            name: {
-              contains: query.search,
-              mode: "insensitive",
-            },
-          },
-        },
-      },
-    ];
-  }
-
-  if (query.ownerType !== "all") {
-    where.ownerType = query.ownerType;
-  }
-
-  if (query.fishingType !== "all") {
-    where.fishingType = query.fishingType;
-  }
-
-  if (query.voivodeship !== "all") {
-    where.voivodeship = query.voivodeship;
-  }
-
-  if (query.fish !== "all") {
-    const fishSearchTerms = getFishSearchTerms(query.fish);
-
-    andConditions.push({
-      OR: fishSearchTerms.flatMap((term) => [
-        {
-          fish: {
-            contains: term,
-            mode: "insensitive" as const,
-          },
-        },
-        {
-          fishSpecies: {
-            some: {
-              name: {
-                contains: term,
-                mode: "insensitive" as const,
-              },
-            },
-          },
-        },
-      ]),
-    });
-  }
-
-  const amenityWhere: Record<LakeAmenityKey, Prisma.LakeWhereInput> = {
-    cottages: { cottages: true },
-    campfire: { campfire: true },
-    noKill: { noKill: true },
-    tent: { tent: true },
-    parking: { parking: true },
-    pier: { pier: true },
-    toilet: { toilet: true },
-    sanitaryFacilities: { sanitaryFacilities: true },
-    shop: { shop: true },
-    nightFishing: { nightFishing: true },
-    boatRental: { boatRental: true },
-    camperCaravan: { camperCaravan: true },
-    electricityHookup: { electricityHookup: true },
-    gearRental: { gearRental: true },
-    shelter: { shelter: true },
-    coveredSpots: { coveredSpots: true },
-    playground: { playground: true },
-    cardPayment: { cardPayment: true },
-  };
-
-  for (const amenity of query.amenities) {
-    andConditions.push(amenityWhere[amenity]);
-  }
-
-  if (andConditions.length > 0) {
-    where.AND = andConditions;
-  }
-
-  return where;
-}
-
-function getLakeListOrderBy(
-  sort: LakeListSort
-): Prisma.LakeOrderByWithRelationInput[] {
-  if (sort === "name-asc") {
-    return [{ name: "asc" }, { id: "asc" }];
-  }
-
-  if (sort === "name-desc") {
-    return [{ name: "desc" }, { id: "asc" }];
-  }
-
-  return [{ rating: "desc" }, { createdAt: "desc" }, { id: "asc" }];
-}
-
-function calculateServerDistanceInKm(
-  firstLat: number,
-  firstLng: number,
-  secondLat: number,
-  secondLng: number
-) {
-  const earthRadiusKm = 6371;
-
-  const latDifference = ((secondLat - firstLat) * Math.PI) / 180;
-  const lngDifference = ((secondLng - firstLng) * Math.PI) / 180;
-
-  const firstLatRadians = (firstLat * Math.PI) / 180;
-  const secondLatRadians = (secondLat * Math.PI) / 180;
-
-  const a =
-    Math.sin(latDifference / 2) * Math.sin(latDifference / 2) +
-    Math.cos(firstLatRadians) *
-      Math.cos(secondLatRadians) *
-      Math.sin(lngDifference / 2) *
-      Math.sin(lngDifference / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return earthRadiusKm * c;
-}
-
-async function getDistanceSortedLakeIds(
-  where: Prisma.LakeWhereInput,
-  userLat: number,
-  userLng: number
-) {
-  const matchingLakes = await prisma.lake.findMany({
-    where,
-    select: {
-      id: true,
-      lat: true,
-      lng: true,
-      name: true,
-    },
-  });
-
-  return matchingLakes
-    .map((lake) => ({
-      id: lake.id,
-      name: lake.name,
-      distance: calculateServerDistanceInKm(
-        userLat,
-        userLng,
-        lake.lat,
-        lake.lng
-      ),
-    }))
-    .sort((firstLake, secondLake) => {
-      if (firstLake.distance !== secondLake.distance) {
-        return firstLake.distance - secondLake.distance;
-      }
-
-      return firstLake.name.localeCompare(secondLake.name, "pl");
-    })
-    .map((lake) => lake.id);
-}
-
-export async function getPaginatedLakes(
-  input: LakeListQuery = {}
-): Promise<PaginatedLakesResult> {
-  const query = normalizeLakeListQuery(input);
-  const where = buildLakeListWhere(query);
-
-  if (
-    query.sort === "distance-asc" &&
-    query.userLat !== null &&
-    query.userLng !== null
-  ) {
-    const orderedIds = await getDistanceSortedLakeIds(
-      where,
-      query.userLat,
-      query.userLng
-    );
-
-    const totalCount = orderedIds.length;
-    const totalPages = Math.max(1, Math.ceil(totalCount / query.pageSize));
-    const page = Math.min(query.page, totalPages);
-    const startIndex = (page - 1) * query.pageSize;
-    const pageIds = orderedIds.slice(startIndex, startIndex + query.pageSize);
-
-    if (pageIds.length === 0) {
-      return {
-        lakes: [],
-        page,
-        pageSize: query.pageSize,
-        totalCount,
-        totalPages,
-      };
-    }
-
-    const rows = await prisma.lake.findMany({
-      where: {
-        id: {
-          in: pageIds,
-        },
-      },
-      select: lakeListSelect,
-    });
-
-    const rowsById = new Map(rows.map((lake) => [lake.id, lake]));
-
-    return {
-      lakes: pageIds
-        .map((id) => rowsById.get(id))
-        .filter((lake): lake is NonNullable<typeof lake> => Boolean(lake))
-        .map((lake) => mapLakeToListDto(lake)),
-      page,
-      pageSize: query.pageSize,
-      totalCount,
-      totalPages,
-    };
-  }
-
-  const totalCount = await prisma.lake.count({
-    where,
-  });
-
-  const totalPages = Math.max(1, Math.ceil(totalCount / query.pageSize));
-  const page = Math.min(query.page, totalPages);
-
-  const rows = await prisma.lake.findMany({
-    where,
-    select: lakeListSelect,
-    orderBy: getLakeListOrderBy(query.sort as LakeListSort),
-    skip: (page - 1) * query.pageSize,
-    take: query.pageSize,
-  });
-
-  return {
-    lakes: rows.map((lake) => mapLakeToListDto(lake)),
-    page,
-    pageSize: query.pageSize,
-    totalCount,
-    totalPages,
-  };
-}
-
-export async function getLakeFilterOptions(): Promise<LakeFilterOptions> {
+export async function getLakeFilterOptions(
+  where: Prisma.LakeWhereInput = {}
+): Promise<LakeFilterOptions> {
   const [voivodeshipRows, fishRows, allLakesCount] = await Promise.all([
     prisma.lake.findMany({
+      where,
       distinct: ["voivodeship"],
       select: {
         voivodeship: true,
@@ -841,6 +364,7 @@ export async function getLakeFilterOptions(): Promise<LakeFilterOptions> {
       },
     }),
     prisma.lake.findMany({
+      where,
       select: {
         fish: true,
         fishSpecies: {
@@ -850,24 +374,35 @@ export async function getLakeFilterOptions(): Promise<LakeFilterOptions> {
         },
       },
     }),
-    prisma.lake.count(),
+    prisma.lake.count({
+      where,
+    }),
   ]);
 
+  const voivodeships = Array.from(
+    new Map(
+      voivodeshipRows
+        .map((item) => item.voivodeship.trim())
+        .filter(Boolean)
+        .map((item) => [item.toLocaleLowerCase("pl-PL"), item] as const)
+    ).values()
+  ).sort((a, b) =>
+    a.localeCompare(b, "pl", {
+      sensitivity: "base",
+    })
+  );
+
   const rawFishValues = fishRows.flatMap((lake) => [
-    lake.fish,
+    ...lake.fish
+      .split(/[,;/|]/)
+      .map((item) => item.trim())
+      .filter(Boolean),
     ...lake.fishSpecies.map((fish) => fish.name),
   ]);
 
   return {
-    voivodeships: Array.from(
-      new Map(
-        voivodeshipRows
-          .map((item) => item.voivodeship.trim())
-          .filter(Boolean)
-          .map((item) => [item.toLocaleLowerCase("pl"), item] as const)
-      ).values()
-    ).sort((a, b) => a.localeCompare(b, "pl", { sensitivity: "base" })),
-    fishOptions: normalizeFishFilterOptions(rawFishValues),
+    voivodeships,
+    fishOptions: normalizeFishList(rawFishValues),
     allLakesCount,
   };
 }
@@ -888,6 +423,8 @@ export async function getLakesList() {
       city: true,
       postalCode: true,
       voivodeship: true,
+      description: true,
+
       cottages: true,
       campfire: true,
       noKill: true,
@@ -895,12 +432,9 @@ export async function getLakesList() {
       parking: true,
       pier: true,
       toilet: true,
-      sanitaryFacilities: true,
       shop: true,
       nightFishing: true,
       boatRental: true,
-      camperCaravan: true,
-      electricityHookup: true,
       gearRental: true,
       shelter: true,
       coveredSpots: true,
@@ -918,14 +452,9 @@ export async function getLakesList() {
           url: true,
         },
         take: 1,
-        orderBy: [
-          {
-            sortOrder: "asc",
-          },
-          {
-            createdAt: "asc",
-          },
-        ],
+        orderBy: {
+          createdAt: "asc",
+        },
       },
     },
     orderBy: {
@@ -936,8 +465,8 @@ export async function getLakesList() {
   return lakes.map((lake) => mapLakeToListDto(lake));
 }
 
-export async function getLakes() {
-  const lakes = await getLakesFromDatabase();
+export async function getLakes(where: Prisma.LakeWhereInput = {}) {
+  const lakes = await getLakesFromDatabase(where);
 
   return lakes.map((lake) => mapLakeToDto(lake));
 }
@@ -951,16 +480,7 @@ export async function getLakeBySlug(slug: string) {
       fishSpecies: true,
       priceList: true,
       rules: true,
-      images: {
-        orderBy: [
-          {
-            sortOrder: "asc",
-          },
-          {
-            createdAt: "asc",
-          },
-        ],
-      },
+      images: true,
       fishRecords: {
         orderBy: {
           weightKg: "desc",
@@ -1044,8 +564,96 @@ export async function getLakeBySlug(slug: string) {
   });
 }
 
-export async function getLakesDashboard(): Promise<LakeListDto[]> {
-  return getLakesList();
+export async function getLakesDashboard(): Promise<LakeDto[]> {
+  const lakes = await prisma.lake.findMany({
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      rating: true,
+      fish: true,
+      ownerType: true,
+      fishingType: true,
+      lat: true,
+      lng: true,
+      city: true,
+      voivodeship: true,
+      images: {
+        select: {
+          url: true,
+        },
+        take: 1,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return lakes.map((lake) => ({
+    id: lake.id,
+    name: lake.name,
+    slug: lake.slug,
+    rating: Number(lake.rating).toFixed(1),
+    distance: "0 km",
+    fish: lake.fish,
+    fishSpecies: [],
+    type: lake.ownerType as "pzw" | "commercial",
+    fishingType: lake.fishingType as "general" | "spinning" | "carp",
+    lat: lake.lat,
+    lng: lake.lng,
+    address: {
+      street: "",
+      city: lake.city,
+      postalCode: "",
+      voivodeship: lake.voivodeship,
+    },
+    description: "",
+    amenities: {
+      cottages: false,
+      campfire: false,
+      noKill: false,
+      tent: false,
+      parking: false,
+      pier: false,
+      toilet: false,
+      shop: false,
+      nightFishing: false,
+      boatRental: false,
+      gearRental: false,
+      shelter: false,
+      coveredSpots: false,
+      playground: false,
+      cardPayment: false,
+    },
+    details: {
+      area: "",
+      averageDepth: "",
+      bottomType: "",
+      waterType: "",
+    },
+    priceList: [],
+    priceListUrl: null,
+    rules: [],
+    rulesUrl: null,
+    contact: {
+      name: "",
+      phone: "",
+      email: "",
+      website: "",
+    },
+    fishRecords: [],
+    gearRequirements: [],
+    openingHours: {
+      isOpenAllDay: false,
+      text: null,
+    },
+    images: lake.images.map((image) => image.url),
+    catchRankings: {
+      byWeight: [],
+      byLength: [],
+    },
+  }));
 }
 
 function calculateDistanceInKm(
