@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
@@ -8,69 +9,135 @@ type RouteProps = {
   }>;
 };
 
-export async function POST(_request: Request, { params }: RouteProps) {
-  const supabase = await createClient();
+const PRIVATE_NO_STORE_HEADERS = {
+  "Cache-Control":
+    "private, no-store, max-age=0",
+} as const;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function POST(
+  _request: Request,
+  { params }: RouteProps
+) {
+  try {
+    const supabase =
+      await createClient();
 
-  if (!user) {
-    return NextResponse.json(
-      { message: "Musisz być zalogowany, aby dodać łowisko do ulubionych." },
-      { status: 401 }
-    );
-  }
+    const {
+      data: { user },
+    } =
+      await supabase.auth.getUser();
 
-  const { slug } = await params;
+    if (!user) {
+      return NextResponse.json(
+        {
+          message:
+            "Musisz być zalogowany, aby dodać łowisko do ulubionych.",
+        },
+        {
+          status: 401,
+          headers:
+            PRIVATE_NO_STORE_HEADERS,
+        }
+      );
+    }
 
-  const lake = await prisma.lake.findUnique({
-    where: {
-      slug,
-    },
-    select: {
-      id: true,
-    },
-  });
+    const { slug } = await params;
 
-  if (!lake) {
-    return NextResponse.json(
-      { message: "Nie znaleziono łowiska." },
-      { status: 404 }
-    );
-  }
+    /*
+     * Lake + aktualny favourite pobieramy w jednym zapytaniu.
+     * Wcześniej były to dwa osobne odczyty.
+     */
+    const lake =
+      await prisma.lake.findUnique({
+        where: {
+          slug,
+        },
+        select: {
+          id: true,
+          favourites: {
+            where: {
+              userId: user.id,
+            },
+            select: {
+              id: true,
+            },
+            take: 1,
+          },
+        },
+      });
 
-  const existingFavourite = await prisma.favourite.findUnique({
-    where: {
-      userId_lakeId: {
+    if (!lake) {
+      return NextResponse.json(
+        {
+          message:
+            "Nie znaleziono łowiska.",
+        },
+        {
+          status: 404,
+          headers:
+            PRIVATE_NO_STORE_HEADERS,
+        }
+      );
+    }
+
+    const existingFavourite =
+      lake.favourites[0];
+
+    if (existingFavourite) {
+      await prisma.favourite.delete({
+        where: {
+          id:
+            existingFavourite.id,
+        },
+      });
+
+      return NextResponse.json(
+        {
+          isFavourite: false,
+          message:
+            "Usunięto z ulubionych.",
+        },
+        {
+          headers:
+            PRIVATE_NO_STORE_HEADERS,
+        }
+      );
+    }
+
+    await prisma.favourite.create({
+      data: {
         userId: user.id,
         lakeId: lake.id,
       },
-    },
-  });
+    });
 
-  if (existingFavourite) {
-    await prisma.favourite.delete({
-      where: {
-        id: existingFavourite.id,
+    return NextResponse.json(
+      {
+        isFavourite: true,
+        message:
+          "Dodano do ulubionych.",
       },
-    });
+      {
+        headers:
+          PRIVATE_NO_STORE_HEADERS,
+      }
+    );
+  } catch (error) {
+    console.error(
+      "[api/lakes/[slug]/favourite]",
+      error
+    );
 
-    return NextResponse.json({
-      isFavourite: false,
-      message: "Usunięto z ulubionych.",
-    });
+    return NextResponse.json(
+      {
+        message:
+          "Nie udało się zmienić ulubionych.",
+      },
+      {
+        status: 500,
+        headers:
+          PRIVATE_NO_STORE_HEADERS,
+      }
+    );
   }
-
-  await prisma.favourite.create({
-    data: {
-      userId: user.id,
-      lakeId: lake.id,
-    },
-  });
-
-  return NextResponse.json({
-    isFavourite: true,
-    message: "Dodano do ulubionych.",
-  });
 }
