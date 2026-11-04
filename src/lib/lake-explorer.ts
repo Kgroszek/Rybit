@@ -770,24 +770,24 @@ export async function getLakeExplorerMapResults(
   const query = normalizeQuery(input);
   const where = buildExplorerWhere(query);
 
-  const [rows, totalCount] =
-    await Promise.all([
-      prisma.lake.findMany({
-        where,
-        select: lakeMapSelect,
-        orderBy: [
-          { rating: "desc" },
-          { id: "asc" },
-        ],
-      }),
-      prisma.lake.count({ where }),
-    ]);
+  /*
+   * Mapa zwraca cały pasujący zestaw punktów, więc osobny COUNT(*)
+   * był zbędny. Liczba rekordów jest dokładnie równa rows.length.
+   */
+  const rows = await prisma.lake.findMany({
+    where,
+    select: lakeMapSelect,
+    orderBy: [
+      { rating: "desc" },
+      { id: "asc" },
+    ],
+  });
 
   return {
     lakes: rows.map(
       mapLakeToMapPoint
     ),
-    totalCount,
+    totalCount: rows.length,
   };
 }
 
@@ -797,14 +797,28 @@ export async function getLakeExplorerMapResults(
  * systemu pobierania ryb/województw.
  */
 export async function getLakeExplorerFilterOptions(
-  input: LakeExplorerQuery = {}
+  input: LakeExplorerQuery = {},
+  {
+    includeCount = true,
+  }: {
+    includeCount?: boolean;
+  } = {}
 ): Promise<LakeFilterOptions> {
   const query = normalizeQuery(input);
   const where = buildExplorerWhere(query);
 
+  /*
+   * Wcześniej pobieraliśmy każde pasujące łowisko razem z relacją
+   * fishSpecies tylko po to, żeby zbudować select z gatunkami.
+   *
+   * Teraz baza zwraca wyłącznie unikalne teksty `fish` oraz unikalne
+   * nazwy FishSpecies. Przy większej liczbie łowisk oznacza to
+   * zdecydowanie mniej przesłanych rekordów i mniej mapowania w Node.
+   */
   const [
     voivodeshipRows,
-    fishRows,
+    fishTextRows,
+    fishSpeciesRows,
     allLakesCount,
   ] = await Promise.all([
     prisma.lake.findMany({
@@ -817,20 +831,35 @@ export async function getLakeExplorerFilterOptions(
         voivodeship: "asc",
       },
     }),
+
     prisma.lake.findMany({
       where,
+      distinct: ["fish"],
       select: {
         fish: true,
-        fishSpecies: {
-          select: {
-            name: true,
-          },
-        },
       },
     }),
-    prisma.lake.count({
-      where,
+
+    prisma.fishSpecies.findMany({
+      where: {
+        lake: {
+          is: where,
+        },
+      },
+      distinct: ["name"],
+      select: {
+        name: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
     }),
+
+    includeCount
+      ? prisma.lake.count({
+          where,
+        })
+      : Promise.resolve(0),
   ]);
 
   const voivodeships = Array.from(
@@ -856,17 +885,20 @@ export async function getLakeExplorerFilterOptions(
     })
   );
 
-  const rawFishValues = fishRows.flatMap(
-    (lake) => [
-      ...lake.fish
-        .split(/[,;/|]/)
-        .map((item) => item.trim())
-        .filter(Boolean),
-      ...lake.fishSpecies.map(
-        (fish) => fish.name
-      ),
-    ]
-  );
+  const rawFishValues = [
+    ...fishTextRows.flatMap(
+      (lake) =>
+        lake.fish
+          .split(/[,;/|]/)
+          .map((item) =>
+            item.trim()
+          )
+          .filter(Boolean)
+    ),
+    ...fishSpeciesRows.map(
+      (fish) => fish.name
+    ),
+  ];
 
   return {
     voivodeships,
@@ -929,12 +961,29 @@ export async function getLakeExplorerInitialData({
   const [
     result,
     mapResult,
-    filterOptions,
+    filterOptionsWithoutCount,
   ] = await Promise.all([
     getLakeExplorerResults(query),
     getLakeExplorerMapResults(query),
-    getLakeExplorerFilterOptions(query),
+
+    /*
+     * getLakeExplorerResults() i tak wykonuje COUNT(*) do paginacji.
+     * Nie wykonujemy więc drugiego identycznego COUNT(*) tylko dla
+     * licznika w filtrach.
+     */
+    getLakeExplorerFilterOptions(
+      query,
+      {
+        includeCount: false,
+      }
+    ),
   ]);
+
+  const filterOptions = {
+    ...filterOptionsWithoutCount,
+    allLakesCount:
+      result.totalCount,
+  };
 
   return {
     result,
