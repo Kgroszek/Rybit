@@ -13,10 +13,18 @@ type SupabaseImageProps = Omit<ImageProps, "src"> & {
   variant?: ImageVariantName;
 };
 
+/**
+ * Zapamiętujemy niedostępne warianty podczas bieżącej sesji strony.
+ * Jeżeli ten sam stary obraz pojawia się np. na kilku kartach,
+ * nie próbujemy pobierać brakującego wariantu wielokrotnie.
+ */
+const unavailableVariantUrls = new Set<string>();
+
 export function SupabaseImage({
   src,
   variant,
   onError,
+  unoptimized,
   ...props
 }: SupabaseImageProps) {
   const preferredSrc = useMemo(
@@ -24,21 +32,46 @@ export function SupabaseImage({
     [src, variant]
   );
 
-  const [fallbackToOriginal, setFallbackToOriginal] = useState(false);
+  const hasSeparateVariant = preferredSrc !== src;
+
+  const [fallbackToOriginal, setFallbackToOriginal] = useState(() =>
+    hasSeparateVariant && unavailableVariantUrls.has(preferredSrc)
+  );
 
   useEffect(() => {
-    setFallbackToOriginal(false);
-  }, [preferredSrc]);
+    setFallbackToOriginal(
+      hasSeparateVariant && unavailableVariantUrls.has(preferredSrc)
+    );
+  }, [hasSeparateVariant, preferredSrc]);
 
   const finalSrc = fallbackToOriginal ? src : preferredSrc;
+
+  /**
+   * Wariant thumb/medium jest już wcześniej:
+   * - zmniejszony,
+   * - skompresowany,
+   * - zapisany jako WebP.
+   *
+   * Nie ma sensu przepuszczać go jeszcze raz przez /_next/image.
+   * Co ważniejsze: gdy stary wariant nie istnieje, błąd 400 pochodzi
+   * bezpośrednio z Supabase i nie generuje w terminalu Next.js komunikatu
+   * "upstream image response failed".
+   *
+   * Po fallbacku do oryginału wracamy do zwykłego zachowania Next/Image.
+   */
+  const usePreparedVariant =
+    hasSeparateVariant && !fallbackToOriginal;
 
   return (
     <Image
       {...props}
       src={finalSrc}
+      unoptimized={usePreparedVariant ? true : unoptimized}
       onError={(event) => {
-        if (!fallbackToOriginal && preferredSrc !== src) {
+        if (usePreparedVariant) {
+          unavailableVariantUrls.add(preferredSrc);
           setFallbackToOriginal(true);
+          return;
         }
 
         onError?.(event);

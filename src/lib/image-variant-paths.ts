@@ -51,6 +51,22 @@ export function getImageVariantUrl(
     const bucket = storagePath.slice(0, firstSlash);
     const objectPath = storagePath.slice(firstSlash + 1);
 
+    /**
+     * Zdjęcia oczekujących zgłoszeń nie mają gwarantowanych wariantów.
+     * Warianty są przygotowywane przy akceptacji łowiska.
+     *
+     * Nie próbujemy więc pobierać:
+     * _variants/thumb/submissions/...
+     *
+     * Dzięki temu nie generujemy zbędnego requestu 400 przed fallbackiem.
+     */
+    if (
+      objectPath.startsWith("submissions/") ||
+      objectPath.startsWith("_variants/")
+    ) {
+      return publicUrl;
+    }
+
     url.pathname = `${prefix}${bucket}/${getImageVariantObjectPath(
       objectPath,
       variant
