@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { normalizeFishingMethods } from "@/lib/fishing-methods";
+import { revalidateLakePublicContent } from "@/lib/public-revalidation";
 
 type RouteProps = {
   params: Promise<{
@@ -166,6 +168,7 @@ export async function PUT(request: Request, { params }: RouteProps) {
 
       ownerType: getStringValue(body.ownerType) || "pzw",
       fishingType: getStringValue(body.fishingType) || "general",
+      fishingMethods: normalizeFishingMethods(body.fishingMethods),
       fish,
 
       lat,
@@ -196,9 +199,12 @@ export async function PUT(request: Request, { params }: RouteProps) {
       parking: Boolean(body.parking),
       pier: Boolean(body.pier),
       toilet: Boolean(body.toilet),
+      sanitaryFacilities: Boolean(body.sanitaryFacilities),
       shop: Boolean(body.shop),
       nightFishing: Boolean(body.nightFishing),
       boatRental: Boolean(body.boatRental),
+      camperCaravan: Boolean(body.camperCaravan),
+      electricityHookup: Boolean(body.electricityHookup),
 
       gearRental: Boolean(body.gearRental),
       shelter: Boolean(body.shelter),
@@ -279,6 +285,10 @@ export async function PUT(request: Request, { params }: RouteProps) {
       images: true,
     },
   });
+
+  revalidateLakePublicContent([
+    existingLake.slug,
+  ]);
 
   return NextResponse.json({
     message: "Łowisko zostało zaktualizowane.",

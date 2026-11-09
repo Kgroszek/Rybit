@@ -1,22 +1,30 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
+import { Geist, Geist_Mono, Manrope } from "next/font/google";
 
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 
+import { ConsentAwareGoogleAnalytics } from "@/components/analytics/ConsentAwareGoogleAnalytics";
 import { CookieConsent } from "@/components/CookieConsent";
 import { ToastProvider } from "@/components/ui/ToastProvider";
-import { GoogleAnalytics } from "@next/third-parties/google";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const manrope = Manrope({
+  variable: "--font-manrope",
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -43,22 +51,12 @@ export default function RootLayout({
   return (
     <html
       lang="pl"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} h-full antialiased`}
     >
-      <Script
-        id="ahrefs-analytics"
-        src="https://analytics.ahrefs.com/analytics.js"
-        data-key="o8rGh8XI3Fbjv3Kv/V1w6g"
-        strategy="beforeInteractive"
-      />
-
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col">
         <ToastProvider>{children}</ToastProvider>
 
-        {process.env.NEXT_PUBLIC_GA_ID ? (
-          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
-        ) : null}
-
+        <ConsentAwareGoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
         <CookieConsent />
       </body>
     </html>

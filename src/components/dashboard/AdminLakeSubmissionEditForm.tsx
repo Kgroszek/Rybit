@@ -1,12 +1,53 @@
 "use client";
 
-import Link from "next/link";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import {
+  useMemo,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from "react";
+import {
+  useRouter,
+} from "next/navigation";
+
+import {
+  AdminDecisionDialog,
+} from "@/components/admin/moderation/AdminDecisionDialog";
+import {
+  AdminFormInput,
+  AdminFormSection,
+  AdminFormSelect,
+  AdminFormTextarea,
+  AdminToggleCard,
+} from "@/components/admin/shared/AdminFormFields";
+import {
+  AddCircleIcon,
+} from "@/components/icons/AddCircleIcon";
+import {
+  TrashIcon,
+} from "@/components/icons/TrashIcon";
+import {
+  Button,
+  ButtonLink,
+} from "@/components/ui/Button";
+import {
+  useToast,
+} from "@/components/ui/ToastProvider";
+import {
+  FISHING_METHOD_OPTIONS,
+  normalizeFishingMethods,
+  type FishingMethod,
+} from "@/lib/fishing-methods";
 
 type SubmissionImage = {
   id: string;
   url: string;
+};
+
+type SubmissionFishRecord = {
+  id?: string;
+  fishName: string;
+  weightKg: string;
 };
 
 type SubmissionEditFormState = {
@@ -15,13 +56,17 @@ type SubmissionEditFormState = {
   description: string;
   ownerType: string;
   fishingType: string;
+  fishingMethods: FishingMethod[];
   fish: string;
+
   lat: string;
   lng: string;
+
   street: string;
   city: string;
   postalCode: string;
   voivodeship: string;
+
   area: string;
   averageDepth: string;
   bottomType: string;
@@ -32,6 +77,9 @@ type SubmissionEditFormState = {
   rulesText: string;
   rulesUrl: string;
 
+  isOpenAllDay: boolean;
+  openingHours: string;
+
   cottages: boolean;
   campfire: boolean;
   noKill: boolean;
@@ -39,10 +87,12 @@ type SubmissionEditFormState = {
   parking: boolean;
   pier: boolean;
   toilet: boolean;
+  sanitaryFacilities: boolean;
   shop: boolean;
   nightFishing: boolean;
   boatRental: boolean;
-
+  camperCaravan: boolean;
+  electricityHookup: boolean;
   gearRental: boolean;
   shelter: boolean;
   coveredSpots: boolean;
@@ -54,21 +104,123 @@ type SubmissionEditFormState = {
   contactEmail: string;
   contactWebsite: string;
 
+  fishRecords: SubmissionFishRecord[];
+  gearRequirements: string[];
+
   images: SubmissionImage[];
 };
 
 type AdminLakeSubmissionEditFormProps = {
-  submission: SubmissionEditFormState;
+  submission: Omit<
+    SubmissionEditFormState,
+    "fishingMethods" | "fishRecords" | "gearRequirements"
+  > & {
+    fishingMethods: string[];
+    fishRecords: Array<{
+      id?: string;
+      fishName: string;
+      weightKg: number | string;
+    }>;
+    gearRequirements: Array<{
+      id?: string;
+      text: string;
+    }>;
+  };
 };
+
+const FISH_OPTIONS = [
+  "Karp",
+  "Amur",
+  "Szczupak",
+  "Sandacz",
+  "Sum",
+  "Okoń",
+  "Lin",
+  "Leszcz",
+  "Płoć",
+  "Karaś",
+  "Karaś pospolity",
+  "Jesiotr",
+  "Tołpyga",
+  "Węgorz",
+  "Jaź",
+  "Kleń",
+  "Wzdręga",
+] as const;
+
+const AMENITIES: Array<{
+  key: keyof Pick<
+    SubmissionEditFormState,
+    | "cottages"
+    | "campfire"
+    | "noKill"
+    | "tent"
+    | "parking"
+    | "pier"
+    | "toilet"
+    | "sanitaryFacilities"
+    | "shop"
+    | "nightFishing"
+    | "boatRental"
+    | "camperCaravan"
+    | "electricityHookup"
+    | "gearRental"
+    | "shelter"
+    | "coveredSpots"
+    | "playground"
+    | "cardPayment"
+  >;
+  label: string;
+}> = [
+  { key: "parking", label: "Parking" },
+  { key: "pier", label: "Pomost" },
+  { key: "toilet", label: "Toaleta" },
+  { key: "sanitaryFacilities", label: "Sanitariaty" },
+  { key: "cottages", label: "Domki" },
+  { key: "tent", label: "Namiot" },
+  { key: "camperCaravan", label: "Kamper / przyczepa" },
+  { key: "electricityHookup", label: "Przyłącze z prądem" },
+  { key: "nightFishing", label: "Wędkowanie nocne" },
+  { key: "boatRental", label: "Wypożyczalnia łodzi" },
+  { key: "gearRental", label: "Wypożyczalnia sprzętu" },
+  { key: "shop", label: "Sklep" },
+  { key: "campfire", label: "Ognisko" },
+  { key: "shelter", label: "Altana" },
+  { key: "coveredSpots", label: "Zadaszone stanowiska" },
+  { key: "playground", label: "Plac zabaw" },
+  { key: "cardPayment", label: "Płatność kartą" },
+  { key: "noKill", label: "No Kill" },
+];
 
 export function AdminLakeSubmissionEditForm({
   submission,
 }: AdminLakeSubmissionEditFormProps) {
   const router = useRouter();
+  const toast = useToast();
 
-  const [form, setForm] = useState<SubmissionEditFormState>(submission);
+  const [form, setForm] = useState<SubmissionEditFormState>(() => ({
+    ...submission,
+    fishingMethods: normalizeFishingMethods(submission.fishingMethods),
+    fishRecords: submission.fishRecords.map((record) => ({
+      id: record.id,
+      fishName: record.fishName,
+      weightKg: String(record.weightKg).replace(".", ","),
+    })),
+    gearRequirements: submission.gearRequirements
+      .map((item) => item.text.trim())
+      .filter(Boolean),
+  }));
+
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [imageToDelete, setImageToDelete] =
+    useState<SubmissionImage | null>(null);
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
+
+  const selectedAmenities = useMemo(
+    () =>
+      AMENITIES.filter((item) => Boolean(form[item.key])).length,
+    [form]
+  );
 
   function updateField<K extends keyof SubmissionEditFormState>(
     field: K,
@@ -77,584 +229,823 @@ export function AdminLakeSubmissionEditForm({
     setForm((current) => ({
       ...current,
       [field]: value,
+      ...(field === "isOpenAllDay" && value === true
+        ? {
+            openingHours: "",
+          }
+        : {}),
     }));
   }
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function toggleFishingMethod(method: FishingMethod, checked: boolean) {
+    updateField(
+      "fishingMethods",
+      checked
+        ? Array.from(new Set([...form.fishingMethods, method]))
+        : form.fishingMethods.filter((item) => item !== method)
+    );
+  }
 
-    setIsLoading(true);
-    setMessage("");
-
-    const response = await fetch(`/api/admin/lake-submissions/${form.id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    });
-
-    let data: { message?: string } = {};
-
-    try {
-      data = await response.json();
-    } catch {
-      data = {};
-    }
-
-    if (!response.ok) {
-      setMessage(data.message || "Nie udało się zapisać zgłoszenia.");
-      setIsLoading(false);
+  function addFishRecord() {
+    if (form.fishRecords.length >= 30) {
       return;
     }
 
-    setMessage("Zgłoszenie zostało zapisane.");
-    setIsLoading(false);
+    updateField("fishRecords", [
+      ...form.fishRecords,
+      {
+        fishName: FISH_OPTIONS[0],
+        weightKg: "",
+      },
+    ]);
+  }
 
-    setTimeout(() => {
+  function updateFishRecord(
+    index: number,
+    field: "fishName" | "weightKg",
+    value: string
+  ) {
+    updateField(
+      "fishRecords",
+      form.fishRecords.map((record, recordIndex) =>
+        recordIndex === index
+          ? {
+              ...record,
+              [field]: value,
+            }
+          : record
+      )
+    );
+  }
+
+  function removeFishRecord(index: number) {
+    updateField(
+      "fishRecords",
+      form.fishRecords.filter(
+        (_record, recordIndex) => recordIndex !== index
+      )
+    );
+  }
+
+  function addGearRequirement() {
+    if (form.gearRequirements.length >= 30) {
+      return;
+    }
+
+    updateField("gearRequirements", [...form.gearRequirements, ""]);
+  }
+
+  function updateGearRequirement(index: number, value: string) {
+    updateField(
+      "gearRequirements",
+      form.gearRequirements.map((item, itemIndex) =>
+        itemIndex === index ? value : item
+      )
+    );
+  }
+
+  function removeGearRequirement(index: number) {
+    updateField(
+      "gearRequirements",
+      form.gearRequirements.filter(
+        (_item, itemIndex) => itemIndex !== index
+      )
+    );
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const validationMessage = validateForm(form);
+
+    if (validationMessage) {
+      toast.error({
+        title: "Sprawdź dane formularza.",
+        description: validationMessage,
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    const toastId = toast.loading({
+      title: "Zapisywanie zgłoszenia…",
+      description: "Aktualizujemy dane przesłane przez użytkownika.",
+    });
+
+    try {
+      const response = await fetch(
+        `/api/admin/lake-submissions/${form.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...form,
+            fishRecords: normalizeFishRecords(form.fishRecords),
+            gearRequirements: form.gearRequirements
+              .map((requirement) => requirement.trim())
+              .filter(Boolean),
+          }),
+        }
+      );
+
+      const data = (await response.json().catch(() => null)) as
+        | {
+            message?: string;
+          }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message || "Nie udało się zapisać zgłoszenia."
+        );
+      }
+
+      toast.update(toastId, {
+        type: "success",
+        title: "Zgłoszenie zostało zapisane.",
+        description: form.name,
+        duration: 3500,
+      });
+
       router.push("/admin/zgloszenia-lowisk");
       router.refresh();
-    }, 800);
+    } catch (error) {
+      toast.update(toastId, {
+        type: "error",
+        title: "Nie udało się zapisać zgłoszenia.",
+        description:
+          error instanceof Error ? error.message : undefined,
+        duration: 6000,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function deleteImage() {
+    if (!imageToDelete) {
+      return;
+    }
+
+    setIsDeletingImage(true);
+
+    try {
+      const response = await fetch(
+        `/api/admin/lake-submission-images/${imageToDelete.id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = (await response.json().catch(() => null)) as
+        | {
+            message?: string;
+          }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message || "Nie udało się usunąć zdjęcia."
+        );
+      }
+
+      setForm((current) => ({
+        ...current,
+        images: current.images.filter(
+          (image) => image.id !== imageToDelete.id
+        ),
+      }));
+
+      toast.success("Zdjęcie zostało usunięte.");
+      setImageToDelete(null);
+    } catch (error) {
+      toast.error({
+        title: "Nie udało się usunąć zdjęcia.",
+        description:
+          error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setIsDeletingImage(false);
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {message && (
-        <div className="rounded-3xl border border-blue-100 bg-blue-50 p-5 text-sm font-semibold text-blue-700">
-          {message}
-        </div>
-      )}
+    <>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <AdminFormSection
+          title="Podstawowe informacje"
+          description="Najważniejsze dane, które po akceptacji trafią do publicznego profilu łowiska."
+        >
+          <div className="grid gap-5 lg:grid-cols-2">
+            <AdminFormInput
+              label="Nazwa łowiska"
+              required
+              value={form.name}
+              onChange={(event) => updateField("name", event.target.value)}
+              maxLength={160}
+            />
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-slate-950">
-              Podstawowe informacje
-            </h2>
+            <AdminFormInput
+              label="Występujące ryby"
+              required
+              value={form.fish}
+              onChange={(event) => updateField("fish", event.target.value)}
+              placeholder="np. Karp, Szczupak, Okoń"
+            />
 
-            <p className="mt-1 text-sm text-slate-500">
-              Dane widoczne później na publicznej stronie łowiska.
-            </p>
+            <AdminFormSelect
+              label="Rodzaj łowiska"
+              value={form.ownerType}
+              onChange={(event) =>
+                updateField("ownerType", event.target.value)
+              }
+            >
+              <option value="pzw">PZW</option>
+              <option value="commercial">Komercyjne</option>
+            </AdminFormSelect>
+
+            <AdminFormSelect
+              label="Typ łowienia"
+              value={form.fishingType}
+              onChange={(event) =>
+                updateField("fishingType", event.target.value)
+              }
+            >
+              <option value="general">Ogólne</option>
+              <option value="spinning">Spinningowe</option>
+              <option value="carp">Karpiowe</option>
+            </AdminFormSelect>
           </div>
 
-          <Link
-            href="/admin/zgloszenia-lowisk"
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-          >
-            Wróć do zgłoszeń
-          </Link>
-        </div>
+          <div className="mt-5">
+            <AdminFormTextarea
+              label="Opis łowiska"
+              required
+              value={form.description}
+              onChange={(event) =>
+                updateField("description", event.target.value)
+              }
+              rows={6}
+              maxLength={5000}
+            />
+          </div>
 
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <Input
-            label="Nazwa łowiska"
-            value={form.name}
-            onChange={(value) => updateField("name", value)}
-            required
-          />
+          <div className="mt-6 border-t border-border pt-5">
+            <p className="text-sm font-extrabold text-text">
+              Metody łowienia
+            </p>
 
-          <Input
-            label="Występujące ryby"
-            value={form.fish}
-            onChange={(value) => updateField("fish", value)}
-            placeholder="np. Karp, Szczupak, Okoń"
-            required
-          />
+            <p className="mt-1 text-sm leading-6 text-text-secondary">
+              Zaznacz wszystkie metody, które mają zostać zapisane przy łowisku.
+            </p>
 
-          <Select
-            label="Rodzaj łowiska"
-            value={form.ownerType}
-            onChange={(value) => updateField("ownerType", value)}
-            options={[
-              { label: "PZW", value: "pzw" },
-              { label: "Komercyjne", value: "commercial" },
-            ]}
-          />
+            <div className="mt-4 grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+              {FISHING_METHOD_OPTIONS.map((method) => (
+                <AdminToggleCard
+                  key={method.value}
+                  label={method.label}
+                  checked={form.fishingMethods.includes(method.value)}
+                  onChange={(checked) =>
+                    toggleFishingMethod(method.value, checked)
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        </AdminFormSection>
 
-          <Select
-            label="Typ łowienia"
-            value={form.fishingType}
-            onChange={(value) => updateField("fishingType", value)}
-            options={[
-              { label: "Ogólne", value: "general" },
-              { label: "Spinningowe", value: "spinning" },
-              { label: "Karpiowe", value: "carp" },
-            ]}
-          />
-        </div>
+        <AdminFormSection
+          title="Adres i lokalizacja"
+          description="Dane adresowe oraz współrzędne używane na mapie Rybio."
+        >
+          <div className="grid gap-5 lg:grid-cols-2">
+            <AdminFormInput
+              label="Ulica / miejsce"
+              required
+              value={form.street}
+              onChange={(event) =>
+                updateField("street", event.target.value)
+              }
+            />
 
-        <div className="mt-5">
-          <Textarea
-            label="Opis łowiska"
-            value={form.description}
-            onChange={(value) => updateField("description", value)}
-            rows={5}
-            required
-          />
-        </div>
-      </section>
+            <AdminFormInput
+              label="Miejscowość"
+              required
+              value={form.city}
+              onChange={(event) => updateField("city", event.target.value)}
+            />
 
-      {form.images.length > 0 && (
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-slate-950">
-                Zdjęcia ze zgłoszenia
-              </h2>
+            <AdminFormInput
+              label="Kod pocztowy"
+              required
+              value={form.postalCode}
+              onChange={(event) =>
+                updateField("postalCode", event.target.value)
+              }
+            />
 
-              <p className="mt-1 text-sm text-slate-500">
-                Zdjęcia zostaną przypisane do łowiska po akceptacji.
-              </p>
+            <AdminFormInput
+              label="Województwo"
+              required
+              value={form.voivodeship}
+              onChange={(event) =>
+                updateField("voivodeship", event.target.value)
+              }
+            />
+
+            <AdminFormInput
+              label="Szerokość geograficzna"
+              required
+              inputMode="decimal"
+              value={form.lat}
+              onChange={(event) => updateField("lat", event.target.value)}
+            />
+
+            <AdminFormInput
+              label="Długość geograficzna"
+              required
+              inputMode="decimal"
+              value={form.lng}
+              onChange={(event) => updateField("lng", event.target.value)}
+            />
+          </div>
+        </AdminFormSection>
+
+        <AdminFormSection
+          title="Informacje o łowisku"
+          description="Charakterystyka akwenu oraz dostępność."
+        >
+          <div className="grid gap-5 lg:grid-cols-2">
+            <AdminFormInput
+              label="Powierzchnia"
+              value={form.area}
+              onChange={(event) => updateField("area", event.target.value)}
+            />
+
+            <AdminFormInput
+              label="Średnia głębokość"
+              value={form.averageDepth}
+              onChange={(event) =>
+                updateField("averageDepth", event.target.value)
+              }
+            />
+
+            <AdminFormInput
+              label="Rodzaj dna"
+              value={form.bottomType}
+              onChange={(event) =>
+                updateField("bottomType", event.target.value)
+              }
+            />
+
+            <AdminFormInput
+              label="Typ wody"
+              value={form.waterType}
+              onChange={(event) =>
+                updateField("waterType", event.target.value)
+              }
+            />
+          </div>
+
+          <div className="mt-6 border-t border-border pt-5">
+            <AdminToggleCard
+              label="Otwarte całodobowo"
+              description="Jeśli aktywne, tekst godzin otwarcia zostanie wyczyszczony."
+              checked={form.isOpenAllDay}
+              onChange={(checked) =>
+                updateField("isOpenAllDay", checked)
+              }
+            />
+
+            {!form.isOpenAllDay && (
+              <div className="mt-4">
+                <AdminFormTextarea
+                  label="Godziny otwarcia"
+                  value={form.openingHours}
+                  onChange={(event) =>
+                    updateField("openingHours", event.target.value)
+                  }
+                  rows={4}
+                  placeholder="np. Pon.–Pt. 7:00–20:00"
+                />
+              </div>
+            )}
+          </div>
+        </AdminFormSection>
+
+        <AdminFormSection
+          title="Rekordowe ryby i wymagania"
+          description="Dodatkowe dane, które po akceptacji zostaną przeniesione do profilu łowiska."
+        >
+          <div className="grid gap-6 xl:grid-cols-2">
+            <EditableListHeader
+              title="Rekordowe ryby"
+              count={form.fishRecords.length}
+              max={30}
+              buttonLabel="Dodaj rekord"
+              disabled={form.fishRecords.length >= 30}
+              onAdd={addFishRecord}
+            >
+              {form.fishRecords.length > 0 ? (
+                <div className="grid gap-3">
+                  {form.fishRecords.map((record, index) => (
+                    <div
+                      key={record.id ?? index}
+                      className="grid gap-3 rounded-control border border-border bg-surface-muted p-4 lg:grid-cols-[minmax(0,1fr)_150px_auto]"
+                    >
+                      <AdminFormSelect
+                        label="Ryba"
+                        value={record.fishName}
+                        onChange={(event) =>
+                          updateFishRecord(
+                            index,
+                            "fishName",
+                            event.target.value
+                          )
+                        }
+                      >
+                        {FISH_OPTIONS.map((fish) => (
+                          <option key={fish} value={fish}>
+                            {fish}
+                          </option>
+                        ))}
+                      </AdminFormSelect>
+
+                      <AdminFormInput
+                        label="Waga kg"
+                        inputMode="decimal"
+                        value={record.weightKg}
+                        onChange={(event) =>
+                          updateFishRecord(
+                            index,
+                            "weightKg",
+                            event.target.value
+                          )
+                        }
+                      />
+
+                      <div className="flex items-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="text-danger-foreground hover:bg-danger-subtle hover:text-danger-foreground"
+                          onClick={() => removeFishRecord(index)}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                          Usuń
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <AdminListEmpty text="Brak rekordowych ryb." />
+              )}
+            </EditableListHeader>
+
+            <EditableListHeader
+              title="Wymagania sprzętowe"
+              count={form.gearRequirements.length}
+              max={30}
+              buttonLabel="Dodaj wymaganie"
+              disabled={form.gearRequirements.length >= 30}
+              onAdd={addGearRequirement}
+            >
+              {form.gearRequirements.length > 0 ? (
+                <div className="grid gap-3">
+                  {form.gearRequirements.map((requirement, index) => (
+                    <div
+                      key={index}
+                      className="grid gap-3 rounded-control border border-border bg-surface-muted p-4 lg:grid-cols-[minmax(0,1fr)_auto]"
+                    >
+                      <AdminFormInput
+                        label="Wymaganie"
+                        value={requirement}
+                        onChange={(event) =>
+                          updateGearRequirement(index, event.target.value)
+                        }
+                        maxLength={240}
+                      />
+
+                      <div className="flex items-end">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="text-danger-foreground hover:bg-danger-subtle hover:text-danger-foreground"
+                          onClick={() => removeGearRequirement(index)}
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                          Usuń
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <AdminListEmpty text="Brak wymagań sprzętowych." />
+              )}
+            </EditableListHeader>
+          </div>
+        </AdminFormSection>
+
+        <AdminFormSection
+          title="Cennik i regulamin"
+          description="Treść może być wpisana bezpośrednio lub uzupełniona linkiem."
+        >
+          <div className="grid gap-6 xl:grid-cols-2">
+            <div className="grid gap-4">
+              <AdminFormTextarea
+                label="Cennik"
+                value={form.priceListText}
+                onChange={(event) =>
+                  updateField("priceListText", event.target.value)
+                }
+                rows={5}
+              />
+
+              <AdminFormInput
+                label="Link do cennika"
+                type="url"
+                value={form.priceListUrl}
+                onChange={(event) =>
+                  updateField("priceListUrl", event.target.value)
+                }
+              />
             </div>
 
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">
-              {form.images.length} zdjęć
-            </span>
-          </div>
+            <div className="grid gap-4">
+              <AdminFormTextarea
+                label="Regulamin"
+                value={form.rulesText}
+                onChange={(event) =>
+                  updateField("rulesText", event.target.value)
+                }
+                rows={5}
+              />
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {form.images.map((image) => (
-  <div
-    key={image.id}
-    className="group overflow-hidden rounded-2xl border border-slate-200 bg-slate-100"
-  >
-    <a href={image.url} target="_blank" rel="noreferrer">
-      <img
-        src={image.url}
-        alt={form.name}
-        className="h-36 w-full object-cover transition duration-300 group-hover:scale-105"
+              <AdminFormInput
+                label="Link do regulaminu"
+                type="url"
+                value={form.rulesUrl}
+                onChange={(event) =>
+                  updateField("rulesUrl", event.target.value)
+                }
+              />
+            </div>
+          </div>
+        </AdminFormSection>
+
+        <AdminFormSection
+          title="Udogodnienia"
+          description={`${selectedAmenities} zaznaczonych elementów.`}
+        >
+          <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+            {AMENITIES.map((amenity) => (
+              <AdminToggleCard
+                key={amenity.key}
+                label={amenity.label}
+                checked={Boolean(form[amenity.key])}
+                onChange={(checked) =>
+                  updateField(amenity.key, checked)
+                }
+              />
+            ))}
+          </div>
+        </AdminFormSection>
+
+        <AdminFormSection
+          title="Kontakt z łowiskiem"
+          description="Dane kontaktowe są opcjonalne, ale pomagają w weryfikacji zgłoszenia."
+        >
+          <div className="grid gap-5 lg:grid-cols-2">
+            <AdminFormInput
+              label="Nazwa kontaktowa"
+              value={form.contactName}
+              onChange={(event) =>
+                updateField("contactName", event.target.value)
+              }
+            />
+
+            <AdminFormInput
+              label="Telefon"
+              value={form.contactPhone}
+              onChange={(event) =>
+                updateField("contactPhone", event.target.value)
+              }
+            />
+
+            <AdminFormInput
+              label="E-mail"
+              type="email"
+              value={form.contactEmail}
+              onChange={(event) =>
+                updateField("contactEmail", event.target.value)
+              }
+            />
+
+            <AdminFormInput
+              label="Strona internetowa"
+              type="url"
+              value={form.contactWebsite}
+              onChange={(event) =>
+                updateField("contactWebsite", event.target.value)
+              }
+            />
+          </div>
+        </AdminFormSection>
+
+        {form.images.length > 0 && (
+          <AdminFormSection
+            title="Zdjęcia ze zgłoszenia"
+            description="Usunięcie zdjęcia jest trwałe i usuwa plik ze zgłoszenia."
+          >
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              {form.images.map((image) => (
+                <article
+                  key={image.id}
+                  className="overflow-hidden rounded-card border border-border bg-surface-muted"
+                >
+                  <a
+                    href={image.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block overflow-hidden"
+                  >
+                    <img
+                      src={image.url}
+                      alt={form.name}
+                      className="aspect-[4/3] w-full object-cover transition duration-300 hover:scale-105"
+                    />
+                  </a>
+
+                  <div className="p-3">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      fullWidth
+                      className="text-danger-foreground hover:bg-danger-subtle hover:text-danger-foreground"
+                      onClick={() => setImageToDelete(image)}
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                      Usuń zdjęcie
+                    </Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </AdminFormSection>
+        )}
+
+        <div className="sticky bottom-0 z-20 flex flex-col-reverse gap-2 rounded-card border border-border bg-surface/95 p-3 shadow-float backdrop-blur-xl sm:flex-row sm:justify-end">
+          <ButtonLink
+            href="/admin/zgloszenia-lowisk"
+            variant="ghost"
+          >
+            Anuluj
+          </ButtonLink>
+
+          <Button
+            type="submit"
+            isLoading={isLoading}
+            loadingLabel="Zapisywanie…"
+          >
+            Zapisz zgłoszenie
+          </Button>
+        </div>
+      </form>
+
+      <AdminDecisionDialog
+        open={Boolean(imageToDelete)}
+        onClose={() => setImageToDelete(null)}
+        title="Usunąć zdjęcie ze zgłoszenia?"
+        description="Plik zostanie trwale usunięty i nie będzie przeniesiony do łowiska po akceptacji."
+        confirmLabel="Usuń zdjęcie"
+        tone="danger"
+        isLoading={isDeletingImage}
+        onConfirm={deleteImage}
       />
-    </a>
+    </>
+  );
+}
 
-    <div className="p-3">
-      <button
-        type="button"
-        onClick={async () => {
-          const confirmed = confirm("Czy na pewno chcesz usunąć to zdjęcie?");
+function EditableListHeader({
+  title,
+  count,
+  max,
+  buttonLabel,
+  disabled,
+  onAdd,
+  children,
+}: {
+  title: string;
+  count: number;
+  max: number;
+  buttonLabel: string;
+  disabled: boolean;
+  onAdd: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <section>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-sm font-extrabold text-text">
+            {title}
+          </h3>
 
-          if (!confirmed) {
-            return;
-          }
-
-          const response = await fetch(
-            `/api/admin/lake-submission-images/${image.id}`,
-            {
-              method: "DELETE",
-            }
-          );
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            alert(data.message || "Nie udało się usunąć zdjęcia.");
-            return;
-          }
-
-          setForm((current) => ({
-            ...current,
-            images: current.images.filter(
-              (currentImage) => currentImage.id !== image.id
-            ),
-          }));
-        }}
-        className="w-full rounded-xl bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100"
-      >
-        Usuń zdjęcie
-      </button>
-    </div>
-  </div>
-))}
-          </div>
-        </section>
-      )}
-
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-950">Adres i lokalizacja</h2>
-
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <Input
-            label="Ulica / miejsce"
-            value={form.street}
-            onChange={(value) => updateField("street", value)}
-            required
-          />
-
-          <Input
-            label="Miejscowość"
-            value={form.city}
-            onChange={(value) => updateField("city", value)}
-            required
-          />
-
-          <Input
-            label="Kod pocztowy"
-            value={form.postalCode}
-            onChange={(value) => updateField("postalCode", value)}
-            required
-          />
-
-          <Input
-            label="Województwo"
-            value={form.voivodeship}
-            onChange={(value) => updateField("voivodeship", value)}
-            required
-          />
-
-          <Input
-            label="Szerokość geograficzna"
-            value={form.lat}
-            onChange={(value) => updateField("lat", value)}
-            required
-          />
-
-          <Input
-            label="Długość geograficzna"
-            value={form.lng}
-            onChange={(value) => updateField("lng", value)}
-            required
-          />
+          <p className="mt-1 text-xs text-text-muted">
+            {count}/{max}
+          </p>
         </div>
-      </section>
 
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-950">
-          Informacje o łowisku
-        </h2>
-
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <Input
-            label="Powierzchnia"
-            value={form.area}
-            onChange={(value) => updateField("area", value)}
-          />
-
-          <Input
-            label="Średnia głębokość"
-            value={form.averageDepth}
-            onChange={(value) => updateField("averageDepth", value)}
-          />
-
-          <Input
-            label="Rodzaj dna"
-            value={form.bottomType}
-            onChange={(value) => updateField("bottomType", value)}
-          />
-
-          <Input
-            label="Typ wody"
-            value={form.waterType}
-            onChange={(value) => updateField("waterType", value)}
-          />
-        </div>
-      </section>
-
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-950">
-          Cennik i regulamin
-        </h2>
-
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <Textarea
-            label="Cennik"
-            value={form.priceListText}
-            onChange={(value) => updateField("priceListText", value)}
-            rows={5}
-            placeholder="Każda pozycja w osobnej linii"
-          />
-
-          <Input
-            label="Link do cennika"
-            value={form.priceListUrl}
-            onChange={(value) => updateField("priceListUrl", value)}
-            type="url"
-          />
-
-          <Textarea
-            label="Regulamin"
-            value={form.rulesText}
-            onChange={(value) => updateField("rulesText", value)}
-            rows={5}
-            placeholder="Każda zasada w osobnej linii"
-          />
-
-          <Input
-            label="Link do regulaminu"
-            value={form.rulesUrl}
-            onChange={(value) => updateField("rulesUrl", value)}
-            type="url"
-          />
-        </div>
-      </section>
-
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-950">Udogodnienia</h2>
-
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Checkbox
-            label="Domki"
-            checked={form.cottages}
-            onChange={(value) => updateField("cottages", value)}
-          />
-
-          <Checkbox
-            label="Ognisko"
-            checked={form.campfire}
-            onChange={(value) => updateField("campfire", value)}
-          />
-
-          <Checkbox
-            label="No Kill"
-            checked={form.noKill}
-            onChange={(value) => updateField("noKill", value)}
-          />
-
-          <Checkbox
-            label="Namiot"
-            checked={form.tent}
-            onChange={(value) => updateField("tent", value)}
-          />
-
-          <Checkbox
-            label="Parking"
-            checked={form.parking}
-            onChange={(value) => updateField("parking", value)}
-          />
-
-          <Checkbox
-            label="Pomost"
-            checked={form.pier}
-            onChange={(value) => updateField("pier", value)}
-          />
-
-          <Checkbox
-            label="Toaleta"
-            checked={form.toilet}
-            onChange={(value) => updateField("toilet", value)}
-          />
-
-          <Checkbox
-            label="Sklep"
-            checked={form.shop}
-            onChange={(value) => updateField("shop", value)}
-          />
-
-          <Checkbox
-            label="Wędkowanie nocne"
-            checked={form.nightFishing}
-            onChange={(value) => updateField("nightFishing", value)}
-          />
-
-          <Checkbox
-            label="Wypożyczalnia łodzi"
-            checked={form.boatRental}
-            onChange={(value) => updateField("boatRental", value)}
-          />
-
-          <Checkbox
-            label="Wypożyczalnia sprzętu"
-            checked={form.gearRental}
-            onChange={(value) => updateField("gearRental", value)}
-          />
-
-          <Checkbox
-            label="Altana"
-            checked={form.shelter}
-            onChange={(value) => updateField("shelter", value)}
-          />
-
-          <Checkbox
-            label="Zadaszone stanowiska"
-            checked={form.coveredSpots}
-            onChange={(value) => updateField("coveredSpots", value)}
-          />
-
-          <Checkbox
-            label="Plac zabaw"
-            checked={form.playground}
-            onChange={(value) => updateField("playground", value)}
-          />
-
-          <Checkbox
-            label="Płatność kartą"
-            checked={form.cardPayment}
-            onChange={(value) => updateField("cardPayment", value)}
-          />
-        </div>
-      </section>
-
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-bold text-slate-950">Kontakt z łowiskiem</h2>
-
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <Input
-            label="Nazwa kontaktowa"
-            value={form.contactName}
-            onChange={(value) => updateField("contactName", value)}
-          />
-
-          <Input
-            label="Telefon"
-            value={form.contactPhone}
-            onChange={(value) => updateField("contactPhone", value)}
-          />
-
-          <Input
-            label="E-mail"
-            value={form.contactEmail}
-            onChange={(value) => updateField("contactEmail", value)}
-            type="email"
-          />
-
-          <Input
-            label="Strona internetowa"
-            value={form.contactWebsite}
-            onChange={(value) => updateField("contactWebsite", value)}
-            type="url"
-          />
-        </div>
-      </section>
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-        <button
+        <Button
           type="button"
-          onClick={() => router.push("/admin/zgloszenia-lowisk")}
-          className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          variant="outline"
+          size="sm"
+          disabled={disabled}
+          onClick={onAdd}
         >
-          Anuluj
-        </button>
-
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="rounded-2xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isLoading ? "Zapisywanie..." : "Zapisz zgłoszenie"}
-        </button>
+          <AddCircleIcon className="h-4 w-4" />
+          {buttonLabel}
+        </Button>
       </div>
-    </form>
+
+      <div className="mt-4">{children}</div>
+    </section>
   );
 }
 
-function Input({
-  label,
-  value,
-  onChange,
-  placeholder,
-  required = false,
-  type = "text",
+function AdminListEmpty({
+  text,
 }: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  required?: boolean;
-  type?: string;
+  text: string;
 }) {
   return (
-    <div>
-      <label className="mb-2 block text-sm font-semibold text-slate-700">
-        {label}
-      </label>
-
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required={required}
-        placeholder={placeholder}
-        type={type}
-        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-      />
+    <div className="rounded-control border border-dashed border-border-strong bg-surface-muted px-4 py-5 text-sm text-text-muted">
+      {text}
     </div>
   );
 }
 
-function Textarea({
-  label,
-  value,
-  onChange,
-  placeholder,
-  required = false,
-  rows = 4,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  required?: boolean;
-  rows?: number;
-}) {
-  return (
-    <div>
-      <label className="mb-2 block text-sm font-semibold text-slate-700">
-        {label}
-      </label>
-
-      <textarea
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        required={required}
-        rows={rows}
-        placeholder={placeholder}
-        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-      />
-    </div>
-  );
+function normalizeFishRecords(
+  records: SubmissionFishRecord[]
+) {
+  return records
+    .map((record) => ({
+      fishName: record.fishName.trim(),
+      weightKg: Number(record.weightKg.replace(",", ".")),
+    }))
+    .filter(
+      (record) =>
+        record.fishName &&
+        Number.isFinite(record.weightKg) &&
+        record.weightKg > 0
+    );
 }
 
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  options: {
-    label: string;
-    value: string;
-  }[];
-}) {
-  return (
-    <div>
-      <label className="mb-2 block text-sm font-semibold text-slate-700">
-        {label}
-      </label>
+function validateForm(form: SubmissionEditFormState) {
+  if (
+    !form.name.trim() ||
+    !form.description.trim() ||
+    !form.fish.trim()
+  ) {
+    return "Nazwa, opis i ryby są wymagane.";
+  }
 
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm font-semibold outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-50"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
+  if (
+    !form.street.trim() ||
+    !form.city.trim() ||
+    !form.postalCode.trim() ||
+    !form.voivodeship.trim()
+  ) {
+    return "Uzupełnij pełne dane adresowe.";
+  }
 
-function Checkbox({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:bg-slate-100">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="h-4 w-4 rounded border-slate-300 text-blue-600"
-      />
+  const lat = Number(form.lat.replace(",", "."));
+  const lng = Number(form.lng.replace(",", "."));
 
-      <span className="text-sm font-semibold text-slate-700">{label}</span>
-    </label>
-  );
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+    return "Szerokość geograficzna musi być liczbą od -90 do 90.";
+  }
+
+  if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+    return "Długość geograficzna musi być liczbą od -180 do 180.";
+  }
+
+  const incompleteRecord = form.fishRecords.some((record) => {
+    const fishName = record.fishName.trim();
+    const weight = record.weightKg.trim();
+
+    return Boolean(fishName) !== Boolean(weight);
+  });
+
+  if (incompleteRecord) {
+    return "Uzupełnij gatunek i wagę każdej rekordowej ryby albo usuń niekompletny wiersz.";
+  }
+
+  return null;
 }

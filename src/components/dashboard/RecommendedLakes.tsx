@@ -1,213 +1,184 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import type { LakeDto } from "@/lib/lakes";
+import { useMemo } from "react";
 
-type UserLocation = {
-  lat: number;
-  lng: number;
-};
+import { ArrowRightIcon } from "@/components/icons/ArrowRightIcon";
+import { ButtonLink } from "@/components/ui/Button";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { useUserLocation } from "@/hooks/useUserLocation";
+import {
+  calculateDistanceInKm,
+  isValidLocation,
+} from "@/lib/location";
+import type { LakeListDto } from "@/lib/lakes";
 
-type RecommendedLake = LakeDto & {
+type RecommendedLake = LakeListDto & {
   calculatedDistance: number | null;
 };
 
-type RecommendedLakesProps = {
-  lakes: LakeDto[];
-};
-
-function calculateDistanceInKm(
-  firstPoint: UserLocation,
-  secondPoint: UserLocation
-) {
-  const earthRadiusInKm = 6371;
-
-  const latDifference = degreesToRadians(secondPoint.lat - firstPoint.lat);
-  const lngDifference = degreesToRadians(secondPoint.lng - firstPoint.lng);
-
-  const firstLatInRadians = degreesToRadians(firstPoint.lat);
-  const secondLatInRadians = degreesToRadians(secondPoint.lat);
-
-  const haversineValue =
-    Math.sin(latDifference / 2) * Math.sin(latDifference / 2) +
-    Math.cos(firstLatInRadians) *
-      Math.cos(secondLatInRadians) *
-      Math.sin(lngDifference / 2) *
-      Math.sin(lngDifference / 2);
-
-  const centralAngle =
-    2 * Math.atan2(Math.sqrt(haversineValue), Math.sqrt(1 - haversineValue));
-
-  return earthRadiusInKm * centralAngle;
-}
-
-function degreesToRadians(degrees: number) {
-  return degrees * (Math.PI / 180);
-}
-
 function getLakeTypeLabel(type: string) {
-  if (type === "pzw") {
-    return "PZW";
-  }
-
-  if (type === "commercial") {
-    return "Komercyjne";
-  }
-
-  return "Inne";
+  return type === "commercial" ? "Komercyjne" : "PZW";
 }
 
 function getFishingTypeLabel(type: string) {
-  if (type === "spinning") {
-    return "Spinningowe";
-  }
-
-  if (type === "carp") {
-    return "Karpiowe";
-  }
-
-  if (type === "general") {
-    return "Ogólne";
-  }
-
+  if (type === "spinning") return "Spinningowe";
+  if (type === "carp") return "Karpiowe";
+  if (type === "general") return "Ogólne";
   return "Inne";
 }
 
-export function RecommendedLakes({ lakes }: RecommendedLakesProps) {
-const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-
-useEffect(() => {
-  const timeoutId = window.setTimeout(() => {
-    const savedLocation = localStorage.getItem("rybit-user-location");
-
-    if (!savedLocation) {
-      return;
-    }
-
-    try {
-      setUserLocation(JSON.parse(savedLocation) as UserLocation);
-    } catch {
-      setUserLocation(null);
-    }
-  }, 0);
-
-  function handleLocationUpdated(event: Event) {
-    const customEvent = event as CustomEvent<UserLocation>;
-    setUserLocation(customEvent.detail);
-  }
-
-  window.addEventListener("rybit:user-location-updated", handleLocationUpdated);
-
-  return () => {
-    window.clearTimeout(timeoutId);
-
-    window.removeEventListener(
-      "rybit:user-location-updated",
-      handleLocationUpdated
-    );
-  };
-}, []);
+export function RecommendedLakes({ lakes }: { lakes: LakeListDto[] }) {
+  const { userLocation } = useUserLocation();
 
   const recommendedLakes = useMemo<RecommendedLake[]>(() => {
-    if (!userLocation) {
-      return lakes.slice(0, 5).map((lake) => ({
+    const validLakes = lakes
+      .filter((lake) => isValidLocation({ lat: lake.lat, lng: lake.lng }))
+      .map((lake) => ({
         ...lake,
-        calculatedDistance: null,
+        calculatedDistance:
+          userLocation && isValidLocation(userLocation)
+            ? calculateDistanceInKm(userLocation, {
+                lat: lake.lat,
+                lng: lake.lng,
+              })
+            : null,
       }));
-    }
 
-    return lakes
-      .map((lake) => {
-        const calculatedDistance = calculateDistanceInKm(userLocation, {
-          lat: lake.lat,
-          lng: lake.lng,
-        });
-
-        return {
-          ...lake,
-          calculatedDistance,
-        };
-      })
+    return validLakes
       .sort((firstLake, secondLake) => {
-        const firstDistance = firstLake.calculatedDistance ?? Infinity;
-        const secondDistance = secondLake.calculatedDistance ?? Infinity;
+        const ratingDifference =
+          Number(secondLake.rating || 0) - Number(firstLake.rating || 0);
 
-        return firstDistance - secondDistance;
+        if (ratingDifference !== 0) return ratingDifference;
+
+        return (
+          (firstLake.calculatedDistance ?? Infinity) -
+          (secondLake.calculatedDistance ?? Infinity)
+        );
       })
       .slice(0, 3);
   }, [lakes, userLocation]);
 
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold">Polecane łowiska dla Ciebie</h2>
+    <section>
+      <SectionHeader
+        eyebrow="Odkrywaj"
+        title="Najlepiej oceniane łowiska"
+        description={
+          userLocation && isValidLocation(userLocation)
+            ? "Wysoko oceniane miejsca w Rybio. Przy remisie bliżej Ciebie pojawiają się wyżej."
+            : "Miejsca wyróżniające się ocenami użytkowników Rybio."
+        }
+        action={
+          <ButtonLink href="/lowiska" variant="outline" size="sm" className="hidden sm:inline-flex">
+            Zobacz wszystkie
+          </ButtonLink>
+        }
+      />
 
-          <p className="mt-1 text-sm text-slate-500">
-            {userLocation
-              ? "Najbliższe miejsca na podstawie Twojej lokalizacji."
-              : "Kliknij „Moja lokalizacja” na mapie, aby zobaczyć najbliższe miejsca."}
-          </p>
-        </div>
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
+        {recommendedLakes.map((lake) => {
+          const fish =
+            lake.fishSpecies.slice(0, 3).join(" • ") ||
+            lake.fish
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean)
+              .slice(0, 3)
+              .join(" • ");
 
-        <Link
-          href="/lowiska"
-          className="shrink-0 text-sm font-semibold text-blue-600 hover:text-blue-700"
-        >
-          Zobacz wszystkie
-        </Link>
-      </div>
+          return (
+            <Link
+              key={lake.id}
+              href={`/lowiska/${lake.slug}`}
+              className="group relative min-h-[320px] overflow-hidden rounded-card bg-navy-950 shadow-card transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:shadow-card-hover"
+            >
+              {lake.images[0] ? (
+                <img
+                  src={lake.images[0]}
+                  alt={lake.name}
+                  className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-[linear-gradient(145deg,var(--rybio-navy-950),var(--rybio-navy-900))]" />
+              )}
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {recommendedLakes.map((lake) => (
-          <article
-            key={lake.id}
-            className="overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-1 hover:shadow-md"
-          >
-            <div className="relative h-32 bg-gradient-to-br from-emerald-100 via-blue-100 to-sky-200">
-              <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+              <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(13,30,51,0.96)_0%,rgba(13,30,51,0.68)_38%,rgba(13,30,51,0.08)_78%)]" />
+
+              <div className="absolute left-4 right-4 top-4 flex flex-wrap gap-2">
                 <span
-                  className={`rounded-full px-3 py-1 text-xs font-bold ${
+                  className={
                     lake.type === "commercial"
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-blue-50 text-blue-700"
-                  }`}
+                      ? "rounded-full border border-white/20 bg-success/90 px-3 py-1 text-[10px] font-bold text-white backdrop-blur"
+                      : "rounded-full border border-white/20 bg-primary/90 px-3 py-1 text-[10px] font-bold text-white backdrop-blur"
+                  }
                 >
                   {getLakeTypeLabel(lake.type)}
                 </span>
 
-                <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-bold text-slate-600 shadow-sm">
+                <span className="rounded-full border border-white/20 bg-white/90 px-3 py-1 text-[10px] font-bold text-navy-950 backdrop-blur">
                   {getFishingTypeLabel(lake.fishingType)}
                 </span>
               </div>
-            </div>
 
-            <div className="p-4">
-              <h3 className="text-lg font-bold">{lake.name}</h3>
+              <div className="absolute inset-x-0 bottom-0 p-5 text-white">
+                <div className="flex items-center gap-3 text-xs font-semibold text-white/80">
+                  <span>
+                    {Number(lake.rating || 0) > 0
+                      ? `Ocena ${Number(lake.rating)
+                          .toFixed(1)
+                          .replace(".", ",")}`
+                      : "Brak ocen"}
+                  </span>
 
-              <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                <span>★ {lake.rating}</span>
+                  {lake.calculatedDistance !== null &&
+                    Number.isFinite(lake.calculatedDistance) && (
+                      <>
+                        <span className="h-1 w-1 rounded-full bg-white/40" />
+                        <span>{lake.calculatedDistance.toFixed(1)} km</span>
+                      </>
+                    )}
+                </div>
 
-                <span>
-                  {lake.calculatedDistance !== null
-                    ? `${lake.calculatedDistance.toFixed(1)} km`
-                    : lake.distance}
-                </span>
+                <h3 className="mt-2 font-display text-xl font-extrabold tracking-[-0.025em] text-white">
+                  {lake.name}
+                </h3>
+
+                <p className="mt-1 truncate text-sm text-white/75">
+                  {lake.address.city}
+                  {lake.address.voivodeship
+                    ? `, woj. ${lake.address.voivodeship}`
+                    : ""}
+                </p>
+
+                {fish && (
+                  <p className="mt-3 line-clamp-2 text-xs leading-5 text-white/70">
+                    {fish}
+                  </p>
+                )}
+
+                <div className="mt-5 flex items-center justify-between border-t border-white/15 pt-4">
+                  <span className="text-sm font-semibold">Zobacz łowisko</span>
+
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur transition-colors group-hover:bg-white group-hover:text-navy-950">
+                    <ArrowRightIcon className="h-4 w-4" />
+                  </span>
+                </div>
               </div>
-
-              <p className="mt-3 text-sm text-slate-500">{lake.fish}</p>
-
-              <Link
-                href={`/lowiska/${lake.slug}`}
-                className="mt-4 flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
-              >
-                Zobacz łowisko
-              </Link>
-            </div>
-          </article>
-        ))}
+            </Link>
+          );
+        })}
       </div>
+
+      <ButtonLink
+        href="/lowiska"
+        variant="outline"
+        fullWidth
+        className="mt-4 sm:hidden"
+      >
+        Zobacz wszystkie łowiska
+      </ButtonLink>
     </section>
   );
 }

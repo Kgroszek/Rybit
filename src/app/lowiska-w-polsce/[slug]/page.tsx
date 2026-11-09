@@ -1,11 +1,19 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getLakeBySlug, getRecommendedNearbyLakes } from "@/lib/lakes";
-import { PublicLakeDetailsPage } from "@/components/public/PublicLakeDetailsPage";
-import { PublicHeader } from "@/components/public/PublicHeader";
+import { cache } from "react";
+
 import { PublicFooter } from "@/components/public/PublicFooter";
+import { PublicHeader } from "@/components/public/PublicHeader";
+import { PublicLakeDetailsPage } from "@/components/public/PublicLakeDetailsPage";
+import { getLakeBySlug } from "@/lib/lakes";
+import { getNearbyLakesForDetails } from "@/lib/lake-details";
 
 const siteUrl = "https://rybio.pl";
+
+// ISR fallback; zmiany łowiska invalidują ten adres on-demand.
+export const revalidate = 3600;
+
+const getCachedLakeBySlug = cache(getLakeBySlug);
 
 type PageProps = {
   params: Promise<{
@@ -24,57 +32,33 @@ function truncateText(text: string, maxLength = 155) {
 }
 
 function getOwnerTypeLabel(ownerType?: string) {
-  if (ownerType === "commercial") {
-    return "łowisko komercyjne";
-  }
-
-  if (ownerType === "pzw") {
-    return "łowisko PZW";
-  }
-
+  if (ownerType === "commercial") return "łowisko komercyjne";
+  if (ownerType === "pzw") return "łowisko PZW";
   return "łowisko wędkarskie";
 }
 
 function getFishingTypeLabel(fishingType?: string) {
-  if (fishingType === "carp") {
-    return "łowisko karpiowe";
-  }
-
-  if (fishingType === "spinning") {
-    return "łowisko spinningowe";
-  }
-
+  if (fishingType === "carp") return "łowisko karpiowe";
+  if (fishingType === "spinning") return "łowisko spinningowe";
   return "łowisko ogólne";
 }
 
 function getLakeImage(lake: Awaited<ReturnType<typeof getLakeBySlug>>) {
-  if (!lake) {
-    return "/og-lakes.jpg";
-  }
-
-  if (Array.isArray(lake.images) && lake.images.length > 0) {
-    return lake.images[0];
-  }
-
+  if (!lake) return "/og-lakes.jpg";
+  if (Array.isArray(lake.images) && lake.images.length > 0) return lake.images[0];
   return "/og-lakes.jpg";
 }
 
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const lake = await getLakeBySlug(slug);
+  const lake = await getCachedLakeBySlug(slug);
 
   if (!lake) {
     return {
       metadataBase: new URL(siteUrl),
       title: "Łowisko nie znalezione | Rybio",
-      description:
-        "Nie znaleziono wybranego łowiska w publicznej bazie łowisk Rybio.",
-      robots: {
-        index: false,
-        follow: false,
-      },
+      description: "Nie znaleziono wybranego łowiska w publicznej bazie łowisk Rybio.",
+      robots: { index: false, follow: false },
     };
   }
 
@@ -90,9 +74,7 @@ export async function generateMetadata({
 
   const description = truncateText(
     lake.description ||
-      `Sprawdź ${lake.name}${
-        city ? ` w miejscowości ${city}` : ""
-      }: lokalizację, gatunki ryb, typ łowiska, udogodnienia, cennik, zasady i informacje przydatne przed wyprawą.`
+      `Sprawdź ${lake.name}${city ? ` w miejscowości ${city}` : ""}: lokalizację, gatunki ryb, typ łowiska, udogodnienia, cennik, zasady i informacje przydatne przed wyprawą.`
   );
 
   const canonicalUrl = `/lowiska-w-polsce/${lake.slug}`;
@@ -114,9 +96,7 @@ export async function generateMetadata({
       lake.fish || "",
       "Rybio",
     ].filter(Boolean),
-    alternates: {
-      canonical: canonicalUrl,
-    },
+    alternates: { canonical: canonicalUrl },
     openGraph: {
       title,
       description,
@@ -139,10 +119,7 @@ export async function generateMetadata({
       description,
       images: [imageUrl],
     },
-    robots: {
-      index: true,
-      follow: true,
-    },
+    robots: { index: true, follow: true },
   };
 }
 
@@ -150,8 +127,8 @@ export default async function PublicLakePage({ params }: PageProps) {
   const { slug } = await params;
 
   const [lake, recommendedLakes] = await Promise.all([
-    getLakeBySlug(slug),
-    getRecommendedNearbyLakes(slug, 3),
+    getCachedLakeBySlug(slug),
+    getNearbyLakesForDetails(slug, 3),
   ]);
 
   if (!lake) {
@@ -159,14 +136,9 @@ export default async function PublicLakePage({ params }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-950">
+    <main className="min-h-screen bg-background text-text">
       <PublicHeader />
-
-      <PublicLakeDetailsPage
-        lake={lake}
-        recommendedLakes={recommendedLakes}
-      />
-
+      <PublicLakeDetailsPage lake={lake} recommendedLakes={recommendedLakes} />
       <PublicFooter />
     </main>
   );

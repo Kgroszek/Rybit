@@ -68,32 +68,36 @@ function normalizeToastInput(
 function getToastStyles(type: ToastType) {
   if (type === "success") {
     return {
-      wrapper: "border-emerald-200 bg-emerald-50 text-emerald-900",
-      icon: "bg-emerald-500 text-white",
-      description: "text-emerald-700",
+      wrapper:
+        "border-success-border bg-success-subtle text-success-foreground",
+      icon: "bg-success text-white",
+      description: "text-success-foreground/80",
     };
   }
 
   if (type === "error") {
     return {
-      wrapper: "border-red-200 bg-red-50 text-red-900",
-      icon: "bg-red-500 text-white",
-      description: "text-red-700",
+      wrapper:
+        "border-danger-border bg-danger-subtle text-danger-foreground",
+      icon: "bg-danger text-white",
+      description: "text-danger-foreground/80",
     };
   }
 
   if (type === "loading") {
     return {
-      wrapper: "border-blue-200 bg-blue-50 text-blue-900",
-      icon: "bg-blue-500 text-white",
-      description: "text-blue-700",
+      wrapper:
+        "border-info-border bg-info-subtle text-info-foreground",
+      icon: "bg-primary text-white",
+      description: "text-info-foreground/80",
     };
   }
 
   return {
-    wrapper: "border-slate-200 bg-white text-slate-950",
-    icon: "bg-slate-900 text-white",
-    description: "text-slate-500",
+    wrapper:
+      "border-border bg-surface text-text shadow-card",
+    icon: "bg-navy-950 text-white",
+    description: "text-text-secondary",
   };
 }
 
@@ -110,7 +114,8 @@ function ToastIcon({ type }: { type: ToastType }) {
     );
   }
 
-  const icon = type === "success" ? "✓" : type === "error" ? "!" : "i";
+  const icon =
+    type === "success" ? "✓" : type === "error" ? "!" : "i";
 
   return (
     <span
@@ -121,11 +126,15 @@ function ToastIcon({ type }: { type: ToastType }) {
   );
 }
 
-export function ToastProvider({ children }: { children: React.ReactNode }) {
+export function ToastProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map()
-  );
+  const timersRef = useRef<
+    Map<string, ReturnType<typeof setTimeout>>
+  >(new Map());
 
   const dismiss = useCallback((id: string) => {
     const timer = timersRef.current.get(id);
@@ -135,7 +144,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       timersRef.current.delete(id);
     }
 
-    setToasts((current) => current.filter((toast) => toast.id !== id));
+    setToasts((current) =>
+      current.filter((toast) => toast.id !== id)
+    );
   }, []);
 
   const scheduleDismiss = useCallback(
@@ -163,7 +174,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     (type: ToastType, input: string | CreateToastInput) => {
       const normalized = normalizeToastInput(
         input,
-        type === "loading" ? LOADING_DURATION : DEFAULT_DURATION
+        type === "loading"
+          ? LOADING_DURATION
+          : DEFAULT_DURATION
       );
 
       const id = createToastId();
@@ -176,8 +189,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         duration: normalized.duration,
       };
 
-      setToasts((current) => [toast, ...current].slice(0, 5));
-      scheduleDismiss(id, toast.duration ?? DEFAULT_DURATION);
+      setToasts((current) =>
+        [toast, ...current].slice(0, 5)
+      );
+
+      scheduleDismiss(
+        id,
+        toast.duration ?? DEFAULT_DURATION
+      );
 
       return id;
     },
@@ -202,10 +221,15 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             ...input,
             duration:
               input.duration ??
-              (input.type === "loading" ? LOADING_DURATION : DEFAULT_DURATION),
+              (input.type === "loading"
+                ? LOADING_DURATION
+                : DEFAULT_DURATION),
           };
 
-          scheduleDismiss(id, nextToast.duration ?? DEFAULT_DURATION);
+          scheduleDismiss(
+            id,
+            nextToast.duration ?? DEFAULT_DURATION
+          );
 
           return nextToast;
         })
@@ -216,10 +240,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<ToastContextValue>(
     () => ({
-      success: (input) => createToast("success", input),
-      error: (input) => createToast("error", input),
-      info: (input) => createToast("info", input),
-      loading: (input) => createToast("loading", input),
+      success: (input) =>
+        createToast("success", input),
+      error: (input) =>
+        createToast("error", input),
+      info: (input) =>
+        createToast("info", input),
+      loading: (input) =>
+        createToast("loading", input),
       dismiss,
       update,
     }),
@@ -237,15 +265,25 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           return (
             <div
               key={toast.id}
-              className={`pointer-events-auto flex gap-3 rounded-3xl border p-4 shadow-xl backdrop-blur ${styles.wrapper}`}
+              role="status"
+              aria-live={
+                toast.type === "error"
+                  ? "assertive"
+                  : "polite"
+              }
+              className={`pointer-events-auto flex gap-3 rounded-card border p-4 shadow-float backdrop-blur ${styles.wrapper}`}
             >
               <ToastIcon type={toast.type} />
 
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-black leading-5">{toast.title}</p>
+                <p className="text-sm font-extrabold leading-5">
+                  {toast.title}
+                </p>
 
                 {toast.description && (
-                  <p className={`mt-1 text-sm leading-5 ${styles.description}`}>
+                  <p
+                    className={`mt-1 text-sm leading-5 ${styles.description}`}
+                  >
                     {toast.description}
                   </p>
                 )}
@@ -254,7 +292,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={() => dismiss(toast.id)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-lg font-bold opacity-60 transition hover:bg-white/60 hover:opacity-100"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-lg font-bold opacity-60 transition hover:bg-white/70 hover:opacity-100"
                 aria-label="Zamknij powiadomienie"
               >
                 ×
@@ -271,7 +309,9 @@ export function useToast() {
   const context = useContext(ToastContext);
 
   if (!context) {
-    throw new Error("useToast musi być użyty wewnątrz ToastProvider.");
+    throw new Error(
+      "useToast musi być użyty wewnątrz ToastProvider."
+    );
   }
 
   return context;

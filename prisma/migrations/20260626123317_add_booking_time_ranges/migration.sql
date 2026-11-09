@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "LakeBookingSettings" ADD COLUMN     "dayEndTime" TEXT NOT NULL DEFAULT '16:00',
+ADD COLUMN     "dayStartTime" TEXT NOT NULL DEFAULT '08:00',
+ADD COLUMN     "fullDayEndTime" TEXT NOT NULL DEFAULT '07:00',
+ADD COLUMN     "fullDayStartTime" TEXT NOT NULL DEFAULT '06:00',
+ADD COLUMN     "nightEndTime" TEXT NOT NULL DEFAULT '06:00',
+ADD COLUMN     "nightStartTime" TEXT NOT NULL DEFAULT '16:00';

@@ -6,122 +6,154 @@ const siteUrl = "https://rybio.pl";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
-  const lakes = await prisma.lake.findMany({
-    select: {
-      slug: true,
-      updatedAt: true,
-    },
-    orderBy: {
-      updatedAt: "desc",
-    },
-  });
+  const [lakes, blogPosts] = await Promise.all([
+    prisma.lake.findMany({
+      select: {
+        slug: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    }),
+    prisma.blogPost.findMany({
+      where: {
+        status: "published",
+        publishedAt: {
+          lte: now,
+        },
+      },
+      select: {
+        slug: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    }),
+  ]);
+
+  const latestLakeModified = lakes[0]?.updatedAt;
+  const latestBlogModified = blogPosts[0]?.updatedAt;
 
   const staticPages: MetadataRoute.Sitemap = [
     {
       url: `${siteUrl}`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 1,
     },
     {
       url: `${siteUrl}/lowiska-w-polsce`,
-      lastModified: now,
+      ...(latestLakeModified
+        ? {
+            lastModified: latestLakeModified,
+          }
+        : {}),
       changeFrequency: "daily",
       priority: 0.95,
     },
 
     // Województwa
+    // Nie ustawiamy sztucznego lastModified.
+    // Bez osobnego śledzenia zmian dla każdego województwa
+    // nie mamy wiarygodnej daty dla konkretnego landing page.
     {
       url: `${siteUrl}/lowiska-mazowieckie`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-lubelskie`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-malopolskie`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-wielkopolskie`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-podkarpackie`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-slaskie`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-zachodniopomorskie`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
 
     // Typy i kategorie łowisk
+    // Tu również pomijamy lastModified, dopóki nie śledzimy
+    // rzeczywistej daty zmiany konkretnego zestawu wyników.
     {
       url: `${siteUrl}/lowiska-komercyjne`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     {
       url: `${siteUrl}/lowiska-no-kill`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${siteUrl}/lowiska-z-domkami`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${siteUrl}/lowiska-z-noclegiem`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${siteUrl}/lowiska-karpiowe`,
-      lastModified: now,
       changeFrequency: "weekly",
       priority: 0.75,
     },
 
-    // Pozostałe strony
+    // Blog i publiczne strony produktowe
+    {
+      url: `${siteUrl}/blog`,
+      ...(latestBlogModified
+        ? {
+            lastModified: latestBlogModified,
+          }
+        : {}),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${siteUrl}/dla-wlascicieli-lowisk`,
+      changeFrequency: "monthly",
+      priority: 0.8,
+    },
+
+    // Pozostałe strony statyczne.
+    // Brak lastModified jest celowy — lepszy brak daty
+    // niż data zmieniająca się przy każdym wygenerowaniu sitemap.
     {
       url: `${siteUrl}/kontakt`,
-      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${siteUrl}/regulamin`,
-      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.3,
     },
     {
       url: `${siteUrl}/polityka-prywatnosci`,
-      lastModified: now,
       changeFrequency: "monthly",
       priority: 0.3,
     },
@@ -134,5 +166,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.75,
   }));
 
-  return [...staticPages, ...lakePages];
+  const blogPostPages: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+    url: `${siteUrl}/blog/${post.slug}`,
+    lastModified: post.updatedAt,
+    changeFrequency: "monthly",
+    priority: 0.7,
+  }));
+
+  return [...staticPages, ...lakePages, ...blogPostPages];
 }

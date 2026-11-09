@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { revalidateLakePublicContent } from "@/lib/public-revalidation";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { removeImageVariants, uploadImageVariants } from "@/lib/server/image-variants";
 
 type RouteProps = {
   params: Promise<{
@@ -122,6 +124,13 @@ export async function POST(request: Request, { params }: RouteProps) {
         throw new Error(uploadError.message);
       }
 
+      await uploadImageVariants({
+        supabase,
+        bucket: BUCKET_NAME,
+        originalPath: imagePath,
+        source: image,
+      });
+
       const {
         data: { publicUrl },
       } = supabase.storage.from(BUCKET_NAME).getPublicUrl(imagePath);
@@ -152,6 +161,10 @@ export async function POST(request: Request, { params }: RouteProps) {
       },
     });
 
+    revalidateLakePublicContent([
+      lake.slug,
+    ]);
+
     return NextResponse.json({
       message: "Zdjęcia zostały dodane.",
       images: createdImages,
@@ -161,6 +174,16 @@ export async function POST(request: Request, { params }: RouteProps) {
       await supabase.storage
         .from(BUCKET_NAME)
         .remove(uploadedImages.map((image) => image.imagePath));
+
+      await Promise.all(
+        uploadedImages.map((image) =>
+          removeImageVariants({
+            supabase,
+            bucket: BUCKET_NAME,
+            originalPath: image.imagePath,
+          })
+        )
+      );
     }
 
     return NextResponse.json(
@@ -200,6 +223,15 @@ export async function DELETE(_request: Request, { params }: RouteProps) {
     );
   }
 
+  const lake = await prisma.lake.findUnique({
+    where: {
+      id: image.lakeId,
+    },
+    select: {
+      slug: true,
+    },
+  });
+
   const supabase = createAdminClient();
 
   if (image.imagePath) {
@@ -215,6 +247,12 @@ export async function DELETE(_request: Request, { params }: RouteProps) {
         { status: 500 }
       );
     }
+
+    await removeImageVariants({
+      supabase,
+      bucket: BUCKET_NAME,
+      originalPath: image.imagePath,
+    });
   }
 
   await prisma.lakeImage.delete({
@@ -222,6 +260,10 @@ export async function DELETE(_request: Request, { params }: RouteProps) {
       id,
     },
   });
+
+  revalidateLakePublicContent([
+    lake?.slug,
+  ]);
 
   return NextResponse.json({
     message: "Zdjęcie łowiska zostało usunięte.",

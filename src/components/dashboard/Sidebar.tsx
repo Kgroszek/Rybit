@@ -1,368 +1,398 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { LogoutButton } from "@/components/auth/LogoutButton";
+import {
+  usePathname,
+} from "next/navigation";
+import type {
+  ReactNode,
+} from "react";
 
-type MenuItem = {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-  badge?: number;
-};
+import {
+  LogoutButton,
+} from "@/components/auth/LogoutButton";
+import {
+  ExitIcon,
+} from "@/components/icons/ExitIcon";
+import {
+  NavigationIcon,
+} from "@/components/dashboard/NavigationIcon";
+import {
+  ACCOUNT_NAVIGATION,
+  ADMIN_NAVIGATION_GROUPS,
+  DISCOVER_NAVIGATION,
+  OWNER_NAVIGATION,
+  PRIMARY_NAVIGATION,
+  isNavigationActive,
+  type AdminBadgeKey,
+  type NavigationItem,
+} from "@/components/dashboard/navigation";
+import {
+  cn,
+} from "@/lib/cn";
 
 type SidebarProps = {
   isAdmin?: boolean;
+  isOwner?: boolean;
   pendingSubmissionsCount?: number;
   pendingCorrectionsCount?: number;
   pendingCatchReportsCount?: number;
+  pendingOwnerClaimsCount?: number;
 };
 
-const mainMenuItems: MenuItem[] = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: <DashboardIcon />,
-  },
-  {
-    label: "Łowiska",
-    href: "/lowiska",
-    icon: <MapIcon />,
-  },
-  {
-    label: "Zgłoś łowisko",
-    href: "/lowiska/zglos",
-    icon: <PlusIcon />,
-  },
-  {
-    label: "Moje wyprawy",
-    href: "/wyprawy",
-    icon: <TripIcon />,
-  },
-  {
-    label: "Checklisty",
-    href: "/checklisty",
-    icon: <ChecklistIcon />,
-  },
-  {
-    label: "Moje połowy",
-    href: "/polowy",
-    icon: <FishIcon />,
-  },
-  {
-    label: "Mój ekwipunek",
-    href: "/ekwipunek",
-    icon: <BackpackIcon />,
-  },
-];
-
-const accountMenuItems: MenuItem[] = [
-  {
-    label: "Profil",
-    href: "/profil",
-    icon: <UserIcon />,
-  },
-  {
-    label: "Ustawienia",
-    href: "/ustawienia",
-    icon: <SettingsIcon />,
-  },
-];
+type BadgeCounts =
+  Record<
+    AdminBadgeKey,
+    number
+  >;
 
 export function Sidebar({
   isAdmin = false,
+  isOwner = false,
   pendingSubmissionsCount = 0,
   pendingCorrectionsCount = 0,
   pendingCatchReportsCount = 0,
+  pendingOwnerClaimsCount = 0,
 }: SidebarProps) {
-  const adminMenuItems: MenuItem[] = [
+  const pathname =
+    usePathname();
+
+  const badgeCounts: BadgeCounts =
     {
-      label: "Panel admina",
-      href: "/admin",
-      icon: <DashboardIcon />,
-    },
-    {
-      label: "Zgłoszenia łowisk",
-      href: "/admin/zgloszenia-lowisk",
-      icon: <NotificationIcon />,
-      badge: pendingSubmissionsCount,
-    },
-    {
-      label: "Zgłoszone poprawki",
-      href: "/admin/poprawki-lowisk",
-      icon: <ReportIcon />,
-      badge: pendingCorrectionsCount,
-    },
-    {
-      label: "Zgłoszenia połowów",
-      href: "/admin/zgloszenia-polowow",
-      icon: <CatchReportsIcon />,
-      badge: pendingCatchReportsCount,
-    },
-    {
-      label: "Użytkownicy",
-      href: "/admin/uzytkownicy",
-      icon: <UsersIcon />,
-    },
-  ];
+      pendingSubmissionsCount,
+      pendingCorrectionsCount,
+      pendingCatchReportsCount,
+      pendingOwnerClaimsCount,
+    };
+
+  const adminMode =
+    isAdmin &&
+    pathname.startsWith(
+      "/admin"
+    );
+
+  if (adminMode) {
+    return (
+      <AdminSidebar
+        pathname={pathname}
+        badgeCounts={
+          badgeCounts
+        }
+      />
+    );
+  }
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-6 lg:flex lg:flex-col">
-      <Link href="/dashboard" className="mb-10 flex items-center gap-3">
-        <div className="flex items-center justify-center overflow-hidden">
-          <img
-            src="/logos/logo-rybioo.svg"
-            alt="Rybio"
-            className="h-10 w-auto object-contain"
-          />
-        </div>
-      </Link>
-
-      <nav className="space-y-1">
-        {mainMenuItems.map((item) => (
-          <SidebarButton key={item.href} item={item} />
-        ))}
-      </nav>
-
-      <div className="mt-8 border-t border-slate-200 pt-6">
-        <p className="mb-3 px-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-          Moje konto
-        </p>
-
-        <nav className="space-y-1">
-          {accountMenuItems.map((item) => (
-            <SidebarButton key={item.href} item={item} />
-          ))}
-        </nav>
+    <aside className="sticky top-0 hidden h-screen w-[272px] shrink-0 overflow-y-auto border-r border-border bg-surface px-4 py-5 lg:flex lg:flex-col">
+      <div className="mb-6">
+        <BrandLink
+          href="/dashboard"
+        />
       </div>
 
-      {isAdmin && (
-        <div className="mt-8 border-t border-slate-200 pt-6">
-          <p className="mb-3 px-4 text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
-            Admin
-          </p>
+      <SidebarGroup>
+        {PRIMARY_NAVIGATION.map(
+          (item) => (
+            <SidebarLink
+              key={item.id}
+              item={item}
+              pathname={
+                pathname
+              }
+            />
+          )
+        )}
+      </SidebarGroup>
 
-          <nav className="space-y-1">
-            {adminMenuItems.map((item) => (
-              <SidebarButton key={item.href} item={item} />
-            ))}
-          </nav>
-        </div>
+      <SidebarGroup
+        title="Więcej"
+        separated
+      >
+        {DISCOVER_NAVIGATION.map(
+          (item) => (
+            <SidebarLink
+              key={item.id}
+              item={item}
+              pathname={
+                pathname
+              }
+            />
+          )
+        )}
+      </SidebarGroup>
+
+      {isOwner && (
+        <SidebarGroup
+          title="Właściciel"
+          separated
+        >
+          {OWNER_NAVIGATION.map(
+            (item) => (
+              <SidebarLink
+                key={
+                  item.id
+                }
+                item={item}
+                pathname={
+                  pathname
+                }
+              />
+            )
+          )}
+        </SidebarGroup>
       )}
 
-      <div className="mt-auto pt-6">
-        <LogoutButton className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold text-red-500 transition hover:bg-red-50">
-          <LogoutIcon />
-          Wyloguj
-        </LogoutButton>
-      </div>
+      <SidebarGroup
+        title="Moje konto"
+        separated
+      >
+        {ACCOUNT_NAVIGATION.map(
+          (item) => (
+            <SidebarLink
+              key={item.id}
+              item={item}
+              pathname={
+                pathname
+              }
+            />
+          )
+        )}
+      </SidebarGroup>
+
+      {isAdmin && (
+        <SidebarGroup
+          title="Admin"
+          separated
+        >
+          <SidebarLink
+            item={{
+              id: "admin",
+              label:
+                "Panel admina",
+              href: "/admin",
+              icon:
+                "dashboard",
+            }}
+            pathname={pathname}
+          />
+        </SidebarGroup>
+      )}
+
+      <SidebarLogout />
     </aside>
   );
 }
 
-function SidebarButton({ item }: { item: MenuItem }) {
-  const pathname = usePathname();
+function AdminSidebar({
+  pathname,
+  badgeCounts,
+}: {
+  pathname: string;
+  badgeCounts: BadgeCounts;
+}) {
+  return (
+    <aside className="sticky top-0 hidden h-screen w-[272px] shrink-0 overflow-y-auto border-r border-border bg-surface px-4 py-5 lg:flex lg:flex-col">
+      <div className="mb-6">
+        <BrandLink href="/admin" />
 
-  const isActive =
-    item.href === "/"
-      ? pathname === "/"
-      : pathname === item.href || pathname.startsWith(`${item.href}/`);
+        <div className="mx-2 mt-3 flex items-center justify-between rounded-control border border-navy-800 bg-navy-950 px-3 py-2.5 text-white">
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-[0.16em] text-aqua-200">
+              Tryb
+            </p>
 
+            <p className="mt-0.5 text-sm font-extrabold">
+              Administrator
+            </p>
+          </div>
+
+          <span className="h-2.5 w-2.5 rounded-full bg-aqua-500" />
+        </div>
+      </div>
+
+      {ADMIN_NAVIGATION_GROUPS.map(
+        (
+          group,
+          index
+        ) => (
+          <SidebarGroup
+            key={
+              group.title ??
+              index
+            }
+            title={
+              group.title
+            }
+            separated={
+              index > 0
+            }
+          >
+            {group.items.map(
+              (item) => (
+                <SidebarLink
+                  key={
+                    item.id
+                  }
+                  item={item}
+                  pathname={
+                    pathname
+                  }
+                  badge={
+                    item.badgeKey
+                      ? badgeCounts[
+                          item
+                            .badgeKey
+                        ]
+                      : undefined
+                  }
+                />
+              )
+            )}
+          </SidebarGroup>
+        )
+      )}
+
+      <div className="mt-5 border-t border-border pt-5">
+        <Link
+          href="/dashboard"
+          className="group flex min-h-11 w-full items-center gap-3 rounded-control px-3 py-2.5 text-sm font-semibold text-text-secondary transition-colors hover:bg-surface-muted hover:text-text"
+        >
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-text-muted transition-colors group-hover:bg-surface group-hover:text-primary">
+            <NavigationIcon
+              icon="dashboard"
+              className="h-5 w-5"
+            />
+          </span>
+
+          Wróć do aplikacji
+        </Link>
+      </div>
+
+      <SidebarLogout />
+    </aside>
+  );
+}
+
+function BrandLink({
+  href,
+}: {
+  href: string;
+}) {
   return (
     <Link
-      href={item.href}
-      className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
-        isActive
-          ? "bg-blue-50 text-blue-600"
-          : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-      }`}
+      href={href}
+      className="flex items-center px-2 py-1"
+      aria-label="Rybio"
     >
-      <span className="flex h-5 w-5 items-center justify-center">
-        {item.icon}
-      </span>
-
-      <span className="flex-1">{item.label}</span>
-
-      {item.badge !== undefined && item.badge > 0 && (
-        <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-2 text-xs font-bold text-white">
-          {item.badge}
-        </span>
-      )}
+      <img
+        src="/logos/logo-rybioo.svg"
+        alt="Rybio"
+        className="h-10 w-auto object-contain"
+      />
     </Link>
   );
 }
 
-function IconBase({ children }: { children: React.ReactNode }) {
+function SidebarLogout() {
   return (
-    <svg
-      className="h-5 w-5"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+    <div className="mt-auto border-t border-border pt-4">
+      <LogoutButton className="flex min-h-11 w-full items-center gap-3 rounded-control px-3 py-2.5 text-left text-sm font-semibold text-danger-foreground transition-colors hover:bg-danger-subtle">
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-danger-subtle text-danger">
+          <ExitIcon className="h-5 w-5" />
+        </span>
+
+        Wyloguj
+      </LogoutButton>
+    </div>
+  );
+}
+
+function SidebarGroup({
+  title,
+  separated = false,
+  children,
+}: {
+  title?: string;
+  separated?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        separated &&
+          "mt-5 border-t border-border pt-5"
+      )}
     >
-      {children}
-    </svg>
+      {title && (
+        <p className="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.15em] text-text-muted">
+          {title}
+        </p>
+      )}
+
+      <nav className="space-y-1">
+        {children}
+      </nav>
+    </div>
   );
 }
 
-function DashboardIcon() {
-  return (
-    <IconBase>
-      <rect x="3" y="3" width="7" height="7" rx="2" />
-      <rect x="14" y="3" width="7" height="7" rx="2" />
-      <rect x="3" y="14" width="7" height="7" rx="2" />
-      <rect x="14" y="14" width="7" height="7" rx="2" />
-    </IconBase>
-  );
-}
+function SidebarLink({
+  item,
+  pathname,
+  badge,
+}: {
+  item: NavigationItem;
+  pathname: string;
+  badge?: number;
+}) {
+  const active =
+    isNavigationActive(
+      pathname,
+      item.href
+    );
 
-function MapIcon() {
   return (
-    <IconBase>
-      <path d="M9 18 3 21V6l6-3 6 3 6-3v15l-6 3-6-3Z" />
-      <path d="M9 3v15" />
-      <path d="M15 6v15" />
-    </IconBase>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <IconBase>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M12 8v8" />
-      <path d="M8 12h8" />
-    </IconBase>
-  );
-}
-
-function TripIcon() {
-  return (
-    <IconBase>
-      <path d="M6 21V7a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14" />
-      <path d="M9 5V3h6v2" />
-      <path d="M6 11h12" />
-      <path d="M9 21v-3" />
-      <path d="M15 21v-3" />
-    </IconBase>
-  );
-}
-
-function ChecklistIcon() {
-  return (
-    <IconBase>
-      <path d="M9 6h11" />
-      <path d="M9 12h11" />
-      <path d="M9 18h11" />
-      <path d="m4 6 1 1 2-2" />
-      <path d="m4 12 1 1 2-2" />
-      <path d="m4 18 1 1 2-2" />
-    </IconBase>
-  );
-}
-
-function FishIcon({ className = "h-5 w-5" }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+    <Link
+      href={item.href}
+      aria-current={
+        active
+          ? "page"
+          : undefined
+      }
+      className={cn(
+        "group flex min-h-11 w-full items-center gap-3 rounded-control px-3 py-2.5 text-sm font-semibold transition-colors",
+        active
+          ? "bg-primary-100 text-primary-800"
+          : "text-text-secondary hover:bg-surface-muted hover:text-text"
+      )}
     >
-      <path d="M3 12s3.5-5 9-5c3.2 0 5.2 1.2 7 3 1 .9 2 2 2 2s-1 1.1-2 2c-1.8 1.8-3.8 3-7 3-5.5 0-9-5-9-5Z" />
-      <path d="M3 12 1.5 10.5" />
-      <path d="M3 12 1.5 13.5" />
-      <circle cx="15.5" cy="10.5" r="0.9" fill="currentColor" stroke="none" />
-      <path d="M8 12h.01" />
-    </svg>
-  );
-}
+      <span
+        className={cn(
+          "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors",
+          active
+            ? "bg-surface text-primary"
+            : "text-text-muted group-hover:bg-surface group-hover:text-primary"
+        )}
+      >
+        <NavigationIcon
+          icon={item.icon}
+          className="h-5 w-5"
+        />
+      </span>
 
-function BackpackIcon() {
-  return (
-    <IconBase>
-      <path d="M8 7V6a4 4 0 0 1 8 0v1" />
-      <rect x="5" y="7" width="14" height="14" rx="3" />
-      <path d="M8 13h8" />
-      <path d="M9 17h6" />
-    </IconBase>
-  );
-}
+      <span className="min-w-0 flex-1 truncate">
+        {item.label}
+      </span>
 
-function UserIcon() {
-  return (
-    <IconBase>
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 21a8 8 0 0 1 16 0" />
-    </IconBase>
-  );
-}
-
-function UsersIcon() {
-  return (
-    <IconBase>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </IconBase>
-  );
-}
-
-
-
-function SettingsIcon() {
-  return (
-    <IconBase>
-      <path d="M12 15.5A3.5 3.5 0 1 0 12 8a3.5 3.5 0 0 0 0 7.5Z" />
-      <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2.1 2.1 0 0 1-2.97 2.97l-.04-.04a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.66V21a2.1 2.1 0 0 1-4.2 0v-.06a1.8 1.8 0 0 0-1.1-1.66 1.8 1.8 0 0 0-1.98.36l-.04.04a2.1 2.1 0 0 1-2.97-2.97l.04-.04A1.8 1.8 0 0 0 4.6 15a1.8 1.8 0 0 0-1.66-1.1H3a2.1 2.1 0 0 1 0-4.2h.06A1.8 1.8 0 0 0 4.72 8.6a1.8 1.8 0 0 0-.36-1.98l-.04-.04a2.1 2.1 0 0 1 2.97-2.97l.04.04a1.8 1.8 0 0 0 1.98.36A1.8 1.8 0 0 0 10.4 2.4V2a2.1 2.1 0 0 1 4.2 0v.06a1.8 1.8 0 0 0 1.1 1.66 1.8 1.8 0 0 0 1.98-.36l.04-.04a2.1 2.1 0 0 1 2.97 2.97l-.04.04a1.8 1.8 0 0 0-.36 1.98 1.8 1.8 0 0 0 1.66 1.1H21a2.1 2.1 0 0 1 0 4.2h-.06A1.8 1.8 0 0 0 19.4 15Z" />
-    </IconBase>
-  );
-}
-
-function NotificationIcon() {
-  return (
-    <IconBase>
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
-      <path d="M10 21h4" />
-    </IconBase>
-  );
-}
-
-function ReportIcon() {
-  return (
-    <IconBase>
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-      <path d="M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />
-    </IconBase>
-  );
-}
-
-function CatchReportsIcon() {
-  return (
-    <IconBase>
-      <path d="M4 5h16" />
-      <path d="M4 12h10" />
-      <path d="M4 19h7" />
-      <path d="M17 14l3 3" />
-      <path d="M20 14l-3 3" />
-    </IconBase>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <IconBase>
-      <path d="M10 17l5-5-5-5" />
-      <path d="M15 12H3" />
-      <path d="M21 3v18" />
-    </IconBase>
+      {badge !==
+        undefined &&
+        badge > 0 && (
+          <span className="flex min-h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-danger px-1.5 text-[10px] font-bold text-white">
+            {badge > 99
+              ? "99+"
+              : badge}
+          </span>
+        )}
+    </Link>
   );
 }

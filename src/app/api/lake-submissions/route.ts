@@ -4,6 +4,7 @@ import { checkAndUnlockAchievements } from "@/lib/achievements";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeFishName } from "@/lib/fish-names";
+import { normalizeFishingMethods } from "@/lib/fishing-methods";
 
 const BUCKET_NAME = "lake-images";
 const MAX_IMAGES = 10;
@@ -235,6 +236,9 @@ export async function POST(request: Request) {
   const description = getFormValue(formData, "description");
   const ownerType = getFormValue(formData, "ownerType");
   const fishingType = getFormValue(formData, "fishingType");
+  const fishingMethods = normalizeFishingMethods(
+    getFormValue(formData, "fishingMethods")
+  );
   const fish = normalizeFishName(getFormValue(formData, "fish"));
 
   const lat = getFormValue(formData, "lat");
@@ -327,6 +331,7 @@ export async function POST(request: Request) {
         description,
         ownerType,
         fishingType,
+        fishingMethods,
         fish,
         lat: latitude,
         lng: longitude,
@@ -351,9 +356,12 @@ export async function POST(request: Request) {
         parking: getFormBoolean(formData, "parking"),
         pier: getFormBoolean(formData, "pier"),
         toilet: getFormBoolean(formData, "toilet"),
+        sanitaryFacilities: getFormBoolean(formData, "sanitaryFacilities"),
         shop: getFormBoolean(formData, "shop"),
         nightFishing: getFormBoolean(formData, "nightFishing"),
         boatRental: getFormBoolean(formData, "boatRental"),
+        camperCaravan: getFormBoolean(formData, "camperCaravan"),
+        electricityHookup: getFormBoolean(formData, "electricityHookup"),
         gearRental: getFormBoolean(formData, "gearRental"),
         shelter: getFormBoolean(formData, "shelter"),
         coveredSpots: getFormBoolean(formData, "coveredSpots"),

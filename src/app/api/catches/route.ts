@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { checkAndUnlockAchievements } from "@/lib/achievements";
+import { calculateCatchScore } from "@/lib/catch-score";
 
 const CATCH_IMAGES_BUCKET = "catch-images";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -183,29 +184,37 @@ async function handleJsonCatchCreate(
   const length =
     body.length !== undefined && body.length !== "" ? Number(body.length) : null;
 
-  if (weight !== null && Number.isNaN(weight)) {
+  if (
+    weight !== null &&
+    (!Number.isFinite(weight) || weight <= 0)
+  ) {
     return NextResponse.json(
-      { message: "Waga musi być liczbą." },
+      { message: "Waga musi być dodatnią liczbą." },
       { status: 400 }
     );
   }
 
-  if (length !== null && Number.isNaN(length)) {
+  if (
+    length !== null &&
+    (!Number.isFinite(length) || length <= 0)
+  ) {
     return NextResponse.json(
-      { message: "Długość musi być liczbą." },
+      { message: "Długość musi być dodatnią liczbą." },
       { status: 400 }
     );
   }
 
-  const imageUrl =
-    typeof body.imageUrl === "string" && body.imageUrl.trim()
-      ? body.imageUrl.trim()
-      : null;
+  // Nie ufamy dowolnemu imageUrl przesłanemu w JSON.
+  // CatchesPage wysyła nowe połowy ze zdjęciem jako multipart/form-data.
+  const rawImagePath =
+    typeof body.imagePath === "string" ? body.imagePath.trim() : "";
 
   const imagePath =
-    typeof body.imagePath === "string" && body.imagePath.trim()
-      ? body.imagePath.trim()
+    rawImagePath && rawImagePath.startsWith(`${userId}/`)
+      ? rawImagePath
       : null;
+
+  const imageUrl = null;
 
   if (isPublic && !lakeId) {
     return NextResponse.json(
@@ -217,7 +226,7 @@ async function handleJsonCatchCreate(
     );
   }
 
-  if (isPublic && !imageUrl) {
+  if (isPublic && !imagePath) {
     return NextResponse.json(
       {
         message:
@@ -264,6 +273,12 @@ async function handleJsonCatchCreate(
 
   const { tripId, tripTitle } = await getTripData(body.tripId, userId);
 
+  const score = calculateCatchScore({
+    fishName,
+    weight,
+    length,
+  });
+
   const fishingCatch = await prisma.fishingCatch.create({
     data: {
       userId,
@@ -282,7 +297,11 @@ async function handleJsonCatchCreate(
       imagePath,
       note: body.note || null,
       isPublic,
-      rankingStatus: isPublic ? "approved" : "pending",
+      rankingStatus: "pending",
+      catchScore: score.score,
+      catchScoreTier: score.tier,
+      catchScoreSource: score.source,
+      catchScoreVersion: score.version,
     },
   });
 
@@ -330,16 +349,22 @@ async function handleMultipartCatchCreate(
   const weight = weightValue ? Number(weightValue) : null;
   const length = lengthValue ? Number(lengthValue) : null;
 
-  if (weight !== null && Number.isNaN(weight)) {
+  if (
+    weight !== null &&
+    (!Number.isFinite(weight) || weight <= 0)
+  ) {
     return NextResponse.json(
-      { message: "Waga musi być liczbą." },
+      { message: "Waga musi być dodatnią liczbą." },
       { status: 400 }
     );
   }
 
-  if (length !== null && Number.isNaN(length)) {
+  if (
+    length !== null &&
+    (!Number.isFinite(length) || length <= 0)
+  ) {
     return NextResponse.json(
-      { message: "Długość musi być liczbą." },
+      { message: "Długość musi być dodatnią liczbą." },
       { status: 400 }
     );
   }
@@ -413,6 +438,12 @@ async function handleMultipartCatchCreate(
 
   const { tripId, tripTitle } = await getTripData(tripIdFromForm, userId);
 
+  const score = calculateCatchScore({
+    fishName,
+    weight,
+    length,
+  });
+
   let imageUrl: string | null = null;
   let imagePath: string | null = null;
 
@@ -459,7 +490,11 @@ async function handleMultipartCatchCreate(
         imagePath,
         note: getFormValue(formData, "note") || null,
         isPublic,
-        rankingStatus: isPublic ? "approved" : "pending",
+        rankingStatus: "pending",
+        catchScore: score.score,
+        catchScoreTier: score.tier,
+        catchScoreSource: score.source,
+        catchScoreVersion: score.version,
       },
     });
 
@@ -493,18 +528,33 @@ async function getTripData(tripIdValue: unknown, userId: string) {
     };
   }
 
-  const trip = await prisma.fishingTrip.findUnique({
+  const trip = await prisma.fishingTrip.findFirst({
     where: {
       id: selectedTripId,
+      OR: [
+        {
+          userId,
+        },
+        {
+          members: {
+            some: {
+              userId,
+              status: "accepted",
+              role: {
+                in: ["editor", "co_owner"],
+              },
+            },
+          },
+        },
+      ],
     },
     select: {
       id: true,
       title: true,
-      userId: true,
     },
   });
 
-  if (!trip || trip.userId !== userId) {
+  if (!trip) {
     return {
       tripId: null,
       tripTitle: null,

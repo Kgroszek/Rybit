@@ -15,9 +15,10 @@ model Lake {
   description String
   rating      Float  @default(0)
 
-  ownerType   String
-  fishingType String
-  fish        String
+  ownerType      String
+  fishingType    String
+  fishingMethods String[] @default([])
+  fish           String
 
   lat Float
   lng Float
@@ -32,16 +33,19 @@ model Lake {
   bottomType   String
   waterType    String
 
-  cottages     Boolean @default(false)
-  campfire     Boolean @default(false)
-  noKill       Boolean @default(false)
-  tent         Boolean @default(false)
-  parking      Boolean @default(false)
-  pier         Boolean @default(false)
-  toilet       Boolean @default(false)
-  shop         Boolean @default(false)
-  nightFishing Boolean @default(false)
-  boatRental   Boolean @default(false)
+  cottages           Boolean @default(false)
+  campfire           Boolean @default(false)
+  noKill             Boolean @default(false)
+  tent               Boolean @default(false)
+  parking            Boolean @default(false)
+  pier               Boolean @default(false)
+  toilet             Boolean @default(false)
+  sanitaryFacilities Boolean @default(false)
+  shop               Boolean @default(false)
+  nightFishing       Boolean @default(false)
+  boatRental         Boolean @default(false)
+  camperCaravan      Boolean @default(false)
+  electricityHookup  Boolean @default(false)
 
   gearRental   Boolean @default(false)
   shelter      Boolean @default(false)
@@ -72,6 +76,16 @@ model Lake {
   ratings           Rating[]
   correctionReports LakeCorrectionReport[]
   catches           FishingCatch[]
+  trips             FishingTrip[]
+  comments          LakeComment[]
+
+  owners      LakeOwner[]
+  ownerClaims LakeOwnerClaim[]
+
+  spots           LakeSpot[]
+  reservations    LakeReservation[]
+  bookingSettings LakeBookingSettings?
+  website         LakeWebsite?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -84,6 +98,56 @@ model Lake {
   @@index([ownerType, fishingType])
   @@index([voivodeship, ownerType])
   @@index([voivodeship, fishingType])
+}
+
+model LakeComment {
+  id String @id @default(cuid())
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  userId   String
+  userName String
+
+  content String
+  status  String @default("visible")
+
+  reports LakeCommentReport[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([lakeId, status, createdAt])
+}
+
+model LakeCommentReport {
+  id String @id @default(cuid())
+
+  commentId String
+  comment   LakeComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  userId    String
+  userEmail String?
+
+  reason      String
+  description String?
+
+  status    String  @default("pending")
+  adminNote String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
 }
 
 model LakeCorrectionReport {
@@ -109,6 +173,67 @@ model LakeCorrectionReport {
   @@index([status])
   @@index([createdAt])
   @@index([status, createdAt])
+}
+
+model LakeOwner {
+  id String @id @default(cuid())
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  userId    String
+  userEmail String?
+
+  role String @default("owner")
+
+  canEditLake           Boolean @default(true)
+  canManageReservations Boolean @default(true)
+  canManageSpots        Boolean @default(true)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([lakeId, userId])
+  @@index([lakeId])
+  @@index([userId])
+  @@index([isActive])
+  @@index([lakeId, isActive])
+  @@index([userId, isActive])
+}
+
+model LakeOwnerClaim {
+  id String @id @default(cuid())
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  userId    String
+  userEmail String?
+
+  claimantName  String?
+  claimantPhone String?
+  claimantRole  String?
+
+  message String?
+
+  status String @default("pending")
+
+  adminNote        String?
+  reviewedAt       DateTime?
+  reviewedByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([lakeId, status])
+  @@index([userId, status])
 }
 
 model PriceItem {
@@ -170,12 +295,18 @@ model LakeImage {
   id        String  @id @default(cuid())
   url       String
   imagePath String?
-  lakeId    String
-  lake      Lake    @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  sortOrder Int @default(0)
 
   createdAt DateTime @default(now())
 
   @@index([lakeId])
+  @@index([imagePath])
+  @@index([sortOrder])
+  @@index([lakeId, sortOrder])
   @@index([createdAt])
 }
 
@@ -215,9 +346,10 @@ model LakeSubmission {
   slug        String
   description String
 
-  ownerType   String
-  fishingType String
-  fish        String
+  ownerType      String
+  fishingType    String
+  fishingMethods String[] @default([])
+  fish           String
 
   lat Float
   lng Float
@@ -232,16 +364,19 @@ model LakeSubmission {
   bottomType   String?
   waterType    String?
 
-  cottages     Boolean @default(false)
-  campfire     Boolean @default(false)
-  noKill       Boolean @default(false)
-  tent         Boolean @default(false)
-  parking      Boolean @default(false)
-  pier         Boolean @default(false)
-  toilet       Boolean @default(false)
-  shop         Boolean @default(false)
-  nightFishing Boolean @default(false)
-  boatRental   Boolean @default(false)
+  cottages           Boolean @default(false)
+  campfire           Boolean @default(false)
+  noKill             Boolean @default(false)
+  tent               Boolean @default(false)
+  parking            Boolean @default(false)
+  pier               Boolean @default(false)
+  toilet             Boolean @default(false)
+  sanitaryFacilities Boolean @default(false)
+  shop               Boolean @default(false)
+  nightFishing       Boolean @default(false)
+  boatRental         Boolean @default(false)
+  camperCaravan      Boolean @default(false)
+  electricityHookup  Boolean @default(false)
 
   gearRental   Boolean @default(false)
   shelter      Boolean @default(false)
@@ -292,7 +427,7 @@ model LakeSubmissionImage {
 }
 
 model LakeSubmissionFishRecord {
-  id           String @id @default(cuid())
+  id           String         @id @default(cuid())
   fishName     String
   weightKg     Float
   submissionId String
@@ -307,7 +442,7 @@ model LakeSubmissionFishRecord {
 }
 
 model LakeSubmissionGearRequirement {
-  id           String @id @default(cuid())
+  id           String         @id @default(cuid())
   text         String
   submissionId String
   submission   LakeSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
@@ -355,6 +490,8 @@ model FishingGear {
   note          String?
   isDefault     Boolean   @default(false)
 
+  tripItems TripGearItem[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -376,6 +513,7 @@ model TripChecklist {
   note     String?
 
   items TripChecklistItem[]
+  trips FishingTrip[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -412,31 +550,236 @@ model TripChecklistItem {
 }
 
 model FishingTrip {
-  id     String @id @default(cuid())
+  id String @id @default(cuid())
+
+  // Właściciel wyprawy. Tylko on zarządza uczestnikami i może usunąć wyprawę.
   userId String
 
   title    String
   lakeId   String?
   lakeName String?
+  lake     Lake?   @relation(fields: [lakeId], references: [id], onDelete: SetNull)
 
-  tripType String   @default("custom")
-  status   String   @default("planned")
+  tripType String    @default("custom")
+  status   String    @default("planned")
   startsAt DateTime
-  note     String?
+  endsAt   DateTime?
+
+  peopleCount Int     @default(1)
+  note        String?
 
   checklistId String?
+  checklist   TripChecklist? @relation(fields: [checklistId], references: [id], onDelete: SetNull)
+
+  summary        String?
+  summaryRating  Int?
+  weatherSummary String?
+  completedAt    DateTime?
+
+  isSummaryPublic Boolean @default(false)
+  shareToken      String? @unique
+
+  members    TripMember[]
+  notes      TripNote[]
+  costs      TripCost[]
+  gearItems  TripGearItem[]
+  reminders  TripReminder[]
+  activities TripActivity[]
+  media      TripMedia[]
+  catches    FishingCatch[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([lakeId])
+  @@index([checklistId])
   @@index([status])
   @@index([startsAt])
+  @@index([endsAt])
   @@index([createdAt])
   @@index([userId, status])
   @@index([userId, startsAt])
   @@index([userId, status, startsAt])
+}
+
+model TripMember {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  userId    String
+  userName  String
+  userEmail String?
+
+  role   String @default("editor")
+  status String @default("pending")
+
+  invitedByUserId String
+
+  acceptedAt   DateTime?
+  declinedAt   DateTime?
+  lastViewedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tripId, userId])
+  @@index([tripId])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId, status])
+  @@index([tripId, status])
+}
+
+model TripNote {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  authorUserId String
+  authorName   String?
+
+  type     String  @default("general")
+  content  String
+  isPinned Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([authorUserId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([tripId, createdAt])
+}
+
+model TripCost {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  category String
+  label    String
+  amount   Float
+  currency String @default("PLN")
+
+  paidByUserId String
+  paidByName   String?
+  note         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([category])
+  @@index([paidByUserId])
+  @@index([createdAt])
+  @@index([tripId, category])
+}
+
+model TripGearItem {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  gearId String?
+  gear   FishingGear? @relation(fields: [gearId], references: [id], onDelete: SetNull)
+
+  addedByUserId String
+
+  name     String
+  category String
+  quantity Int     @default(1)
+  unit     String?
+  note     String?
+
+  isRequired Boolean @default(false)
+  isPacked   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([gearId])
+  @@index([addedByUserId])
+  @@index([category])
+  @@index([isPacked])
+  @@index([tripId, category])
+}
+
+model TripReminder {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  userId String
+
+  type     String   @default("custom")
+  title    String
+  remindAt DateTime
+
+  status String    @default("pending")
+  sentAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([userId])
+  @@index([status])
+  @@index([remindAt])
+  @@index([userId, status])
+  @@index([status, remindAt])
+}
+
+model TripActivity {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  actorUserId String
+  actorName   String?
+
+  action   String
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([tripId])
+  @@index([actorUserId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([tripId, createdAt])
+}
+
+model TripMedia {
+  id String @id @default(cuid())
+
+  tripId String
+  trip   FishingTrip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  userId   String
+  userName String?
+
+  url       String
+  imagePath String?
+  caption   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([tripId])
+  @@index([userId])
+  @@index([imagePath])
+  @@index([createdAt])
+  @@index([tripId, createdAt])
 }
 
 model FishingCatch {
@@ -458,6 +801,7 @@ model FishingCatch {
 
   tripId    String?
   tripTitle String?
+  trip      FishingTrip? @relation(fields: [tripId], references: [id], onDelete: SetNull)
 
   imageUrl  String?
   imagePath String?
@@ -466,6 +810,13 @@ model FishingCatch {
 
   isPublic      Boolean @default(false)
   rankingStatus String  @default("pending")
+
+  // Punktacja Rybio 1-100 zależna od gatunku i parametrów ryby.
+  // Progi są wersjonowane w src/lib/catch-score.ts.
+  catchScore        Int?
+  catchScoreTier    String?
+  catchScoreSource  String?
+  catchScoreVersion Int     @default(1)
 
   reports FishingCatchReport[]
 
@@ -540,4 +891,276 @@ model UserAchievement {
   @@unique([userId, achievementId])
   @@index([userId])
   @@index([achievementId])
+}
+
+model LakeSpot {
+  id String @id @default(cuid())
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  name        String
+  slug        String?
+  description String?
+
+  maxPeople Int @default(2)
+
+  pricePerDay   Float?
+  pricePerNight Float?
+  pricePer24h   Float?
+
+  isActive           Boolean @default(true)
+  isReservableOnline Boolean @default(false)
+
+  sortOrder Int @default(0)
+
+  reservations LakeReservation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
+  @@index([slug])
+  @@index([isActive])
+  @@index([sortOrder])
+  @@index([lakeId, isActive])
+  @@index([lakeId, sortOrder])
+}
+
+model LakeReservation {
+  id String @id @default(cuid())
+
+  lakeId String
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  spotId String?
+  spot   LakeSpot? @relation(fields: [spotId], references: [id], onDelete: SetNull)
+
+  scope  String @default("spot")
+  type   String @default("reservation")
+  status String @default("confirmed")
+
+  title String?
+
+  startsAt DateTime
+  endsAt   DateTime
+
+  customerName  String?
+  customerPhone String?
+  customerEmail String?
+
+  organizerName  String?
+  organizerPhone String?
+  organizerEmail String?
+
+  peopleCount Int @default(1)
+
+  totalPrice    Float?
+  depositAmount Float?
+  paymentStatus String @default("unpaid")
+
+  note         String?
+  internalNote String?
+
+  isPublicEvent Boolean @default(false)
+
+  createdByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([lakeId])
+  @@index([spotId])
+  @@index([scope])
+  @@index([type])
+  @@index([status])
+  @@index([startsAt])
+  @@index([endsAt])
+  @@index([createdAt])
+  @@index([lakeId, startsAt])
+  @@index([lakeId, endsAt])
+  @@index([lakeId, status])
+  @@index([lakeId, scope])
+  @@index([lakeId, type])
+  @@index([spotId, startsAt, endsAt])
+  @@index([lakeId, scope, startsAt, endsAt])
+}
+
+model LakeBookingSettings {
+  id String @id @default(cuid())
+
+  lakeId String @unique
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  isBookingEnabled       Boolean @default(false)
+  isOnlineBookingEnabled Boolean @default(false)
+
+  requiresOwnerConfirmation Boolean @default(true)
+
+  defaultStartTime String @default("12:00")
+  defaultEndTime   String @default("10:00")
+
+  fullDayStartTime String @default("06:00")
+  fullDayEndTime   String @default("07:00")
+
+  dayStartTime String @default("08:00")
+  dayEndTime   String @default("16:00")
+
+  nightStartTime String @default("16:00")
+  nightEndTime   String @default("06:00")
+
+  minReservationHours Int?
+  maxReservationDays  Int?
+
+  requiresDeposit Boolean @default(false)
+  depositAmount   Float?
+
+  bookingPhone String?
+  bookingEmail String?
+
+  bookingRules        String?
+  confirmationMessage String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isBookingEnabled])
+  @@index([isOnlineBookingEnabled])
+}
+
+model UserChecklistTemplate {
+  id String @id @default(cuid())
+
+  userId      String
+  name        String
+  description String?
+  tripType    String  @default("custom")
+
+  items UserChecklistTemplateItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@index([userId, updatedAt])
+}
+
+model UserChecklistTemplateItem {
+  id String @id @default(cuid())
+
+  templateId String
+  template   UserChecklistTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  name        String
+  category    String
+  quantity    Int     @default(1)
+  unit        String?
+  isImportant Boolean @default(false)
+  note        String?
+  position    Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([templateId])
+  @@index([templateId, position])
+}
+
+model BlogPost {
+  id String @id @default(cuid())
+
+  title   String
+  slug    String  @unique
+  excerpt String?
+
+  category String
+  tags     String[] @default([])
+
+  coverImageUrl String?
+  content       Json
+
+  status     String  @default("draft")
+  isFeatured Boolean @default(false)
+
+  seoTitle       String?
+  seoDescription String?
+
+  authorId   String?
+  authorName String?
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([publishedAt])
+  @@index([status, publishedAt])
+  @@index([isFeatured, status])
+}
+
+model LakeWebsite {
+  id String @id @default(cuid())
+
+  lakeId String @unique
+  lake   Lake   @relation(fields: [lakeId], references: [id], onDelete: Cascade)
+
+  subdomain   String @unique
+  templateKey String @default("modern")
+
+  status String @default("draft")
+
+  siteName     String?
+  heroTitle    String?
+  heroSubtitle String?
+
+  aboutTitle String?
+  aboutText  String?
+
+  logoUrl      String?
+  heroImageUrl String?
+  galleryUrls  String[] @default([])
+
+  primaryColor    String @default("#2563EB")
+  accentColor     String @default("#0EA5E9")
+  backgroundColor String @default("#FFFFFF")
+  textColor       String @default("#0F172A")
+
+  showAbout        Boolean @default(true)
+  showFish         Boolean @default(true)
+  showGallery      Boolean @default(true)
+  showPriceList    Boolean @default(true)
+  showRules        Boolean @default(true)
+  showContact      Boolean @default(true)
+  showReservations Boolean @default(false)
+
+  sections Json @default("[]")
+
+  contactPhone   String?
+  contactEmail   String?
+  contactWebsite String?
+
+  seoTitle       String?
+  seoDescription String?
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status])
+  @@index([templateKey])
+  @@index([publishedAt])
+  @@index([status, publishedAt])
+}
+
+model ContactRateLimit {
+  key         String   @id
+  count       Int      @default(1)
+  windowStart DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([windowStart])
+  @@index([updatedAt])
 }

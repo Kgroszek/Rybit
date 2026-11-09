@@ -1,113 +1,151 @@
-import Link from "next/link";
+import { ArrowRightIcon } from "@/components/icons/ArrowRightIcon";
+import { FishIcon } from "@/components/icons/FishIcon";
+import type { DashboardRecentCatch } from "@/components/dashboard/home/types";
+import { ButtonLink } from "@/components/ui/Button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  InteractiveRow,
+  InteractiveRowIcon,
+} from "@/components/ui/InteractiveRow";
 
-type RecentCatch = {
-  id: string;
-  fishName: string;
-  weight: number | null;
-  length: number | null;
-  method: string;
-  bait: string | null;
-  lakeName: string | null;
-  tripTitle: string | null;
-  caughtAt: string;
-};
-
-type RecentCatchesProps = {
-  catches: RecentCatch[];
-};
-
-export function RecentCatches({ catches }: RecentCatchesProps) {
+export function RecentCatches({
+  catches,
+}: {
+  catches: DashboardRecentCatch[];
+}) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <div>
-          <h2 className="font-bold text-slate-950">Ostatnie połowy</h2>
-        </div>
+    <Card>
+      <CardHeader>
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-primary">
+              Dziennik
+            </p>
+            <CardTitle className="mt-1 text-2xl">
+              Ostatnie połowy
+            </CardTitle>
+            <CardDescription>
+              Najnowsze wpisy z Twojego dziennika połowów.
+            </CardDescription>
+          </div>
 
-        <Link
-          href="/polowy"
-          className="text-sm font-semibold text-blue-600 hover:text-blue-700"
-        >
-          Zobacz
-        </Link>
-      </div>
-
-      {catches.length > 0 ? (
-        <div className="space-y-4">
-          {catches.map((item) => (
-            <Link
-              key={item.id}
-              href="/polowy"
-              className="flex items-center gap-3 rounded-2xl transition hover:bg-slate-50"
-            >
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-xl">
-                🐟
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-slate-950">
-                  {item.fishName}
-                </p>
-
-                <div className="mt-1 flex flex-wrap items-center gap-1 text-sm text-slate-500">
-                  {item.length && <span>{item.length.toFixed(0)} cm</span>}
-
-                  {item.length && item.weight && <span>•</span>}
-
-                  {item.weight && <span>{item.weight.toFixed(2)} kg</span>}
-
-                  {!item.length && !item.weight && (
-                    <span>{getMethodLabel(item.method)}</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="max-w-[110px] shrink-0 text-right">
-                <p className="truncate text-xs font-medium text-slate-500">
-                  {item.lakeName || item.tripTitle || formatDate(item.caughtAt)}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-2xl bg-slate-50 p-5 text-center">
-          <p className="font-semibold text-slate-950">Brak połowów</p>
-
-          <p className="mt-1 text-sm leading-6 text-slate-500">
-            Dodaj pierwszy połów, a pojawi się tutaj.
-          </p>
-
-          <Link
+          <ButtonLink
             href="/polowy"
-            className="mt-4 inline-flex rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
+            variant="ghost"
+            size="sm"
+            className="hidden sm:inline-flex"
           >
-            Dodaj połów
-          </Link>
+            Zobacz wszystkie
+          </ButtonLink>
         </div>
-      )}
-    </section>
+      </CardHeader>
+
+      <CardContent className="pt-5">
+        {catches.length > 0 ? (
+          <>
+            <div className="divide-y divide-border">
+              {catches.map((item) => (
+                <InteractiveRow
+                  key={item.id}
+                  href="/polowy"
+                  className="min-h-[72px]"
+                >
+                  <InteractiveRowIcon className="h-11 w-11">
+                    <FishIcon className="h-5 w-5 -scale-x-100" />
+                  </InteractiveRowIcon>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-text transition-colors group-hover:text-primary-700 sm:text-base">
+                      {item.fishName}
+                    </p>
+
+                    <p className="mt-1 truncate text-sm text-text-secondary">
+                      {formatCatchResult(item)}
+                    </p>
+
+                    <p className="mt-1 truncate text-xs font-medium text-text-muted">
+                      {item.lakeName ||
+                        item.tripTitle ||
+                        getMethodLabel(item.method)}
+                    </p>
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    <p className="whitespace-nowrap text-xs font-medium text-text-muted">
+                      {formatShortDate(item.caughtAt)}
+                    </p>
+                    <ArrowRightIcon className="ml-auto mt-2 h-4 w-4 text-text-muted transition-[color,transform] group-hover:translate-x-0.5 group-hover:text-primary" />
+                  </div>
+                </InteractiveRow>
+              ))}
+            </div>
+
+            <ButtonLink
+              href="/polowy"
+              variant="outline"
+              fullWidth
+              className="mt-5 sm:hidden"
+            >
+              Zobacz wszystkie połowy
+            </ButtonLink>
+          </>
+        ) : (
+          <EmptyState
+            icon={<FishIcon className="h-6 w-6 -scale-x-100" />}
+            title="Twój dziennik jest jeszcze pusty"
+            description="Dodaj pierwszy połów, aby zacząć budować historię swoich wyników nad wodą."
+            action={<ButtonLink href="/polowy">Dodaj połów</ButtonLink>}
+          />
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
-function getMethodLabel(value: string) {
-  const methods: Record<string, string> = {
-    spinning: "Spinning",
-    feeder: "Feeder",
-    method_feeder: "Method feeder",
-    carp: "Karpiówka",
-    float: "Spławik",
-    fly: "Muchówka",
-    other: "Inna",
-  };
+function formatCatchResult(item: {
+  weight: number | null;
+  length: number | null;
+  bait: string | null;
+}) {
+  const parts: string[] = [];
 
-  return methods[value] || value;
+  if (item.length !== null) {
+    parts.push(`${Math.round(item.length)} cm`);
+  }
+
+  if (item.weight !== null) {
+    parts.push(`${Number(item.weight).toFixed(2)} kg`);
+  }
+
+  if (item.bait) {
+    parts.push(item.bait);
+  }
+
+  return parts.length > 0 ? parts.join(" • ") : "Bez dodatkowych parametrów";
 }
 
-function formatDate(date: string) {
+function formatShortDate(date: string) {
   return new Intl.DateTimeFormat("pl-PL", {
     day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
+    month: "short",
   }).format(new Date(date));
+}
+
+function getMethodLabel(value: string) {
+  if (value === "spinning") return "Spinning";
+  if (value === "feeder") return "Feeder";
+  if (value === "method_feeder") return "Method feeder";
+  if (value === "carp") return "Karpiówka";
+  if (value === "float") return "Spławik";
+  if (value === "fly") return "Muchówka";
+  if (value === "other") return "Inna metoda";
+
+  return value || "Bez przypisanego miejsca";
 }

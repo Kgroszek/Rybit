@@ -1,22 +1,85 @@
+import { redirect } from "next/navigation";
+
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { LakesPage } from "@/components/dashboard/LakesPage";
-import { getLakesList } from "@/lib/lakes";
+import { LakesExplorer } from "@/components/lakes/LakesExplorer";
+import {
+  LAKE_EXPLORER_PAGE_SIZE,
+} from "@/components/lakes/constants";
+import {
+  getLakeExplorerInitialData,
+} from "@/lib/lake-explorer";
+import {
+  parseLakeExplorerSearchParams,
+  type LakeExplorerSearchParams,
+} from "@/lib/lake-explorer-params";
+import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 
 type LowiskaPageProps = {
-  searchParams?: Promise<{
-    view?: string;
-  }>;
+  searchParams?: Promise<LakeExplorerSearchParams>;
 };
 
-export default async function LowiskaPage({ searchParams }: LowiskaPageProps) {
-  const resolvedSearchParams = await searchParams;
-  const initialView = resolvedSearchParams?.view === "map" ? "map" : "grid";
+export default async function LowiskaPage({
+  searchParams,
+}: LowiskaPageProps) {
+  const supabase =
+    await createClient();
 
-  const lakes = await getLakesList();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const params =
+    (await searchParams) ?? {};
+
+  const parsed =
+    parseLakeExplorerSearchParams(
+      params
+    );
+
+  const [
+    initialData,
+    favouriteRows,
+  ] = await Promise.all([
+    getLakeExplorerInitialData({
+      query: {
+        ...parsed.filters,
+        bounds: parsed.bounds,
+        page: 1,
+        pageSize:
+          LAKE_EXPLORER_PAGE_SIZE,
+      },
+      mobileView:
+        parsed.mobileView,
+    }),
+    prisma.favourite.findMany({
+      where: {
+        userId: user.id,
+      },
+      select: {
+        lakeId: true,
+      },
+    }),
+  ]);
 
   return (
     <DashboardLayout>
-      <LakesPage lakes={lakes} initialView={initialView} />
+      <LakesExplorer
+        mode="authenticated"
+        detailBasePath="/lowiska"
+        initialData={{
+          ...initialData,
+          favouriteLakeIds:
+            favouriteRows.map(
+              (item) =>
+                item.lakeId
+            ),
+        }}
+      />
     </DashboardLayout>
   );
 }

@@ -1,21 +1,25 @@
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { LakeSubmissionForm } from "@/components/dashboard/LakeSubmissionForm";
+import {
+  DashboardLayout,
+} from "@/components/dashboard/DashboardLayout";
+import {
+  LakeSubmissionForm,
+} from "@/components/dashboard/LakeSubmissionForm";
+import {
+  PageHeader,
+} from "@/components/ui/PageHeader";
 
 export default function SubmitLakePage() {
   return (
     <DashboardLayout>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-950">
-          Zgłoś nowe łowisko
-        </h1>
+      <div className="space-y-8 pb-8 lg:space-y-9">
+        <PageHeader
+          eyebrow="Baza łowisk"
+          title="Zgłoś nowe łowisko"
+          description="Pomóż rozwijać bazę Rybio. Uzupełnij najważniejsze informacje, a zgłoszenie zostanie sprawdzone przed publikacją."
+        />
 
-        <p className="mt-2 max-w-3xl text-slate-500">
-          Wypełnij formularz, a zgłoszenie trafi do weryfikacji. Łowisko pojawi
-          się na mapie dopiero po akceptacji administratora.
-        </p>
+        <LakeSubmissionForm />
       </div>
-
-      <LakeSubmissionForm />
     </DashboardLayout>
   );
 }

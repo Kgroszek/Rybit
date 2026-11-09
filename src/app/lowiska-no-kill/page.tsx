@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getLakes } from "@/lib/lakes";
+import {
+  LAKE_EXPLORER_PAGE_SIZE,
+} from "@/components/lakes/constants";
+import {
+  getLakeExplorerInitialData,
+} from "@/lib/lake-explorer";
+import {
+  DEFAULT_LAKE_EXPLORER_FILTERS,
+} from "@/lib/lake-explorer-params";
 import { PublicLakesPage } from "@/components/public/PublicLakesPage";
 import { PublicHeader } from "@/components/public/PublicHeader";
 import { PublicFooter } from "@/components/public/PublicFooter";
 
 const siteUrl = "https://rybio.pl";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -60,9 +68,16 @@ export const metadata: Metadata = {
 };
 
 export default async function NoKillLakesPage() {
-  const lakes = await getLakes();
-
-  const noKillLakes = lakes.filter((lake) => lake.amenities.noKill);
+  const initialData =
+    await getLakeExplorerInitialData({
+      query: {
+        ...DEFAULT_LAKE_EXPLORER_FILTERS,
+        amenities: ["noKill"],
+        page: 1,
+        pageSize:
+          LAKE_EXPLORER_PAGE_SIZE,
+      },
+    });
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -133,7 +148,7 @@ export default async function NoKillLakesPage() {
 
             <div className="mt-10 grid max-w-2xl gap-4 sm:grid-cols-3">
               <HeroStat
-                value={String(noKillLakes.length)}
+                value={String(initialData.result.totalCount)}
                 label="łowisk No Kill"
               />
               <HeroStat value="Złów i wypuść" label="zasada łowienia" />
@@ -198,7 +213,7 @@ export default async function NoKillLakesPage() {
         </div>
       </section>
 
-      <PublicLakesPage lakes={noKillLakes} initialAmenities={["noKill"]} />
+      <PublicLakesPage initialData={initialData} />
 
       <section className="mx-auto max-w-[1500px] px-4 pb-16 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">

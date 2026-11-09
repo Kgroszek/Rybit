@@ -1,12 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { revalidateLakePublicContent } from "@/lib/public-revalidation";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { uploadImageVariants } from "@/lib/server/image-variants";
 
 type RouteProps = {
   params: Promise<{
     id: string;
   }>;
 };
+
+const LAKE_IMAGES_BUCKET = "lake-images";
 
 function splitFishNames(fish: string) {
   return fish
@@ -46,6 +51,50 @@ async function createUniqueLakeSlug(baseSlug: string) {
 
     slug = `${baseSlug}-${counter}`;
     counter++;
+  }
+}
+
+async function ensureApprovedLakeImageVariants(
+  images: Array<{
+    imagePath: string | null;
+  }>
+) {
+  if (images.length === 0) {
+    return;
+  }
+
+  const supabase = createAdminClient();
+
+  for (const image of images) {
+    if (!image.imagePath) {
+      continue;
+    }
+
+    try {
+      const { data, error } = await supabase.storage
+        .from(LAKE_IMAGES_BUCKET)
+        .download(image.imagePath);
+
+      if (error || !data) {
+        console.warn(
+          `[lake-approval] Nie udało się pobrać ${image.imagePath} do utworzenia miniaturek:`,
+          error?.message
+        );
+        continue;
+      }
+
+      await uploadImageVariants({
+        supabase,
+        bucket: LAKE_IMAGES_BUCKET,
+        originalPath: image.imagePath,
+        source: data,
+      });
+    } catch (error) {
+      console.warn(
+        `[lake-approval] Nie udało się przygotować miniaturek dla ${image.imagePath}:`,
+        error
+      );
+    }
   }
 }
 
@@ -109,6 +158,7 @@ export async function POST(_request: Request, { params }: RouteProps) {
 
         ownerType: submission.ownerType,
         fishingType: submission.fishingType,
+        fishingMethods: submission.fishingMethods,
         fish: submission.fish,
 
         lat: submission.lat,
@@ -131,9 +181,12 @@ export async function POST(_request: Request, { params }: RouteProps) {
         parking: submission.parking,
         pier: submission.pier,
         toilet: submission.toilet,
+        sanitaryFacilities: submission.sanitaryFacilities,
         shop: submission.shop,
         nightFishing: submission.nightFishing,
         boatRental: submission.boatRental,
+        camperCaravan: submission.camperCaravan,
+        electricityHookup: submission.electricityHookup,
 
         gearRental: submission.gearRental,
         shelter: submission.shelter,
@@ -251,6 +304,14 @@ export async function POST(_request: Request, { params }: RouteProps) {
 
     return lake;
   });
+
+  // Generowanie wariantów nie zmienia modelu DB. Ścieżki są deterministyczne
+  // na podstawie imagePath, więc stare rekordy pozostają kompatybilne.
+  await ensureApprovedLakeImageVariants(submission.images);
+
+  revalidateLakePublicContent([
+    createdLake.slug,
+  ]);
 
   return NextResponse.json({
     message: "Zgłoszenie zostało zaakceptowane.",

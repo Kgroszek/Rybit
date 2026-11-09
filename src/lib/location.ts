@@ -17,7 +17,11 @@ export function isValidLocation(location: unknown): location is UserLocation {
     typeof parsedLocation.lat === "number" &&
     typeof parsedLocation.lng === "number" &&
     Number.isFinite(parsedLocation.lat) &&
-    Number.isFinite(parsedLocation.lng)
+    Number.isFinite(parsedLocation.lng) &&
+    parsedLocation.lat >= -90 &&
+    parsedLocation.lat <= 90 &&
+    parsedLocation.lng >= -180 &&
+    parsedLocation.lng <= 180
   );
 }
 
@@ -54,6 +58,11 @@ export function saveUserLocation(location: UserLocation) {
     return;
   }
 
+  if (!isValidLocation(location)) {
+    window.localStorage.removeItem(USER_LOCATION_STORAGE_KEY);
+    return;
+  }
+
   window.localStorage.setItem(
     USER_LOCATION_STORAGE_KEY,
     JSON.stringify(location)
@@ -61,7 +70,7 @@ export function saveUserLocation(location: UserLocation) {
 }
 
 export function broadcastUserLocation(location: UserLocation) {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || !isValidLocation(location)) {
     return;
   }
 
@@ -73,6 +82,10 @@ export function broadcastUserLocation(location: UserLocation) {
 }
 
 export function saveAndBroadcastUserLocation(location: UserLocation) {
+  if (!isValidLocation(location)) {
+    return;
+  }
+
   saveUserLocation(location);
   broadcastUserLocation(location);
 }
@@ -92,10 +105,21 @@ export function requestUserLocation(
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        resolve({
+        const location: UserLocation = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
-        });
+        };
+
+        if (!isValidLocation(location)) {
+          reject(
+            new Error(
+              "Przeglądarka zwróciła nieprawidłowe współrzędne lokalizacji."
+            )
+          );
+          return;
+        }
+
+        resolve(location);
       },
       () => {
         reject(
@@ -117,6 +141,13 @@ export function calculateDistanceInKm(
   firstLocation: UserLocation,
   secondLocation: UserLocation
 ) {
+  if (
+    !isValidLocation(firstLocation) ||
+    !isValidLocation(secondLocation)
+  ) {
+    return Number.POSITIVE_INFINITY;
+  }
+
   const earthRadiusInKm = 6371;
 
   const firstLat = toRadians(firstLocation.lat);
@@ -138,6 +169,10 @@ export function calculateDistanceInKm(
 }
 
 export function formatDistanceInKm(distance: number) {
+  if (!Number.isFinite(distance)) {
+    return "—";
+  }
+
   if (distance < 1) {
     return `${Math.round(distance * 1000)} m`;
   }
@@ -153,8 +188,12 @@ export function getDistanceLabel(
   userLocation: UserLocation | null,
   targetLocation: UserLocation
 ) {
-  if (!userLocation) {
+  if (!userLocation || !isValidLocation(userLocation)) {
     return "Włącz lokalizację";
+  }
+
+  if (!isValidLocation(targetLocation)) {
+    return "Brak lokalizacji";
   }
 
   const distance = calculateDistanceInKm(userLocation, targetLocation);

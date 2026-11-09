@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
@@ -8,60 +9,123 @@ type RouteProps = {
   }>;
 };
 
-export async function GET(_request: Request, { params }: RouteProps) {
-  const supabase = await createClient();
+const PRIVATE_NO_STORE_HEADERS = {
+  "Cache-Control":
+    "private, no-store, max-age=0",
+} as const;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function GET(
+  _request: Request,
+  { params }: RouteProps
+) {
+  try {
+    const supabase =
+      await createClient();
 
-  if (!user) {
-    return NextResponse.json({
-      isFavourite: false,
-      userRating: 0,
-    });
-  }
+    const {
+      data: { user },
+    } =
+      await supabase.auth.getUser();
 
-  const { slug } = await params;
+    if (!user) {
+      return NextResponse.json(
+        {
+          isFavourite: false,
+          userRating: 0,
+        },
+        {
+          headers:
+            PRIVATE_NO_STORE_HEADERS,
+        }
+      );
+    }
 
-  const lake = await prisma.lake.findUnique({
-    where: {
-      slug,
-    },
-    select: {
-      id: true,
-    },
-  });
+    const { slug } = await params;
 
-  if (!lake) {
+    /*
+     * Wcześniej:
+     * 1. Lake.findUnique()
+     * 2. Favourite.findUnique()
+     * 3. Rating.findUnique()
+     *
+     * Teraz wszystkie potrzebne dane użytkownika pobieramy
+     * jednym zapytaniem do Prisma.
+     */
+    const lake =
+      await prisma.lake.findUnique({
+        where: {
+          slug,
+        },
+        select: {
+          id: true,
+
+          favourites: {
+            where: {
+              userId: user.id,
+            },
+            select: {
+              id: true,
+            },
+            take: 1,
+          },
+
+          ratings: {
+            where: {
+              userId: user.id,
+            },
+            select: {
+              value: true,
+            },
+            take: 1,
+          },
+        },
+      });
+
+    if (!lake) {
+      return NextResponse.json(
+        {
+          message:
+            "Nie znaleziono łowiska.",
+        },
+        {
+          status: 404,
+          headers:
+            PRIVATE_NO_STORE_HEADERS,
+        }
+      );
+    }
+
     return NextResponse.json(
-      { message: "Nie znaleziono łowiska." },
-      { status: 404 }
+      {
+        isFavourite:
+          lake.favourites.length >
+          0,
+
+        userRating:
+          lake.ratings[0]?.value ??
+          0,
+      },
+      {
+        headers:
+          PRIVATE_NO_STORE_HEADERS,
+      }
+    );
+  } catch (error) {
+    console.error(
+      "[api/lakes/[slug]/user-data]",
+      error
+    );
+
+    return NextResponse.json(
+      {
+        message:
+          "Nie udało się pobrać danych użytkownika.",
+      },
+      {
+        status: 500,
+        headers:
+          PRIVATE_NO_STORE_HEADERS,
+      }
     );
   }
-
-  const [favourite, rating] = await Promise.all([
-    prisma.favourite.findUnique({
-      where: {
-        userId_lakeId: {
-          userId: user.id,
-          lakeId: lake.id,
-        },
-      },
-    }),
-
-    prisma.rating.findUnique({
-      where: {
-        userId_lakeId: {
-          userId: user.id,
-          lakeId: lake.id,
-        },
-      },
-    }),
-  ]);
-
-  return NextResponse.json({
-    isFavourite: Boolean(favourite),
-    userRating: rating?.value ?? 0,
-  });
 }
